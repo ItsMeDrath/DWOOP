@@ -37,9 +37,9 @@ struct CoachLauncherSheet: View {
 
     private var unconfiguredDescription: String {
         #if os(iOS)
-        return "Anya uses your own provider connection. Nothing is sent until you enable it and ask a question; your key stays securely in the Keychain."
+        return "WHOOP uses your own provider connection. Nothing is sent until you enable it and ask a question; your key stays securely in the Keychain."
         #else
-        return "Anya uses your own API key. Pick a provider, paste a key, and choose a model. Your key is stored securely in the Keychain and never leaves \(Platform.deviceNounPhrase) except as the request you make."
+        return "WHOOP uses your own API key. Pick a provider, paste a key, and choose a model. Your key is stored securely in the Keychain and never leaves \(Platform.deviceNounPhrase) except as the request you make."
         #endif
     }
 
@@ -58,9 +58,9 @@ struct CoachLauncherSheet: View {
             }
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
             #if os(iOS)
-            .navigationTitle(Text("Anya"))
+            .navigationTitle(Text("WHOOP"))
             #else
-            .navigationTitle(Text("Anya"))
+            .navigationTitle(Text("WHOOP"))
             #endif
             #if os(iOS)
             .navigationBarTitleDisplayMode(.inline)
@@ -93,7 +93,7 @@ struct CoachLauncherSheet: View {
                 Image(systemName: "sparkles")
                     .font(.system(size: 13, weight: .bold))
                     .foregroundStyle(StrandPalette.accent)
-                Text("Anya noticed")
+                Text("WHOOP noticed")
                     .font(StrandFont.caption.weight(.bold))
                     .foregroundStyle(StrandPalette.textPrimary)
                 Spacer(minLength: 0)
@@ -140,7 +140,7 @@ struct CoachLauncherSheet: View {
         .background(FrostedCardSurface(cornerRadius: NoopMetrics.cardRadius))
 
         HStack(alignment: .bottom, spacing: 8) {
-            TextField("Tanya Anya…", text: $draft, axis: .vertical)
+            TextField("Tanya WHOOP…", text: $draft, axis: .vertical)
                 .font(StrandFont.footnote)
                 .lineLimit(1...4)
                 .submitLabel(.send)
