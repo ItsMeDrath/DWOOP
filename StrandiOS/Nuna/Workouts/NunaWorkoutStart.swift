@@ -1059,7 +1059,7 @@ private struct NunaWorkoutTargetSheet: View {
             let applied = goal.timeOn && !goal.distanceOn && goal.minutes == suggested.minutes && goal.zoneOn && goal.zone == suggested.zone
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
-                    AnyaMark(size: 26)
+                    Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 26, height: 26)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(verbatim: sentence(suggestion))
                             .font(.nuna(size: NunaTypeSize.sub, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary)
