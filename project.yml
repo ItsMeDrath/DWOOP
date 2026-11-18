@@ -30,9 +30,8 @@ settings:
     CODE_SIGN_STYLE: Automatic
     # Single source of truth for the App Group id shared by the iOS app + its widget / Live Activity
     # extension. Referenced as $(APP_GROUP_ID) by both targets' entitlements and Info.plist, and read
-    # at runtime via the AppGroupIdentifier Info.plist key (WidgetSnapshot.suiteName) so the value is
-    # never hard-coded in Swift. Built from $(BUNDLE_ID_PREFIX) (see Config/BundleId.xcconfig) — set
-    # BUNDLE_ID_PREFIX in a gitignored Config/BundleIdSecrets.xcconfig to build under your own Apple ID.
+    # at runtime via the AppGroupIdentifier Info.plist key (WidgetSnapshot.suiteName). The WHOOP
+    # iOS app, widget, and watch targets share the fixed group.com.whoop.iphone entitlement.
     APP_GROUP_ID: group.com.whoop.iphone
     # Build for both Apple Silicon and Intel so the release runs on every Mac.
     ARCHS: "$(ARCHS_STANDARD)"
