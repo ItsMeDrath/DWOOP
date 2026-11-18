@@ -292,7 +292,7 @@ struct NunaAnyaView: View {
             }
         } else if !environment.isEnabled {
             NavigationLink(value: NunaAnyaRoute.environment) {
-                NunaListRow("Weather and air", description: "Let WHOOP read the weather and air before she suggests a session", systemImage: "cloud.sun", showsChevron: true)
+                NunaListRow("Weather and air", description: "Let WHOOP read the weather and air before suggesting a session", systemImage: "cloud.sun", showsChevron: true)
             }.buttonStyle(.plain)
         }
     }
