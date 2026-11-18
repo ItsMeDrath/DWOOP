@@ -140,7 +140,7 @@ public struct PHMNWordmark: View {
         let k = height / PHMNButterflyGeometry.wordmarkCap
         PHMNWordmarkShape().fill(color)
             .frame(width: PHMNButterflyGeometry.wordmarkWidth * k, height: height)
-            .accessibilityLabel(Text(verbatim: "PHMN"))
+            .accessibilityLabel(Text(verbatim: "WHOOP"))
     }
 }
 
