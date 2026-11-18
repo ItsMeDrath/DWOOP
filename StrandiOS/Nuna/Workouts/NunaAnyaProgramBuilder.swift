@@ -94,7 +94,7 @@ enum NunaAnyaProgramNames {
     }
 }
 
-/// "Program with WHOOP": fill in the target and the instructions, Anya builds the program (from the person's own training, the equipment and the
+/// "Program with WHOOP": fill in the target and the instructions, WHOOP builds the program (from the person's own training, the equipment and the
 /// time they have), the person checks it, asks for changes in their own words, and saves each day as a program under "WHOOP special".
 struct NunaAnyaProgramBuilder: View {
     @EnvironmentObject private var repo: Repository
