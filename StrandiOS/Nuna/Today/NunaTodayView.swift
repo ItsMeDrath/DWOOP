@@ -73,7 +73,7 @@ private struct NunaLiveStrapChip: View {
     var body: some View { NunaStrapChip(connected: live.connected, battery: live.batteryPct) }
 }
 
-/// The early warning no longer takes a card on Today: it goes into the bell once a day per level (and Anya's card carries a short
+/// The early warning no longer takes a card on Today: it goes into the bell once a day per level (and WHOOP card carries a short
 /// line). It draws nothing itself.
 private struct NunaIllnessNotifier: View {
     @EnvironmentObject private var appModel: AppModel
@@ -116,7 +116,7 @@ private struct NunaPinnedRings: View {
     var body: some View { NunaScoreRings(charge: charge, effort: effort, rest: rest, effortScale: effortScale, collapse: state.t) }
 }
 
-/// "WHOOPOOP" in thin wide letters over the rings; it folds away as the rings shrink.
+/// "WHOOP" in thin wide letters over the rings; it folds away as the rings shrink.
 private struct NunaPinnedBrand: View {
     @ObservedObject var state: NunaCollapse
     let height: CGFloat
@@ -272,7 +272,7 @@ struct NunaTodayView: View {
                 let fitting = (r.minY - 12 - Self.quickTopLimit - 2 * NunaQuickMenu.verticalPadding) / CGFloat(rows)
                 let rowH = min(NunaQuickMenu.fullRowHeight, max(fitting, NunaQuickMenu.minRowHeight))
                 let h = NunaQuickMenu.height(rows, rowHeight: rowH)
-                // The menu never rises past the top of the PHMN wordmark: with no room for it between there and the plus, it opens downward.
+                // The menu never rises past the top of the WHOOP wordmark: with no room for it between there and the plus, it opens downward.
                 let above = r.minY - 12 - h >= Self.quickTopLimit
                 let cx = min(r.maxX, geo.size.width - 12) - NunaQuickMenu.width / 2
                 let cy = above ? r.minY - 12 - h / 2 : r.maxY + 12 + h / 2
@@ -347,7 +347,7 @@ struct NunaTodayView: View {
                     }
                 }
             }
-            // Highlights took Anya's place and sit right under the rings, so a saved layout that has it further down is moved up once.
+            // Highlights took WHOOP's place and sit right under the rings, so a saved layout that has it further down is moved up once.
             if !UserDefaults.standard.bool(forKey: NunaTodayDefaults.highlightsMovedKey) {
                 UserDefaults.standard.set(true, forKey: NunaTodayDefaults.highlightsMovedKey)
                 if !sectionOrderRaw.trimmingCharacters(in: .whitespaces).isEmpty {
@@ -369,7 +369,7 @@ struct NunaTodayView: View {
                     hiddenSectionsRaw = hidden.isEmpty ? "none" : TodayLayoutPrefs.encodeHidden(hidden)
                 }
             }
-            // And to just under Anya, where it was never placed on a layout saved back then (it sat at the very bottom).
+            // And to just under WHOOP, where it was never placed on a layout saved back then (it sat at the very bottom).
             if !sectionOrderRaw.trimmingCharacters(in: .whitespaces).isEmpty {
                 var order = TodayLayoutPrefs.decodeOrder(sectionOrderRaw)
                 if let from = order.firstIndex(of: .workouts), let anya = order.firstIndex(of: .synthesis), from > anya + 1 {
@@ -487,7 +487,7 @@ struct NunaTodayView: View {
     /// The wordmark over the rings, and the room between it and the day: both go as the page scrolls.
     private static let brandHeight: CGFloat = 58
 
-    /// Where the top of the PHMN wordmark is, measured from the top of the safe area: the pinned header's top padding, the row of the bell, the
+    /// Where the top of the WHOOP wordmark is, measured from the top of the safe area: the pinned header's top padding, the row of the bell, the
     /// day and the strap, and the space the wordmark's own line leaves above its letters.
     private static let quickTopLimit: CGFloat = 2 + 46 + (brandHeight - 14) / 2
 
