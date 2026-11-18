@@ -39,8 +39,8 @@ struct NunaAnyaWidget: Widget {
         StaticConfiguration(kind: Self.kind, provider: NunaAnyaProvider()) { entry in
             NunaAnyaView(entry: entry).widgetURL(NunaWLink.anya).nunaWidgetBackground()
         }
-        .configurationDisplayName("Anya")
-        .description("Anya's morning suggestion.")
+        .configurationDisplayName("WHOOP")
+        .description("WHOOP's morning suggestion.")
         .supportedFamilies([.systemSmall, .accessoryRectangular])
         .contentMarginsDisabled()
     }
@@ -57,13 +57,13 @@ private struct NunaAnyaView: View {
     private var home: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 6) {
-                PHMNAnyaMark(size: 22, glow: false)
-                NunaWCap(text: Text("Anya"))
+                Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 22, height: 22)
+                NunaWCap(text: Text("WHOOP"))
             }
             if let text = entry.text {
                 Text(verbatim: text).font(.nuna(size: 13, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).lineSpacing(2).lineLimit(5).minimumScaleFactor(0.85).padding(.top, 10)
             } else {
-                Text("No suggestion yet. Turn on the morning brief in Anya.").font(.nuna(size: 12, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).padding(.top, 10)
+                Text("No suggestion yet. Turn on the morning brief in WHOOP.").font(.nuna(size: 12, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).padding(.top, 10)
             }
             Spacer(minLength: 0)
             if let w = entry.written { Text("Updated \(w.formatted(date: .omitted, time: .shortened))").font(.nuna(size: 10, weight: .bold)).foregroundStyle(NunaPalette.textMuted) }
@@ -73,8 +73,8 @@ private struct NunaAnyaView: View {
     private var lock: some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 5) {
-                PHMNButterflyShape().fill(Color.primary).frame(width: 14, height: 14).widgetAccentable()
-                Text("Anya").font(.system(size: 12, weight: .heavy))
+                Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 14, height: 14)
+                Text("WHOOP").font(.system(size: 12, weight: .heavy))
                 Spacer()
                 if let w = entry.written { Text(w, style: .time).font(.system(size: 10, weight: .semibold)).opacity(0.7) }
             }
