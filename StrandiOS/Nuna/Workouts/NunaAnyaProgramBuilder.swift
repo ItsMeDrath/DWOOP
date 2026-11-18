@@ -116,7 +116,7 @@ struct NunaAnyaProgramBuilder: View {
             NunaDetailScreen("Program with WHOOP") {
                 if !ready {
                     NunaCard(small: true) {
-                        Text("WHOOP is not connected. Connect her in More › WHOOP, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
+                        Text("WHOOP is not connected. Connect it in More › WHOOP, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true).textCase(nil)
                     }
                 }
@@ -241,7 +241,7 @@ struct NunaAnyaProgramBuilder: View {
             let prose = AnyaActions.proseOnly(reply)
             problem = prose.isEmpty ? String(localized: "WHOOP couldn't make a program from that. Say a little more about what you want.") : prose
         } else {
-            problem = String(localized: "WHOOP couldn't answer. Check her connection in More, then try again.")
+            problem = String(localized: "WHOOP couldn't answer. Check the connection in More, then try again.")
         }
     }
 
