@@ -94,8 +94,8 @@ enum NunaAnyaProgramNames {
     }
 }
 
-/// "Program with Anya": fill in the target and the instructions, Anya builds the program (from the person's own training, the equipment and the
-/// time they have), the person checks it, asks for changes in their own words, and saves each day as a program under "Anya special".
+/// "Program with WHOOP": fill in the target and the instructions, Anya builds the program (from the person's own training, the equipment and the
+/// time they have), the person checks it, asks for changes in their own words, and saves each day as a program under "WHOOP special".
 struct NunaAnyaProgramBuilder: View {
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var model: AppModel
@@ -113,10 +113,10 @@ struct NunaAnyaProgramBuilder: View {
 
     var body: some View {
         NavigationStack {
-            NunaDetailScreen("Program with Anya") {
+            NunaDetailScreen("Program with WHOOP") {
                 if !ready {
                     NunaCard(small: true) {
-                        Text("Anya is not connected. Connect her in More › Anya, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
+                        Text("WHOOP is not connected. Connect her in More › WHOOP, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
                             .fixedSize(horizontal: false, vertical: true).textCase(nil)
                     }
                 }
@@ -128,7 +128,7 @@ struct NunaAnyaProgramBuilder: View {
                 if let problem {
                     Text(verbatim: problem).font(.nuna(size: 13.5, weight: .semibold)).foregroundStyle(NunaPalette.alertText).fixedSize(horizontal: false, vertical: true).textCase(nil)
                 }
-                nunaFootnote("Anya sees only what you fill in here and a summary of your recent training, never your other health data. A suggestion, not a prescription.")
+                nunaFootnote("WHOOP sees only what you fill in here and a summary of your recent training, never your other health data. A suggestion, not a prescription.")
             }
             .toolbar(.hidden, for: .navigationBar)
             .scrollDismissesKeyboard(.interactively)
@@ -166,7 +166,7 @@ struct NunaAnyaProgramBuilder: View {
                     .lineLimit(3...6).focused($focused).font(.nuna(size: 15, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                     .padding(14).background(NunaPalette.field, in: RoundedRectangle(cornerRadius: NunaRadius.cardSmall, style: .continuous))
             }
-            primaryButton(making ? "Anya is building it…" : "Build the program", icon: "sparkles") { Task { await make(previous: nil) } }
+            primaryButton(making ? "WHOOP is building it…" : "Build the program", icon: "sparkles") { Task { await make(previous: nil) } }
                 .disabled(making || !ready).opacity(making || !ready ? 0.5 : 1)
         }
     }
@@ -205,7 +205,7 @@ struct NunaAnyaProgramBuilder: View {
                 TextField("", text: $change, prompt: Text("Swap the leg day for a lighter one, add arms…").foregroundStyle(NunaPalette.textMuted), axis: .vertical)
                     .lineLimit(2...4).focused($focused).font(.nuna(size: 15, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                     .padding(14).background(NunaPalette.field, in: RoundedRectangle(cornerRadius: NunaRadius.cardSmall, style: .continuous))
-                primaryButton(making ? "Anya is building it…" : "Update the program", icon: "arrow.triangle.2.circlepath") { Task { await make(previous: spec) } }
+                primaryButton(making ? "WHOOP is building it…" : "Update the program", icon: "arrow.triangle.2.circlepath") { Task { await make(previous: spec) } }
                     .disabled(making || change.trimmingCharacters(in: .whitespaces).isEmpty || !ready)
                     .opacity(making || change.trimmingCharacters(in: .whitespaces).isEmpty || !ready ? 0.5 : 1)
             }
@@ -239,9 +239,9 @@ struct NunaAnyaProgramBuilder: View {
         } else if let reply {
             // Anya asked a question or explained what is missing.
             let prose = AnyaActions.proseOnly(reply)
-            problem = prose.isEmpty ? String(localized: "Anya couldn't make a program from that. Say a little more about what you want.") : prose
+            problem = prose.isEmpty ? String(localized: "WHOOP couldn't make a program from that. Say a little more about what you want.") : prose
         } else {
-            problem = String(localized: "Anya couldn't answer. Check her connection in More, then try again.")
+            problem = String(localized: "WHOOP couldn't answer. Check her connection in More, then try again.")
         }
     }
 
