@@ -131,6 +131,7 @@ struct NunaWorkoutStartView: View {
         .background(NunaBackdrop())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
+            model.startRealtimeHR()
             if resume, !didResume, model.activeWorkout != nil { didResume = true; live = true }
             // A session suggested by the day plan: hold its main zone, and keep its length for the Time goal.
             if let p = router.plannedSession {
@@ -148,7 +149,7 @@ struct NunaWorkoutStartView: View {
             dayPlan = await NunaDayPlanResult.load(repo: repo, profile: profile)
             applyAnyaDefaults()
         }
-        .onDisappear { locationPreview.stop() }
+        .onDisappear { model.stopRealtimeHR(); locationPreview.stop() }
         .onChange(of: chosen) { _, _ in
             if !isDistance, goal.distanceOn { goal.distanceOn = false }
             updateLocationPreview()
@@ -1213,6 +1214,7 @@ struct NunaLiveWorkoutView: View {
             for await on in info.activityEnablementUpdates { liveActivitiesOn = on }
         }
         .onAppear {
+            model.startRealtimeHR()
             holdScreenAwake()
             // A session picked up after the app was killed: targets already passed are not announced or buzzed a second time.
             if let w = model.activeWorkout {
@@ -1220,7 +1222,7 @@ struct NunaLiveWorkoutView: View {
                 if goal.distanceOn, model.gpsRecorder.distanceM >= goal.km * 1000 { distanceHit = true }
             }
         }
-        .onDisappear { ScreenIdle.keepAwake(false) }
+        .onDisappear { model.stopRealtimeHR(); ScreenIdle.keepAwake(false) }
         // iOS can drop the "keep awake" flag while the app is away (lock screen, another app, a sync that finished), so it is asked for
         // again every time the app comes back to the front.
         .onChange(of: scenePhase) { _, phase in if phase == .active { holdScreenAwake() } }
