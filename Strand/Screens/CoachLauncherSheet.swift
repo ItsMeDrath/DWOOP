@@ -90,9 +90,7 @@ struct CoachLauncherSheet: View {
     private var configured: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Image(systemName: "sparkles")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(StrandPalette.accent)
+                Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 18, height: 18)
                 Text("WHOOP noticed")
                     .font(StrandFont.caption.weight(.bold))
                     .foregroundStyle(StrandPalette.textPrimary)
