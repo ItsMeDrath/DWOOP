@@ -53,14 +53,11 @@ public struct BrandMark: View {
             .accessibilityLabel(Text("WHOOP"))
         .accessibilityAddTraits(.isImage)
         #else
-        ZStack {
-            navyTile
-            goldRing
-            coreDot
-        }
-        .frame(width: size, height: size)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("NOOP"))
+        Image("WHOOPCoachLogo")
+            .resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("WHOOP"))
         .accessibilityAddTraits(.isImage)
         #endif
     }
