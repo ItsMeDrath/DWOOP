@@ -151,8 +151,8 @@ struct NunaFoodAddSheet: View {
         if !coach.isConfigured {
             NunaCard(small: true) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Connect Anya to log by telling her").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
-                    Text("Connect Anya in More to describe a meal and have the calories and macros worked out for you.")
+                    Text("Connect WHOOP to log by telling her").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
+                    Text("Connect WHOOP in More to describe a meal and have the calories and macros worked out for you.")
                         .font(.nuna(size: 13.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -162,7 +162,7 @@ struct NunaFoodAddSheet: View {
                     if let image = mealPhoto {
                         HStack(spacing: 12) {
                             Image(uiImage: image).resizable().scaledToFill().frame(width: 64, height: 64).clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            Text(readingPhoto ? "Reading the photo…" : (coach.supportsImages ? "Anya will look at it" : "Read on this iPhone"))
+                            Text(readingPhoto ? "Reading the photo…" : (coach.supportsImages ? "WHOOP will look at it" : "Read on this iPhone"))
                                 .font(.nuna(size: 13.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                             Spacer(minLength: 0)
                             Button { mealPhoto = nil; photoBase64 = nil; photoItem = nil; estimateError = nil } label: {
@@ -202,10 +202,10 @@ struct NunaFoodAddSheet: View {
 
     /// What the person is told about where the photo goes.
     private var photoNote: LocalizedStringKey {
-        if mealPhoto == nil { return "Only this description is sent to Anya, with none of your health data. She estimates each item; you check it before it is added." }
+        if mealPhoto == nil { return "Only this description is sent to WHOOP, with none of your health data. She estimates each item; you check it before it is added." }
         return coach.supportsImages
-            ? "The photo and your details go to the Anya provider you chose, with none of your health data. She estimates each item you can see; you check it before it is added."
-            : "This Anya can't see photos, so the photo was read on this iPhone for food names and nothing was sent. Check the names, add portions, then work out the calories."
+            ? "The photo and your details go to the WHOOP provider you chose, with none of your health data. She estimates each item you can see; you check it before it is added."
+            : "This WHOOP can't see photos, so the photo was read on this iPhone for food names and nothing was sent. Check the names, add portions, then work out the calories."
     }
 
     // MARK: Your foods
@@ -337,8 +337,8 @@ struct NunaFoodAddSheet: View {
             if let f = AnyaActions.parseFood(from: reply) { spec = f; break }
         }
         if let spec { estimate = spec }
-        else if answered { estimateError = String(localized: "Anya couldn't read that as food. Try naming each item and its portion.") }
-        else { estimateError = String(localized: "Anya couldn't answer. Check her connection in More, then try again.") }
+        else if answered { estimateError = String(localized: "WHOOP couldn't read that as food. Try naming each item and its portion.") }
+        else { estimateError = String(localized: "WHOOP couldn't answer. Check her connection in More, then try again.") }
     }
 }
 #endif
