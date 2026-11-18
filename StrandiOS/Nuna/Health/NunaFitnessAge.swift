@@ -148,7 +148,7 @@ struct NunaFitnessAgeView: View {
                 Button { showInfo = true } label: {
                     Image(systemName: "info").font(.nuna(size: 15, weight: .heavy)).foregroundStyle(NunaPalette.textPrimary)
                         .frame(width: 34, height: 34).overlay(Circle().strokeBorder(NunaPalette.textSecondary, lineWidth: 1.5)).frame(width: 44, height: 44).contentShape(Rectangle())
-                }.buttonStyle(.plain).accessibilityLabel(Text("About fitness age"))
+                }.buttonStyle(.plain).accessibilityLabel(Text("About WHOOP Age"))
             }
         }
         .padding(.horizontal, 12).frame(height: 56)
@@ -610,13 +610,13 @@ private struct NunaFitnessAgeInfoSheet: View {
     private struct Page { let tint: Color; let title: LocalizedStringKey; let text: LocalizedStringKey; let ruler: Double?; var shape = 0.12; var orb = true }
 
     private var pages: [Page] {
-        [Page(tint: NunaPalette.caution, title: "An older fitness age", text: "Your WHOOP Age is above your calendar age. Small, consistent habits can bring it down.", ruler: nil),
+        [Page(tint: NunaPalette.caution, title: "An older WHOOP Age", text: "Your WHOOP Age is above your calendar age. Small, consistent habits can bring it down.", ruler: nil),
          Page(tint: NunaPalette.recoveryBlue, title: "On track", text: "Your WHOOP Age is close to your calendar age, a sign of balanced fitness. Keep up your current habits.", ruler: nil),
-         Page(tint: NunaPalette.charge, title: "A younger fitness age", text: "Your WHOOP Age is below your calendar age, reflecting healthy habits. Continue them.", ruler: nil),
-         Page(tint: NunaPalette.textSecondary, title: "Your pace of aging", text: "Pace of aging shows how quickly your fitness age is changing, so you can see how your recent habits shape it over time.", ruler: pace, shape: NunaFitnessAgeTone.irregularity(pace: pace)),
-         Page(tint: NunaPalette.charge, title: "Trending slower", text: "Your pace is below 1.0x, or even negative. Your recent habits are lowering your fitness age.", ruler: -1, shape: 0),
-         Page(tint: NunaPalette.recoveryBlue, title: "Balanced", text: "Your pace is near 1.0x. Your fitness age rises steadily, at the same rate as your calendar age.", ruler: 1, shape: 0.5),
-         Page(tint: NunaPalette.caution, title: "Trending faster", text: "Your pace is above 1.0x. Your current habits may be pushing your fitness age up. Small, healthy habits can shift the trend.", ruler: 3, shape: 1),
+         Page(tint: NunaPalette.charge, title: "A younger WHOOP Age", text: "Your WHOOP Age is below your calendar age, reflecting healthy habits. Continue them.", ruler: nil),
+         Page(tint: NunaPalette.textSecondary, title: "Your pace of aging", text: "Pace of aging shows how quickly your WHOOP Age is changing, so you can see how your recent habits shape it over time.", ruler: pace, shape: NunaFitnessAgeTone.irregularity(pace: pace)),
+         Page(tint: NunaPalette.charge, title: "Trending slower", text: "Your pace is below 1.0x, or even negative. Your recent habits are lowering your WHOOP Age.", ruler: -1, shape: 0),
+         Page(tint: NunaPalette.recoveryBlue, title: "Balanced", text: "Your pace is near 1.0x. Your WHOOP Age rises steadily, at the same rate as your calendar age.", ruler: 1, shape: 0.5),
+         Page(tint: NunaPalette.caution, title: "Trending faster", text: "Your pace is above 1.0x. Your current habits may be pushing your WHOOP Age up. Small, healthy habits can shift the trend.", ruler: 3, shape: 1),
          Page(tint: NunaPalette.textSecondary, title: "How it's calculated",
               text: "Nine inputs from the last 7 days (resting heart rate, VO₂ max, hours and consistency of sleep, steps, time in heart-rate zones 1–3 and 4–5, strength training and lean body mass) are each read against a break-even point. The years each adds or takes away are added to your calendar age. The break-evens come from published mortality studies; lean body mass and a few others follow the WHOOP Healthspan page.",
               ruler: nil, orb: false)]
