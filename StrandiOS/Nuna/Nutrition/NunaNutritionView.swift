@@ -177,11 +177,11 @@ struct NunaNutritionView: View {
     private var anyaPrompt: some View {
         Button { addInAnya = true } label: {
             VStack(alignment: .leading, spacing: 12) {
-                Text("Tell Anya what you ate").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
+                Text("Tell WHOOP what you ate").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                 Text("Describe a meal in your own words and she works out the calories and macros. You check it before it goes in the diary.")
                     .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
                 HStack(spacing: 8) {
-                    Text("Add with Anya").font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                    Text("Add with WHOOP").font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     Image(systemName: "arrow.right").font(.nuna(size: 13, weight: .bold))
                 }
                 .foregroundStyle(LinearGradient(colors: NunaAnyaWing.colors, startPoint: .leading, endPoint: .trailing))
@@ -220,14 +220,14 @@ struct NunaNutritionView: View {
             detail = String(localized: "The calories are there, but not the protein. A protein-rich food would close most of the gap.")
         case .nothingLogged:
             line = String(localized: "Nothing logged yet today.")
-            detail = String(localized: "Tell Anya what you ate and she logs it for you.")
+            detail = String(localized: "Tell WHOOP what you ate and she logs it for you.")
         case .onTrack:
             line = String(localized: "You're right on your target today.")
             detail = String(localized: "Calories and protein are where they should be.")
             canAdd = false
         }
         let card: NunaAnyaCard = canAdd
-            ? NunaAnyaCard(verbatim: line, detail: detail, buttonTitle: "Add with Anya", onButton: { addInAnya = true }) { addInAnya = true }
+            ? NunaAnyaCard(verbatim: line, detail: detail, buttonTitle: "Add with WHOOP", onButton: { addInAnya = true }) { addInAnya = true }
             : NunaAnyaCard(verbatim: line, detail: detail) { }
         return card
             .environment(\.nunaAnyaCardContext, "nutrition")
@@ -244,9 +244,9 @@ struct NunaNutritionView: View {
         } else {
             line = String(localized: "\(nutFmt(eaten)) kcal so far, \(nutFmt(m.p)) g protein.")
         }
-        let detail = target == nil ? String(localized: "Set a plan in Strategy and Anya reads the day against a target.") : String(localized: "Tell Anya what you ate next and she adds it for you.")
+        let detail = target == nil ? String(localized: "Set a plan in Strategy and WHOOP reads the day against a target.") : String(localized: "Tell WHOOP what you ate next and she adds it for you.")
         return AnyView(
-            NunaAnyaCard(verbatim: line, detail: detail, buttonTitle: "Add with Anya", onButton: { addInAnya = true }) { addInAnya = true }
+            NunaAnyaCard(verbatim: line, detail: detail, buttonTitle: "Add with WHOOP", onButton: { addInAnya = true }) { addInAnya = true }
                 .environment(\.nunaAnyaCardContext, "nutrition")
                 .sheet(isPresented: $addInAnya) { NunaFoodAddSheet(day: dayKey, meal: NunaMeal.suggested(), anyaFirst: true).nunaSheetChrome(detents: [.large]) }
         )
