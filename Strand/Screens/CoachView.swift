@@ -120,7 +120,7 @@ struct CoachView: View {
             #if os(iOS)
             iOSCoachPage
             #else
-            ScreenScaffold(title: "Anya",
+            ScreenScaffold(title: "WHOOP",
                            // Liquid finish: the same full-bleed day-of-sky backdrop Today + the other liquid
                            // tabs carry, so Coach sits in one atmosphere. Static + non-interactive; the frosted
                            // message/setup cards below sit on the opaque canvas and stay legible.
@@ -239,7 +239,7 @@ struct CoachView: View {
             Button("Clear", role: .destructive) { coach.clearConversation() }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This deletes the saved conversation from this device. Anya history is your own notes, not medical advice.")
+            Text("This deletes the saved conversation from this device. WHOOP history is your own notes, not medical advice.")
         }
         // K2 + K5 ordering matters and every step gates on an EMPTY transcript, so this is ONE `.task`
         // running sequentially (separate `.task`s can interleave at their await points on the same
@@ -345,12 +345,12 @@ struct CoachView: View {
             }
 
             if coach.messages.isEmpty {
-                Text("Anya reads your personal baseline, recent load and sleep together, then keeps the next step simple.")
+                Text("WHOOP reads your personal baseline, recent load and sleep together, then keeps the next step simple.")
                     .font(StrandFont.footnote)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Text("Ask a follow-up about what to do next, or switch modules and keep Anya with you.")
+                Text("Ask a follow-up about what to do next, or switch modules and keep WHOOP with you.")
                     .font(StrandFont.footnote)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -364,7 +364,8 @@ struct CoachView: View {
 
     private var iOSCoachHeader: some View {
         HStack(spacing: 14) {
-            Text("Anya")
+            Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 30, height: 30)
+            Text("WHOOP")
                 .font(StrandFont.rounded(26))
                 .foregroundStyle(StrandPalette.textPrimary)
             Spacer(minLength: 0)
@@ -380,7 +381,7 @@ struct CoachView: View {
             }
             .buttonStyle(.plain)
             .disabled(coach.messages.isEmpty || coach.sending)
-            .accessibilityLabel("New Anya conversation")
+            .accessibilityLabel("New WHOOP conversation")
             Button {
                 showHistory = true
             } label: {
@@ -389,7 +390,7 @@ struct CoachView: View {
                     .foregroundStyle(StrandPalette.textSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Anya history")
+            .accessibilityLabel("WHOOP history")
             Button {
                 showSettings = true
             } label: {
@@ -398,7 +399,7 @@ struct CoachView: View {
                     .foregroundStyle(StrandPalette.textSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Anya settings"))
+            .accessibilityLabel(String(localized: "WHOOP settings"))
             connectionMenu
         }
         .padding(.horizontal, NoopMetrics.screenHPadding)
@@ -690,7 +691,7 @@ struct CoachView: View {
             }
             .buttonStyle(.plain)
             .disabled(coach.messages.isEmpty || coach.sending)
-            .accessibilityLabel("New Anya conversation")
+            .accessibilityLabel("New WHOOP conversation")
             .accessibilityHint("Save this conversation and start a blank chat")
             Button {
                 showHistory = true
@@ -700,7 +701,7 @@ struct CoachView: View {
                     .foregroundStyle(StrandPalette.textSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("Anya history")
+            .accessibilityLabel("WHOOP history")
             // #2243: the way through to what used to be stacked under this header.
             Button {
                 showSettings = true
@@ -710,7 +711,7 @@ struct CoachView: View {
                     .foregroundStyle(StrandPalette.textSecondary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(String(localized: "Anya settings"))
+            .accessibilityLabel(String(localized: "WHOOP settings"))
             #if os(iOS)
             connectionMenu
             #endif
@@ -914,7 +915,7 @@ struct CoachView: View {
                 Text("I’m here with you")
                     .font(StrandFont.headline)
                     .foregroundStyle(StrandPalette.textPrimary)
-                Text("Anya will connect the signals, point out what matters today, and help you choose the next small step.")
+                Text("WHOOP will connect the signals, point out what matters today, and help you choose the next small step.")
                     .font(StrandFont.subhead)
                     .foregroundStyle(StrandPalette.textSecondary)
                     .multilineTextAlignment(.center)
@@ -986,14 +987,14 @@ struct CoachView: View {
                 Spacer(minLength: 48)
             }
             .accessibilityElement(children: .combine)
-            .accessibilityLabel("Anya said: \(message.text)")
+            .accessibilityLabel("WHOOP said: \(message.text)")
         }
     }
 
     private var typingIndicator: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small).tint(StrandPalette.accent)
-            Text("Anya is thinking…")
+            Text("WHOOP is thinking…")
                 .font(StrandFont.subhead)
                 .foregroundStyle(StrandPalette.textSecondary)
             Spacer(minLength: 0)
@@ -1002,7 +1003,7 @@ struct CoachView: View {
         .padding(.vertical, 11)
         .frostedCardSurface(tint: StrandPalette.chargeColor, cornerRadius: 16)
         .frame(maxWidth: 320, alignment: .leading)
-        .accessibilityLabel("Anya is thinking")
+        .accessibilityLabel("WHOOP is thinking")
     }
 
     private func errorBanner(_ message: String) -> some View {
@@ -1208,7 +1209,7 @@ struct CoachView: View {
                             .controlSize(.small)
                             .tint(StrandPalette.textSecondary)
                             .frame(width: 38, height: 38)
-                            .accessibilityLabel("Anya is thinking")
+                            .accessibilityLabel("WHOOP is thinking")
                     } else if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                               pendingAttachment == nil {
                         micButton
@@ -1242,7 +1243,7 @@ struct CoachView: View {
                 }
             }
         }
-        .confirmationDialog("Add to Anya", isPresented: $showAttachmentMenu, titleVisibility: .visible) {
+        .confirmationDialog("Add to WHOOP", isPresented: $showAttachmentMenu, titleVisibility: .visible) {
             Button("Photo") { showPhotoPicker = true }
             Button("Document") { showDocumentImporter = true }
             Button("Cancel", role: .cancel) { }

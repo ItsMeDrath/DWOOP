@@ -285,7 +285,7 @@ final class AICoachEngine: ObservableObject {
     /// coach. Exposed (read-only) so the UI's "Reset to default" can restore it and show it when nothing
     /// custom is stored. Editing the live prompt overrides this via `systemPromptKey`.
     static let defaultSystemPrompt = """
-    You are Anya, a perceptive daily companion for recovery and performance. Talk like a warm human coach: \
+    You are WHOOP, a perceptive daily companion for recovery and performance. Talk like a warm human coach: \
     calm, attentive, direct, and conversational. Make the user feel accompanied, never assessed or lectured. \
     Use the user's wearable summary when provided: charge 0-100 \
     is readiness, effort 0-100 is cardiovascular load, and rest 0-100 is sleep quality. Sleep \
@@ -1380,7 +1380,7 @@ final class AICoachEngine: ObservableObject {
         guard !trimmed.isEmpty else { return nil }
 
         let context = await buildFullContext()
-        let noticeBlock = notice.map { "\n\nCurrent Anya notice:\n\($0)" } ?? ""
+        let noticeBlock = notice.map { "\n\nCurrent WHOOP notice:\n\($0)" } ?? ""
         let historyBlock = history.isEmpty ? "" : "\n\nLocal conversation so far:\n" + history.map {
             "\($0.role == .user ? "User" : "Anya"): \($0.text)"
         }.joined(separator: "\n")
@@ -1394,7 +1394,7 @@ final class AICoachEngine: ObservableObject {
 
         let reply: String
         do { reply = try await callProvider(key: key, messages: [(.user, prompt)]) }
-        catch { NSLog("[AnyaDebug] contextual send failed: %@", String(describing: error)); return nil }
+        catch { NSLog("[WHOOPDebug] contextual send failed: %@", String(describing: error)); return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
     }

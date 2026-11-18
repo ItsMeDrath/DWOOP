@@ -342,7 +342,7 @@ struct NunaAnyaCard: View {
     /// The wing colours, light to deep, for the outline and the link.
     private static let wing = [Color(red: 0.44, green: 0.90, blue: 0.83), Color(red: 0.15, green: 0.65, blue: 0.62), Color(red: 0.11, green: 0.56, blue: 0.53)]
 
-    /// A note in its own outline: the words, then "Learn more with Anya" with an arrow. No icon and no fill; the outline fades from the light
+    /// A note in its own outline: the words, then "Learn more with WHOOP" with an arrow. No icon and no fill; the outline fades from the light
     /// wing teal to the deep one.
     private var borderedNote: some View {
         Button(action: tapped) {
@@ -357,7 +357,7 @@ struct NunaAnyaCard: View {
                     }.buttonStyle(.plain)
                 }
                 HStack(spacing: 8) {
-                    Text("Learn more with Anya").font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                    Text("Learn more with WHOOP").font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     Image(systemName: "arrow.right").font(.nuna(size: 13, weight: .bold))
                 }
                 .foregroundStyle(LinearGradient(colors: Self.wing, startPoint: .leading, endPoint: .trailing))
@@ -372,7 +372,7 @@ struct NunaAnyaCard: View {
     }
 
     private var label: some View {
-        Text("Anya")
+        Text("WHOOP")
             .font(.nuna(size: 10.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(NunaThemePrefs.skin == .whp ? nil : .uppercase)
             .foregroundStyle(NunaPalette.textSecondary)
     }
@@ -415,7 +415,7 @@ struct NunaAnyaCard: View {
         }
     }
 
-    /// With an action: the icon and "Anya" on top, the words across the full width under them, and a small translucent button under that, on the left.
+    /// With an action: the icon and "WHOOP" on top, the words across the full width under them, and a small translucent button under that, on the left.
     private func stacked(_ buttonTitle: LocalizedStringKey, _ onButton: @escaping () -> Void) -> some View {
         NunaAnyaPlain(padding: EdgeInsets(top: 8, leading: 4, bottom: 8, trailing: 4)) {
             VStack(alignment: .leading, spacing: 14) {

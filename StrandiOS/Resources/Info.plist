@@ -14,7 +14,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>PHMN</string>
+	<string>WHOOP</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIcons</key>
@@ -35,7 +35,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>PHMN</string>
+	<string>WHOOP</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -61,21 +61,21 @@
 		<true/>
 	</dict>
 	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>PHMN connects directly to your WHOOP strap over Bluetooth to read heart rate, R-R intervals, battery, and sensor data locally on your iPhone. Nothing leaves your device.</string>
+	<string>WHOOP connects directly to your WHOOP strap over Bluetooth to read heart rate, R-R intervals, battery, and sensor data locally on your iPhone. Nothing leaves your device.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>PHMN uses the camera to photograph a meal so Anya can estimate its calories. The photo is used only for that, and only goes to the Anya provider you chose when you ask her to work it out.</string>
+	<string>WHOOP uses the camera to photograph a meal so WHOOP can estimate its calories. The photo is used only for that and is sent only to the AI provider you chose when you ask WHOOP to estimate the meal.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>PHMN reads your own Apple Health data on-device to compute recovery, strain, and sleep. Nothing leaves your device.</string>
+	<string>WHOOP reads your own Apple Health data on-device to compute recovery, strain, and sleep. Nothing leaves your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>PHMN writes the metrics it computes from your strap back into Apple Health, on-device and only when you allow it.</string>
+	<string>WHOOP writes the metrics it computes from your strap back into Apple Health, on-device and only when you allow it.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>PHMN records your route during an outdoor workout to show distance, pace, and a map, and keeps recording while the screen is off. The route stays on your device. Only if you turn on Weather and air, your place rounded to about a kilometre is sent to OpenWeather and IQAir to get the weather and air quality. Nothing else leaves it.</string>
+	<string>WHOOP records your route during an outdoor workout to show distance, pace, and a map, and keeps recording while the screen is off. The route stays on your device. Only if you turn on Weather and air, your place rounded to about a kilometre is sent to OpenWeather and IQAir to get the weather and air quality. Nothing else leaves it.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>PHMN uses the microphone to let you ask the coach a question by voice. The audio is transcribed on-device and never leaves your iPhone.</string>
+	<string>WHOOP uses the microphone to let you ask the coach a question by voice. The audio is transcribed on-device and never leaves your iPhone.</string>
 	<key>NSMotionUsageDescription</key>
-	<string>PHMN reads your iPhone's step count for a walking or running workout to show steps in the activity summary. It stays on your device. Nothing leaves it.</string>
+	<string>WHOOP reads your iPhone's step count for a walking or running workout to show steps in the activity summary. It stays on your device. Nothing leaves it.</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>PHMN transcribes your question on-device so you can ask the coach out loud instead of typing. Audio never leaves your iPhone.</string>
+	<string>WHOOP transcribes your question on-device so you can ask the coach out loud instead of typing. Audio never leaves your iPhone.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>OURA_CLIENT_ID</key>

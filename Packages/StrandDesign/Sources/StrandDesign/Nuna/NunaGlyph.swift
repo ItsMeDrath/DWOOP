@@ -17,7 +17,7 @@ public struct NunaAnyaLetters: View {
 }
 
 /// An icon by name: an SF Symbol, or Anya's shared logo for `NunaGlyph.anya`. The logo is rendered
-/// as a template so icon tiles and navigation inherit the surrounding theme colour.
+/// in its official WHOOP gradient colours for coach and navigation surfaces.
 public struct NunaGlyph: View {
     public static let anya = "anya.mark"
     private let name: String
@@ -30,7 +30,7 @@ public struct NunaGlyph: View {
 
     public var body: some View {
         if name == Self.anya {
-            Image("AnyaGlyph").renderingMode(.template)
+            Image("WHOOPCoachLogo")
                 .resizable().scaledToFit()
                 .frame(width: pointSize * 1.3, height: pointSize * 1.3)
         } else if name.hasPrefix("met:") {

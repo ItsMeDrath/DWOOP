@@ -23,10 +23,10 @@ struct NunaAnyaSettingsView: View {
     @State private var historyCount = CoachConversationHistoryStore.load().count
 
     var body: some View {
-        NunaDetailScreen("Anya settings") {
-            Text("What Anya may read, how it answers and when it writes to you.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+        NunaDetailScreen("WHOOP settings") {
+            Text("What WHOOP may read, how it answers and when it writes to you.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
             NunaSettingsCard {
-                NunaToggleRow("Show Anya", subtitle: "The tab, the cards and the buttons", systemImage: NunaGlyph.anya, isOn: $coachEnabled).padding(.vertical, 8)
+                NunaToggleRow("Show WHOOP", subtitle: "The tab, the cards and the buttons", systemImage: NunaGlyph.anya, isOn: $coachEnabled).padding(.vertical, 8)
             }
             .onChange(of: coachEnabled) { _, on in CoachBriefScheduler.applyMasterSwitch(on) }
 
@@ -48,16 +48,16 @@ struct NunaAnyaSettingsView: View {
             }
 
             NunaSettingsSection("Data access") {
-                NunaSettingsSwitch("Let Anya use my numbers", subtitle: "Summaries of computed scores", systemImage: "lock.open", isOn: $coach.dataConsent)
+                NunaSettingsSwitch("Let WHOOP use my numbers", subtitle: "Summaries of computed scores", systemImage: "lock.open", isOn: $coach.dataConsent)
                 NunaSettingsSwitch("Share patterns and Lab Book", subtitle: "Correlations and lab markers. Off by default", systemImage: "chart.xyaxis.line", isOn: $coach.includeOnDeviceSignals).disabled(!coach.dataConsent)
                 if coach.provider == .gemini {
                     NunaSettingsSwitch("Send chart images to Gemini", subtitle: "Only with the Gemini provider", systemImage: "photo", isOn: $coach.multimodalChartEnabled).disabled(!coach.dataConsent)
                 }
             }
-            Text("Anya names the figures it reads in every answer. Raw heartbeat intervals, PPG and motion are never sent.")
+            Text("WHOOP names the figures it reads in every answer. Raw heartbeat intervals, PPG and motion are never sent.")
                 .font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).fixedSize(horizontal: false, vertical: true).textCase(nil)
 
-            NunaSettingsSection("How Anya answers") {
+            NunaSettingsSection("How WHOOP answers") {
                 NunaSettingsCard {
                     NunaChoiceRow("Language", systemImage: "globe",
                                   options: [(value: "id", title: "Indonesian"), (value: "en", title: "English"), (value: "app", title: "Follow app")], selection: $language)
@@ -68,12 +68,12 @@ struct NunaAnyaSettingsView: View {
                 }
                 NunaSettingsCard {
                     NavigationLink(value: NunaAnyaRoute.instructions) {
-                        NunaListRow("Anya's instructions", description: "Shape how it thinks and talks", systemImage: "text.alignleft", showsChevron: true)
+                        NunaListRow("WHOOP's instructions", description: "Shape how it thinks and talks", systemImage: "text.alignleft", showsChevron: true)
                     }.buttonStyle(.plain)
                 }
             }
 
-            NunaSettingsSection("Anya writes to you") {
+            NunaSettingsSection("WHOOP writes to you") {
                 NunaSettingsCard {
                     NavigationLink(value: NunaAnyaRoute.brief) {
                         NunaListRow("Morning brief", subtitle: LocalizedStringKey(briefOn ? String(localized: "Every day at \(Self.clock(CoachBriefScheduler.timeMinutes))") : String(localized: "Off")), systemImage: "sunrise", showsChevron: true)
@@ -87,7 +87,7 @@ struct NunaAnyaSettingsView: View {
                 NunaSettingsSwitch("Suggestion cards on each screen", subtitle: "One short card per module, always with figures", systemImage: "rectangle.on.rectangle", isOn: $cards)
             }
 
-            NunaSettingsSection("What Anya reads") {
+            NunaSettingsSection("What WHOOP reads") {
                 NunaSettingsCard {
                     NavigationLink(value: NunaAnyaRoute.environment) {
                         NunaListRow("Weather and air", subtitle: LocalizedStringKey(EnvironmentExperiment.isEnabled && EnvironmentKeyStore.hasAny ? String(localized: "On") : String(localized: "Off")), systemImage: "cloud.sun", showsChevron: true)
@@ -110,7 +110,7 @@ struct NunaAnyaSettingsView: View {
             Button(role: .destructive) { confirmDeleteAll = true } label: {
                 Text("Delete all conversations").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.alertText).frame(maxWidth: .infinity).frame(height: 52).background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
             }.buttonStyle(.plain)
-            Text("Anya is not a medical tool. Its answers are personal notes, not a doctor's advice.").font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).textCase(nil)
+            Text("WHOOP is not a medical tool. Its answers are personal notes, not a doctor's advice.").font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).textCase(nil)
         }
         .nunaDialog("Delete all conversations?", isPresented: $confirmDeleteAll) {
             NunaDialogButton("Delete", role: .destructive) { coach.deleteAllConversations(); historyCount = 0 }
@@ -130,8 +130,8 @@ struct NunaAnyaInstructionsView: View {
     private let limit = AICoachEngine.maxExtraInstructionsLength
 
     var body: some View {
-        NunaDetailScreen("Anya's instructions", trailing: AnyView(saveButton)) {
-            Text("Change how Anya thinks and talks. It applies from your next message, on top of Anya's built-in safety rules.")
+        NunaDetailScreen("WHOOP's instructions", trailing: AnyView(saveButton)) {
+            Text("Change how WHOOP thinks and talks. It applies from your next message, on top of WHOOP's built-in safety rules.")
                 .font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
             NunaCard {
                 VStack(alignment: .leading, spacing: 10) {
@@ -204,7 +204,7 @@ struct NunaAnyaMemoryView: View {
             }
             tabs(all)
             if shown.isEmpty {
-                Text(all.isEmpty ? "Nothing yet. Tell Anya things like “remember I race on 5 December”, or share something above." : "Nothing in this group yet.")
+                Text(all.isEmpty ? "Nothing yet. Tell WHOOP things like “remember I race on 5 December”, or share something above." : "Nothing in this group yet.")
                     .font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 6)
             }
             VStack(spacing: 14) { ForEach(shown) { m in card(m) } }
@@ -237,7 +237,7 @@ struct NunaAnyaMemoryView: View {
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Shape your experience.").font(.nuna(size: 16, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil).fixedSize(horizontal: false, vertical: true)
-                Text("Help Anya understand you better.").font(.nuna(size: 14.5, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+                Text("Help WHOOP understand you better.").font(.nuna(size: 14.5, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
             }
             Spacer(minLength: 8)
             Circle().fill(LinearGradient(colors: [Color(red: 1, green: 0.38, blue: 0.35), Color(red: 1, green: 0.52, blue: 0.35)], startPoint: .topLeading, endPoint: .bottomTrailing))
@@ -367,8 +367,8 @@ struct NunaAnyaMemoryView: View {
         if paused == 0 { return "Only paused memories can be deleted. Pause a memory first to delete it." }
         switch active {
         case 0: return "Only paused memories are deleted. This cannot be undone."
-        case 1: return "Only paused memories are deleted. The 1 active memory stays, and Anya keeps using it. This cannot be undone."
-        default: return "Only paused memories are deleted. The \(active) active memories stay, and Anya keeps using them. This cannot be undone."
+        case 1: return "Only paused memories are deleted. The 1 active memory stays, and WHOOP keeps using it. This cannot be undone."
+        default: return "Only paused memories are deleted. The \(active) active memories stay, and WHOOP keeps using them. This cannot be undone."
         }
     }
 
@@ -385,7 +385,7 @@ private struct NunaMemoryWriteSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Share something new").font(.nuna(size: 20, weight: .semibold)).foregroundStyle(.white).textCase(nil).padding(.top, 26)
             Text("For example: I don't eat dairy, or I race on 5 December.").font(.nuna(size: 14.5, weight: .regular)).foregroundStyle(.white.opacity(0.65)).textCase(nil)
-            TextField("", text: $text, prompt: Text("What should Anya know?").foregroundStyle(.white.opacity(0.4)), axis: .vertical)
+            TextField("", text: $text, prompt: Text("What should WHOOP know?").foregroundStyle(.white.opacity(0.4)), axis: .vertical)
                 .font(.nuna(size: 18, weight: .regular)).foregroundStyle(.white).lineLimit(3...8).focused($focused)
                 .padding(16).background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             Button { onSave(text); dismiss() } label: {
@@ -414,7 +414,7 @@ private struct NunaMemorySnapshotSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 let first = profile.displayName.split(separator: " ").first.map(String.init)
-                Text(verbatim: first.map { String(localized: "Hi \($0) — here's what Anya knows about you.") } ?? String(localized: "Here's what Anya knows about you."))
+                Text(verbatim: first.map { String(localized: "Hi \($0) — here's what WHOOP knows about you.") } ?? String(localized: "Here's what WHOOP knows about you."))
                     .font(.nuna(size: 18, weight: .regular)).lineSpacing(6)
                 if memories.isEmpty {
                     Text("Nothing yet. Share something and it will show up here.").font(.nuna(size: 16, weight: .regular)).foregroundStyle(.white.opacity(0.65))
@@ -577,7 +577,7 @@ struct NunaAnyaBriefView: View {
 
     var body: some View {
         NunaDetailScreen("Morning brief") {
-            Text("Anya writes a short brief on this iPhone each morning and shows it as a notification.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
+            Text("WHOOP writes a short brief on this iPhone each morning and shows it as a notification.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
             notificationPreview
             NunaCard(small: true, padding: EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18)) {
                 VStack(spacing: 0) {
@@ -597,7 +597,7 @@ struct NunaAnyaBriefView: View {
             }.buttonStyle(.plain).disabled(generating || !coach.isConfigured || !coach.dataConsent).opacity(coach.isConfigured && coach.dataConsent ? 1 : 0.4)
             if !coach.isConfigured || !coach.dataConsent {
                 NavigationLink(value: coach.isConfigured ? NunaAnyaRoute.settings : .connect) {
-                    Text(coach.isConfigured ? "Allow Anya to use my numbers first" : "Connect Anya first").font(.nuna(size: 13.5, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
+                    Text(coach.isConfigured ? "Allow WHOOP to use my numbers first" : "Connect WHOOP first").font(.nuna(size: 13.5, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
                 }.buttonStyle(.plain)
             }
             if let status { Text(verbatim: status).font(.nuna(size: 13, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil) }
@@ -613,7 +613,7 @@ struct NunaAnyaBriefView: View {
         HStack(alignment: .top, spacing: 12) {
             AnyaIconTile()
             VStack(alignment: .leading, spacing: 3) {
-                HStack { Text("Anya").font(.nuna(size: 14, weight: .bold)).foregroundStyle(NunaPalette.textPrimary); Spacer(); Text("now").font(.nuna(size: 12, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil) }
+                HStack { Text("WHOOP").font(.nuna(size: 14, weight: .bold)).foregroundStyle(NunaPalette.textPrimary); Spacer(); Text("now").font(.nuna(size: 12, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil) }
                 Text(verbatim: preview.map { CoachBriefScheduler.oneLineSummary(from: $0) } ?? sample?.headline ?? String(localized: "Your brief appears here"))
                     .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).fixedSize(horizontal: false, vertical: true)
             }
@@ -703,12 +703,12 @@ struct NunaAnyaVoiceCoachView: View {
     var body: some View {
         NunaDetailScreen("Audio coach") {
             NunaCard(highlight: enabled) {
-                NunaToggleRow("Anya's audio coach", subtitle: "Short spoken cues during a session, through earphones", systemImage: "speaker.wave.2", isOn: $enabled).padding(.vertical, 8)
+                NunaToggleRow("WHOOP's audio coach", subtitle: "Short spoken cues during a session, through earphones", systemImage: "speaker.wave.2", isOn: $enabled).padding(.vertical, 8)
             }
             testCard
             if enabled {
                 VStack(alignment: .leading, spacing: 10) {
-                    nunaRuledHeader("When Anya speaks")
+                    nunaRuledHeader("When WHOOP speaks")
                     NunaCard(small: true, padding: EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18)) {
                         VStack(spacing: 0) {
                             NunaToggleRow("Start, pause and finish", subtitle: "Confirms each change and when you reach your target", systemImage: "play.circle", isOn: $lifecycle).padding(.vertical, 8)

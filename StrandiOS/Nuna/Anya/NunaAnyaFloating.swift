@@ -47,7 +47,7 @@ struct NunaAnyaRing: View {
     var size: CGFloat = 34
 
     var body: some View {
-        PHMNAnyaMark(size: size)
+        Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: size, height: size)
     }
 }
 
@@ -152,7 +152,7 @@ struct NunaAnyaFloating: ViewModifier {
                 .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Color.white.opacity(0.14), lineWidth: 1))
                 .shadow(color: .black.opacity(0.35), radius: 14, y: 6)
         }
-        .buttonStyle(.plain).accessibilityLabel(Text("Ask Anya"))
+        .buttonStyle(.plain).accessibilityLabel(Text("Ask WHOOP"))
         .transition(.scale(scale: 0.6, anchor: .bottomTrailing).combined(with: .opacity))
     }
 
@@ -187,7 +187,7 @@ struct NunaAnyaFloating: ViewModifier {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { drag = 0 }
             })
         .accessibilityLabel(line.map { Text(verbatim: NunaMark.plain($0)) } ?? Text("Analyzing…"))
-        .accessibilityHint(Text("Opens Anya"))
+        .accessibilityHint(Text("Opens WHOOP"))
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }

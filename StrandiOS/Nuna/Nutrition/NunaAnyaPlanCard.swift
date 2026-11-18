@@ -42,7 +42,7 @@ struct NunaAnyaPlanCard: View {
                 HStack(spacing: 10) {
                     NunaIconTile("target")
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Plan from Anya").font(.nuna(size: 16.5, weight: .heavy)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
+                        Text("Plan from WHOOP").font(.nuna(size: 16.5, weight: .heavy)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                         Text("Worked out from your own data").font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                     }
                     Spacer(minLength: 0)
@@ -60,7 +60,7 @@ struct NunaAnyaPlanCard: View {
                 }
                 if let explanation = spec.explanation {
                     VStack(alignment: .leading, spacing: 6) {
-                        nunaTrendsCap("How Anya got here")
+                        nunaTrendsCap("How WHOOP got here")
                         Text(verbatim: explanation).font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).lineSpacing(3).fixedSize(horizontal: false, vertical: true).textCase(nil)
                     }
                 }

@@ -80,18 +80,9 @@ public struct PHMNMark: View {
     static let share: CGFloat = 0.6
 
     public var body: some View {
-        ZStack {
-            switch style {
-            case .circle:
-                Circle().strokeBorder(color, lineWidth: size * 0.05)
-                PHMNButterflyShape().fill(color).frame(width: size * Self.share, height: size * Self.share)
-            case .puck:
-                // The disc and the butterfly in one path filled even-odd: the butterfly is a hole.
-                PHMNPuckShape().fill(color, style: FillStyle(eoFill: true))
-            }
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
+        Image("WHOOPCoachLogo").resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -117,15 +108,9 @@ public struct PHMNAnyaMark: View {
     public static var gradient: LinearGradient { LinearGradient(colors: [violet, sky], startPoint: .topLeading, endPoint: .bottomTrailing) }
 
     public var body: some View {
-        ZStack {
-            if glow {
-                Circle().fill(RadialGradient(colors: [.clear, Self.violet.opacity(0.30)], center: .center, startRadius: size * 0.30, endRadius: size * 0.5))
-            }
-            Circle().strokeBorder(Self.gradient, lineWidth: max(1.3, size * 0.05))
-            PHMNButterflyShape().fill(Color.white).frame(width: size * PHMNMark.share, height: size * PHMNMark.share)
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
+        Image("WHOOPCoachLogo").resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }
 
@@ -137,10 +122,10 @@ public struct PHMNWordmark: View {
     public init(height: CGFloat = 12, color: Color = .white) { self.height = height; self.color = color }
 
     public var body: some View {
-        let k = height / PHMNButterflyGeometry.wordmarkCap
-        PHMNWordmarkShape().fill(color)
-            .frame(width: PHMNButterflyGeometry.wordmarkWidth * k, height: height)
-            .accessibilityLabel(Text(verbatim: "PHMN"))
+        Image("WHOOPWordmark").renderingMode(.template).resizable().scaledToFit()
+            .frame(height: height)
+            .foregroundStyle(color)
+            .accessibilityLabel(Text(verbatim: "WHOOP"))
     }
 }
 
@@ -164,12 +149,8 @@ public struct PHMNAppTile: View {
     public init(size: CGFloat = 84) { self.size = size }
 
     public var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous).fill(Color(red: 12 / 255, green: 17 / 255, blue: 27 / 255))
-            Circle().strokeBorder(Color(red: 143 / 255, green: 163 / 255, blue: 192 / 255), lineWidth: max(1, size * 0.016)).frame(width: size * 0.86, height: size * 0.86)
-            PHMNButterfly(size: size * 0.58)
-        }
-        .frame(width: size, height: size)
-        .accessibilityHidden(true)
+        Image("WHOOPCoachLogo").resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityHidden(true)
     }
 }

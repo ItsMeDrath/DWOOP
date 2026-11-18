@@ -17,6 +17,7 @@ struct NunaLiveHRCard: View {
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var live: LiveState
     @EnvironmentObject private var profile: ProfileStore
+    @EnvironmentObject private var model: AppModel
     /// Today's banked 5-minute averages: the last resort when no recent beat-by-beat readings are stored.
     @State private var banked: [(ts: Int, bpm: Double)] = []
     /// The newest stored readings, oldest first, kept on show while nothing live arrives.
@@ -142,6 +143,7 @@ struct NunaLiveHRCard: View {
             recent = []
         }
         .onAppear {
+            model.startRealtimeHR()
             if samples.isEmpty, let hr = live.heartRate, hr > 0 { samples = [Double(hr)] }
             #if DEBUG
             // `--demo-hr`: a made-up last trace from half an hour ago, to see the card as it looks between two signals.
@@ -154,6 +156,7 @@ struct NunaLiveHRCard: View {
             }
             #endif
         }
+        .onDisappear { model.stopRealtimeHR() }
         .onChange(of: live.heartRate) { _, hr in
             guard let hr, hr > 0 else { return }
             samples.append(Double(hr))

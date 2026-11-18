@@ -374,7 +374,7 @@ enum NunaAnyaReader {
         let week = await workouts(repo: repo, scale: scale)
         guard let e = m.effort else {
             return week ?? NunaAnyaRead(headline: String(localized: "No Strain yet today"),
-                                        detail: String(localized: "Anya reads it as soon as your heart rate has spent time in the zones."),
+                                        detail: String(localized: "WHOOP reads it as soon as your heart rate has spent time in the zones."),
                                         read: ["Strain"], module: .workouts, questions: questions(.workouts))
         }
         let shown = UnitFormatter.effortDisplay(e, scale: scale)

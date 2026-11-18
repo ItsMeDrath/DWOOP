@@ -135,7 +135,7 @@ struct NunaAnyaView: View {
         .onChange(of: coach.sending) { _, sending in
             if !sending, !coach.messages.isEmpty { UIImpactFeedbackGenerator(style: .light).impactOccurred() }
         }
-        .nunaDialog("Add to Anya", isPresented: $showAttach) {
+        .nunaDialog("Add to WHOOP", isPresented: $showAttach) {
             NunaDialogButton("Photo") { showPhoto = true }
             NunaDialogButton("Document") { showDocument = true }
             NunaDialogButton("Cancel", role: .cancel) {}
@@ -157,9 +157,9 @@ struct NunaAnyaView: View {
     private var header: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                AnyaMark(size: 40)
+                Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 40, height: 40)
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Anya").font(.nuna(size: 30, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
+                    Text("WHOOP").font(.nuna(size: 30, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
                     if coach.isConfigured {
                         HStack(spacing: 6) {
                             Image(systemName: coach.provider.nunaIsOnDevice ? "iphone" : "cloud").font(.nuna(size: 11, weight: .bold))
@@ -174,7 +174,7 @@ struct NunaAnyaView: View {
                     round("square.and.pencil", "New conversation", enabled: !coach.messages.isEmpty && !coach.sending) { coach.startNewConversation() }
                     NavigationLink(value: NunaAnyaRoute.history) { roundLabel("clock.arrow.circlepath") }.buttonStyle(.plain).accessibilityLabel(Text("History"))
                 }
-                NavigationLink(value: NunaAnyaRoute.settings) { NunaBareIcon(NunaIcons.featureSettings, target: 42) }.buttonStyle(.plain).accessibilityLabel(Text("Anya settings"))
+                NavigationLink(value: NunaAnyaRoute.settings) { NunaBareIcon(NunaIcons.featureSettings, target: 42) }.buttonStyle(.plain).accessibilityLabel(Text("WHOOP settings"))
             }
         }
         .padding(.horizontal, NunaSpacing.screenH).padding(.top, 10).padding(.bottom, 6)
@@ -203,8 +203,8 @@ struct NunaAnyaView: View {
         VStack(spacing: NunaSpacing.section) {
             NunaAnyaPlain(padding: EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0)) {
                 VStack(alignment: .leading, spacing: 14) {
-                    Text("Connect Anya").font(.nuna(size: 22, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
-                    Text("Anya uses the AI provider you choose. Your key stays in the Keychain on this iPhone, and nothing is sent until you allow it and ask a question.")
+                    Text("Connect WHOOP").font(.nuna(size: 22, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
+                    Text("WHOOP uses the AI provider you choose. Your key stays in the Keychain on this iPhone, and nothing is sent until you allow it and ask a question.")
                         .font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
                     NavigationLink(value: NunaAnyaRoute.connect) {
                         Text("Choose a provider").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.onAccent)
@@ -265,7 +265,7 @@ struct NunaAnyaView: View {
                     }
                 }
                 NavigationLink(value: NunaAnyaRoute.memory) {
-                    NunaListRow("Give Anya a memory", description: "Your goals, events and preferences", systemImage: "brain", showsChevron: true)
+                    NunaListRow("Give WHOOP a memory", description: "Your goals, events and preferences", systemImage: "brain", showsChevron: true)
                 }.buttonStyle(.plain)
             }
             .padding(.horizontal, NunaSpacing.screenH).padding(.top, 8).padding(.bottom, 24)
@@ -292,7 +292,7 @@ struct NunaAnyaView: View {
             }
         } else if !environment.isEnabled {
             NavigationLink(value: NunaAnyaRoute.environment) {
-                NunaListRow("Weather and air", description: "Let Anya read the weather and air before she suggests a session", systemImage: "cloud.sun", showsChevron: true)
+                NunaListRow("Weather and air", description: "Let WHOOP read the weather and air before suggesting a session", systemImage: "cloud.sun", showsChevron: true)
             }.buttonStyle(.plain)
         }
     }
@@ -319,7 +319,7 @@ struct NunaAnyaView: View {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     ForEach(coach.messages) { message in bubble(message).id(message.id) }
                     if coach.sending {
-                        HStack(spacing: 8) { ProgressView().controlSize(.small).tint(NunaPalette.textSecondary); Text("Anya is thinking…").font(NunaAnyaType.thinking).foregroundStyle(NunaPalette.textSecondary).textCase(nil) }.id("typing")
+                        HStack(spacing: 8) { ProgressView().controlSize(.small).tint(NunaPalette.textSecondary); Text("WHOOP is thinking…").font(NunaAnyaType.thinking).foregroundStyle(NunaPalette.textSecondary).textCase(nil) }.id("typing")
                     } else if let last = coach.messages.last, last.role == .assistant {
                         followUps.id("follow")
                     }
@@ -431,7 +431,7 @@ struct NunaAnyaView: View {
                         .frame(width: 48, height: 48)
                 }.buttonStyle(.plain).accessibilityLabel(Text("Add attachment"))
                 HStack(spacing: 6) {
-                    TextField("", text: $draft, prompt: Text("Ask Anya about your data").foregroundStyle(NunaPalette.textMuted), axis: .vertical)
+                    TextField("", text: $draft, prompt: Text("Ask WHOOP about your data").foregroundStyle(NunaPalette.textMuted), axis: .vertical)
                         .font(NunaAnyaType.input).foregroundStyle(NunaPalette.textPrimary).lineLimit(1...4)
                         .focused($focused).padding(.leading, 16).padding(.vertical, 12).onSubmit { send(draft) }
                     if coach.sending {

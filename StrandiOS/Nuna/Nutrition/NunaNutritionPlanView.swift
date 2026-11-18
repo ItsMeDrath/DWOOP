@@ -134,7 +134,7 @@ struct NunaNutritionPlanView: View {
             Button { Task { await askAnya() } } label: {
                 HStack(spacing: 8) {
                     if asking { ProgressView().tint(NunaPalette.textPrimary) } else { Image(systemName: "sparkles").font(.nuna(size: 15, weight: .bold)) }
-                    Text(asking ? "Working it out…" : "Ask Anya for a plan").font(.nuna(size: 16, weight: .bold))
+                    Text(asking ? "Working it out…" : "Ask WHOOP for a plan").font(.nuna(size: 16, weight: .bold))
                 }
                 .foregroundStyle(NunaPalette.textPrimary).frame(maxWidth: .infinity).frame(height: 54)
                 .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).strokeBorder(LinearGradient(colors: NunaAnyaWing.colors, startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.5))
@@ -142,7 +142,7 @@ struct NunaNutritionPlanView: View {
             }
             .buttonStyle(.plain).disabled(asking || !coach.isConfigured).opacity(asking || !coach.isConfigured ? 0.5 : 1)
             if !coach.isConfigured {
-                Text("Connect Anya in More to use this.").font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).textCase(nil)
+                Text("Connect WHOOP in More to use this.").font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).textCase(nil)
             }
             if let askError { Text(verbatim: askError).font(.nuna(size: 13, weight: .semibold)).foregroundStyle(NunaPalette.warning).fixedSize(horizontal: false, vertical: true).textCase(nil).frame(maxWidth: .infinity, alignment: .leading) }
             if let suggestion { NunaAnyaPlanCard(spec: suggestion, onDiscard: { self.suggestion = nil }).id(suggestion.targetKcal) }
@@ -154,10 +154,10 @@ struct NunaNutritionPlanView: View {
         defer { asking = false }
         let snapshot = await NunaNutritionSnapshot.build(repo: repo, profile: profile, includeLabBook: coach.includeOnDeviceSignals)
         guard let reply = await coach.suggestNutritionPlan(snapshot: snapshot) else {
-            askError = String(localized: "Anya couldn't answer. Check her connection in More, then try again."); return
+            askError = String(localized: "WHOOP couldn't answer. Check the connection in More, then try again."); return
         }
         if let spec = AnyaActions.parse(reply).compactMap({ b -> AnyaPlanSpec? in if case .plan(let p) = b { return p } else { return nil } }).first { suggestion = spec }
-        else { askError = String(localized: "Anya didn't return a plan this time. Try again.") }
+        else { askError = String(localized: "WHOOP didn't return a plan this time. Try again.") }
     }
 
     private func row<T: View>(_ label: LocalizedStringKey, @ViewBuilder trailing: () -> T) -> some View {

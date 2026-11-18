@@ -131,6 +131,7 @@ struct NunaWorkoutStartView: View {
         .background(NunaBackdrop())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear {
+            model.startRealtimeHR()
             if resume, !didResume, model.activeWorkout != nil { didResume = true; live = true }
             // A session suggested by the day plan: hold its main zone, and keep its length for the Time goal.
             if let p = router.plannedSession {
@@ -148,7 +149,7 @@ struct NunaWorkoutStartView: View {
             dayPlan = await NunaDayPlanResult.load(repo: repo, profile: profile)
             applyAnyaDefaults()
         }
-        .onDisappear { locationPreview.stop() }
+        .onDisappear { model.stopRealtimeHR(); locationPreview.stop() }
         .onChange(of: chosen) { _, _ in
             if !isDistance, goal.distanceOn { goal.distanceOn = false }
             updateLocationPreview()
@@ -310,7 +311,7 @@ struct NunaWorkoutStartView: View {
             NunaAnyaNote {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("From Anya's plan")
+                        Text("From WHOOP's plan")
                             .font(.nuna(size: 11.5, weight: .heavy))
                             .tracking(nunaTrackingLabel)
                             .textCase(.uppercase)
@@ -1058,7 +1059,7 @@ private struct NunaWorkoutTargetSheet: View {
             let applied = goal.timeOn && !goal.distanceOn && goal.minutes == suggested.minutes && goal.zoneOn && goal.zone == suggested.zone
             VStack(spacing: 12) {
                 HStack(spacing: 12) {
-                    AnyaMark(size: 26)
+                    Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 26, height: 26)
                     VStack(alignment: .leading, spacing: 3) {
                         Text(verbatim: sentence(suggestion))
                             .font(.nuna(size: NunaTypeSize.sub, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary)
@@ -1091,19 +1092,19 @@ private struct NunaWorkoutTargetSheet: View {
                     .frame(height: 1)
             }
         } else if charge == nil {
-            Text("Anya suggests a session once today's Recovery is ready.")
+            Text("WHOOP suggests a session once today's Recovery is ready.")
                 .font(.nuna(size: NunaTypeSize.caption + 1, weight: .semibold)).foregroundStyle(NunaPalette.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    /// "Anya suggests steady zone 2, 42 min for Charge 51 (+31–46 Effort)."
+    /// "WHOOP suggests steady zone 2, 42 min for Charge 51 (+31–46 Effort)."
     private func sentence(_ s: NunaDayPlanResult) -> String {
         let title = s.title.prefix(1).lowercased() + s.title.dropFirst()
         guard let lo = s.plan.effortLow, let hi = s.plan.effortHigh else {
-            return String(localized: "Anya suggests \(title) for Recovery \(s.charge).")
+            return String(localized: "WHOOP suggests \(title) for Recovery \(s.charge).")
         }
-        return String(localized: "Anya suggests \(title) for Recovery \(s.charge) (+\(Int(lo.rounded()))–\(Int(hi.rounded())) Strain).")
+        return String(localized: "WHOOP suggests \(title) for Recovery \(s.charge) (+\(Int(lo.rounded()))–\(Int(hi.rounded())) Strain).")
     }
 
     // MARK: Actions
@@ -1213,6 +1214,7 @@ struct NunaLiveWorkoutView: View {
             for await on in info.activityEnablementUpdates { liveActivitiesOn = on }
         }
         .onAppear {
+            model.startRealtimeHR()
             holdScreenAwake()
             // A session picked up after the app was killed: targets already passed are not announced or buzzed a second time.
             if let w = model.activeWorkout {
@@ -1220,7 +1222,7 @@ struct NunaLiveWorkoutView: View {
                 if goal.distanceOn, model.gpsRecorder.distanceM >= goal.km * 1000 { distanceHit = true }
             }
         }
-        .onDisappear { ScreenIdle.keepAwake(false) }
+        .onDisappear { model.stopRealtimeHR(); ScreenIdle.keepAwake(false) }
         // iOS can drop the "keep awake" flag while the app is away (lock screen, another app, a sync that finished), so it is asked for
         // again every time the app comes back to the front.
         .onChange(of: scenePhase) { _, phase in if phase == .active { holdScreenAwake() } }

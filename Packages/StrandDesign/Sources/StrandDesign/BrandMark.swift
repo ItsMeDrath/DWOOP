@@ -46,24 +46,18 @@ public struct BrandMark: View {
     public var body: some View {
         #if os(iOS)
         // On iPhone the mark is PHMN's: the colour butterfly inside the thin ring, on the deep navy of the app icon.
-        ZStack {
-            Circle().fill(Color(red: 12 / 255, green: 17 / 255, blue: 27 / 255))
-            Circle().inset(by: size * 0.035).strokeBorder(Color(red: 143 / 255, green: 163 / 255, blue: 192 / 255), lineWidth: max(1, size * 0.016))
-            PHMNButterfly(size: size * 0.58)
-        }
-        .frame(width: size, height: size)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("PHMN"))
+        Image("WHOOPCoachLogo")
+            .resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("WHOOP"))
         .accessibilityAddTraits(.isImage)
         #else
-        ZStack {
-            navyTile
-            goldRing
-            coreDot
-        }
-        .frame(width: size, height: size)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text("NOOP"))
+        Image("WHOOPCoachLogo")
+            .resizable().scaledToFit()
+            .frame(width: size, height: size)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text("WHOOP"))
         .accessibilityAddTraits(.isImage)
         #endif
     }

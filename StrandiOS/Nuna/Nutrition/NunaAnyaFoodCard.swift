@@ -53,7 +53,7 @@ struct NunaAnyaFoodCard: View {
                     NunaIconTile("fork.knife")
                     VStack(alignment: .leading, spacing: 2) {
                         Text("Meal estimate").font(.nuna(size: 16.5, weight: .heavy)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
-                        Text(verbatim: String(localized: "\(Int(totalKcal.rounded())) kcal · estimated by Anya")).font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+                        Text(verbatim: String(localized: "\(Int(totalKcal.rounded())) kcal · estimated by WHOOP")).font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                     }
                     Spacer(minLength: 0)
                 }
