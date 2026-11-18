@@ -16,7 +16,7 @@ struct AnyaMark: View {
     var size: CGFloat = 28
 
     var body: some View {
-        PHMNButterfly(size: size)
+        Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: size, height: size)
     }
 }
 
@@ -46,7 +46,7 @@ struct AnyaPresenceButton: View {
             HStack(spacing: 8) {
                 AnyaMark(size: 22)
                 if isExpanded {
-                    Text("Ask Anya")
+                    Text("Ask WHOOP")
                         .font(StrandFont.caption.weight(.bold))
                     Text("·")
                         .foregroundStyle(StrandPalette.textTertiary)
@@ -67,8 +67,8 @@ struct AnyaPresenceButton: View {
         .simultaneousGesture(TapGesture(count: 2).onEnded {
             withAnimation(.easeInOut(duration: 0.2)) { isExpanded.toggle() }
         })
-        .accessibilityLabel("Ask Anya about \(context)")
-        .accessibilityHint(isExpanded ? "Double tap to collapse. Tap to open Anya." : "Double tap to expand. Tap to open Anya.")
+        .accessibilityLabel("Ask WHOOP about \(context)")
+        .accessibilityHint(isExpanded ? "Double tap to collapse. Tap to open WHOOP." : "Double tap to expand. Tap to open WHOOP.")
     }
 }
 #endif
