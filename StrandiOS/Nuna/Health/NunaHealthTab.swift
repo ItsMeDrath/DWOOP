@@ -22,7 +22,7 @@ struct NunaHealthTabView: View {
                     // Shown even before the day has a reading, so the card does not come and go: it then reads "–" over an empty chart.
                     NunaStressSummaryCard(curve: day.stressCurve, typicalMin: day.stressTypicalMin, isToday: day.isToday)
                 }
-                Text("Fitness age, the health monitor and the stress monitor are not medical devices and cannot diagnose or manage medical conditions. They do not give medical advice. Always consult your doctor about health concerns, and never delay or change medical care because of what they show.")
+                Text("WHOOP Age, the health monitor and the stress monitor are not medical devices and cannot diagnose or manage medical conditions. They do not give medical advice. Always consult your doctor about health concerns, and never delay or change medical care because of what they show.")
                     .font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 12).frame(maxWidth: .infinity, alignment: .leading)
                     .overlay(alignment: .top) { Rectangle().fill(NunaPalette.hairline).frame(height: 1) }
@@ -174,9 +174,9 @@ struct NunaFitnessAgeSummary: View {
 
     private var empty: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Fitness age").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.textPrimary)
+            Text("WHOOP Age").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.textPrimary)
             Text(loaded ? "Not ready yet" : " ").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
-            Text("Fitness age needs your age in your profile and at least 3 of its 9 inputs from the last 7 days.")
+            Text("WHOOP Age needs your age in your profile and at least 3 of its 9 inputs from the last 7 days.")
                 .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
         }
         .frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
