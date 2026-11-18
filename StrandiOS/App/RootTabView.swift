@@ -158,7 +158,7 @@ struct RootTabView: View {
             tab(HealthView(), "Health", "heart.text.square.fill", path: $tabPaths[1], scrollSignal: scrollTop[1]).tag(1)
             tab(TrendsView(), "Trends", "chart.line.uptrend.xyaxis", path: $tabPaths[2], scrollSignal: scrollTop[2]).tag(2)
             if coachEnabled {
-                tab(CoachView(), "Anya", "sparkles", path: $tabPaths[3], scrollSignal: scrollTop[3]).tag(3)
+                tab(CoachView(), "WHOOP", "sparkles", path: $tabPaths[3], scrollSignal: scrollTop[3]).tag(3)
             }
             moreTab(path: $tabPaths[4], scrollSignal: scrollTop[4]).tag(4)
         }
@@ -373,7 +373,7 @@ struct RootTabView: View {
         case 0: return "today"
         case 1: return "your health"
         case 2: return "your trends"
-        case 3: return "Anya"
+        case 3: return "WHOOP"
         default: return "your day"
         }
     }
