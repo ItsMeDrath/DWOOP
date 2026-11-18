@@ -41,13 +41,23 @@ struct CoachHistoryView: View {
         #endif
         .confirmationDialog(
             "Delete this conversation?",
-            item: $pendingDelete
-        ) { item in
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { isPresented in
+                    if !isPresented { pendingDelete = nil }
+                }
+            )
+        ) {
             Button("Delete", role: .destructive) {
-                coach.deleteConversation(item)
+                if let item = pendingDelete {
+                    coach.deleteConversation(item)
+                }
+                pendingDelete = nil
             }
-            Button("Cancel", role: .cancel) {}
-        } message: { _ in
+            Button("Cancel", role: .cancel) {
+                pendingDelete = nil
+            }
+        } message: {
             Text("This removes the saved WHOOP conversation from this device.")
         }
     }
