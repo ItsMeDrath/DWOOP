@@ -39,7 +39,7 @@ struct NunaGymProposal {
     }
 }
 
-/// Programs Anya made, kept apart so the Gym tab can show them under "WHOOP special".
+/// Programs WHOOP made, kept apart so the Gym tab can show them under "WHOOP special".
 enum NunaAnyaPrograms {
     private static let key = "nuna.gym.anyaPrograms"
     static var ids: Set<String> { Set(UserDefaults.standard.stringArray(forKey: key) ?? []) }
