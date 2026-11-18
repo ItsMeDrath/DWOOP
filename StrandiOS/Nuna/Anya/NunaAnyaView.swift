@@ -157,7 +157,7 @@ struct NunaAnyaView: View {
     private var header: some View {
         VStack(spacing: 12) {
             HStack(spacing: 12) {
-                AnyaMark(size: 40)
+                Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 40, height: 40)
                 VStack(alignment: .leading, spacing: 3) {
                     Text("WHOOP").font(.nuna(size: 30, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
                     if coach.isConfigured {
