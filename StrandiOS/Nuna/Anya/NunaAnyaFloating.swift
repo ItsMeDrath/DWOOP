@@ -47,7 +47,7 @@ struct NunaAnyaRing: View {
     var size: CGFloat = 34
 
     var body: some View {
-        PHMNAnyaMark(size: size)
+        Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: size, height: size)
     }
 }
 
