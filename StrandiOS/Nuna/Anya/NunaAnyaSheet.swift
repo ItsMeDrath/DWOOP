@@ -164,7 +164,7 @@ struct NunaAnyaSheet: View {
     /// Only her icon and where she is reading.
     private var top: some View {
         HStack(spacing: 12) {
-            AnyaIconTile(size: 40)
+            Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 40, height: 40)
             Text(metric.map { LocalizedStringKey($0.title) } ?? module.title)
                 .font(.nuna(size: 12, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.textSecondary)
             Spacer(minLength: 0)
