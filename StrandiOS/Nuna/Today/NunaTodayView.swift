@@ -116,7 +116,7 @@ private struct NunaPinnedRings: View {
     var body: some View { NunaScoreRings(charge: charge, effort: effort, rest: rest, effortScale: effortScale, collapse: state.t) }
 }
 
-/// "PHMNOOP" in thin wide letters over the rings; it folds away as the rings shrink.
+/// "WHOOPOOP" in thin wide letters over the rings; it folds away as the rings shrink.
 private struct NunaPinnedBrand: View {
     @ObservedObject var state: NunaCollapse
     let height: CGFloat
