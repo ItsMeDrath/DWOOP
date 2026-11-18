@@ -63,7 +63,7 @@
 	<key>NSBluetoothAlwaysUsageDescription</key>
 	<string>WHOOP connects directly to your WHOOP strap over Bluetooth to read heart rate, R-R intervals, battery, and sensor data locally on your iPhone. Nothing leaves your device.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>WHOOP uses the camera to photograph a meal so WHOOP can estimate its calories. The photo is used only for that, and only goes to the WHOOP provider you chose when you ask her to work it out.</string>
+	<string>WHOOP uses the camera to photograph a meal so WHOOP can estimate its calories. The photo is used only for that and is sent only to the AI provider you chose when you ask WHOOP to estimate the meal.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>WHOOP reads your own Apple Health data on-device to compute recovery, strain, and sleep. Nothing leaves your device.</string>
 	<key>NSHealthUpdateUsageDescription</key>
