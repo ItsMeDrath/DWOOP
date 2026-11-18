@@ -87,7 +87,7 @@ struct NunaRootView: View {
                     NunaLiftBar()
                     if atTabRoot {
                         NunaTabBar(items: items,
-                                   trailing: coachEnabled ? NunaTabItem(id: -1, title: "Anya", systemImage: NunaGlyph.anya) : nil,
+                                   trailing: coachEnabled ? NunaTabItem(id: -1, title: "WHOOP", systemImage: NunaGlyph.anya) : nil,
                                    trailingView: coachEnabled ? anyaButton : nil, onTrailing: coachEnabled ? { showAnya = true } : nil,
                                    selection: $selection, minimized: autoHide && barHidden,
                                    onExpand: { barHidden = false }) { id in
