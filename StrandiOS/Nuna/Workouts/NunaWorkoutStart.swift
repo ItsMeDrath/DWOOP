@@ -311,7 +311,7 @@ struct NunaWorkoutStartView: View {
             NunaAnyaNote {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("From Anya's plan")
+                        Text("From WHOOP's plan")
                             .font(.nuna(size: 11.5, weight: .heavy))
                             .tracking(nunaTrackingLabel)
                             .textCase(.uppercase)
@@ -1092,19 +1092,19 @@ private struct NunaWorkoutTargetSheet: View {
                     .frame(height: 1)
             }
         } else if charge == nil {
-            Text("Anya suggests a session once today's Recovery is ready.")
+            Text("WHOOP suggests a session once today's Recovery is ready.")
                 .font(.nuna(size: NunaTypeSize.caption + 1, weight: .semibold)).foregroundStyle(NunaPalette.textMuted)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    /// "Anya suggests steady zone 2, 42 min for Charge 51 (+31–46 Effort)."
+    /// "WHOOP suggests steady zone 2, 42 min for Charge 51 (+31–46 Effort)."
     private func sentence(_ s: NunaDayPlanResult) -> String {
         let title = s.title.prefix(1).lowercased() + s.title.dropFirst()
         guard let lo = s.plan.effortLow, let hi = s.plan.effortHigh else {
-            return String(localized: "Anya suggests \(title) for Recovery \(s.charge).")
+            return String(localized: "WHOOP suggests \(title) for Recovery \(s.charge).")
         }
-        return String(localized: "Anya suggests \(title) for Recovery \(s.charge) (+\(Int(lo.rounded()))–\(Int(hi.rounded())) Strain).")
+        return String(localized: "WHOOP suggests \(title) for Recovery \(s.charge) (+\(Int(lo.rounded()))–\(Int(hi.rounded())) Strain).")
     }
 
     // MARK: Actions
