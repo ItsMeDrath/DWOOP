@@ -364,6 +364,7 @@ struct CoachView: View {
 
     private var iOSCoachHeader: some View {
         HStack(spacing: 14) {
+            Image("WHOOPCoachLogo").resizable().scaledToFit().frame(width: 30, height: 30)
             Text("WHOOP")
                 .font(StrandFont.rounded(26))
                 .foregroundStyle(StrandPalette.textPrimary)
