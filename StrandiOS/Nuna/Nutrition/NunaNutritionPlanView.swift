@@ -154,7 +154,7 @@ struct NunaNutritionPlanView: View {
         defer { asking = false }
         let snapshot = await NunaNutritionSnapshot.build(repo: repo, profile: profile, includeLabBook: coach.includeOnDeviceSignals)
         guard let reply = await coach.suggestNutritionPlan(snapshot: snapshot) else {
-            askError = String(localized: "WHOOP couldn't answer. Check her connection in More, then try again."); return
+            askError = String(localized: "WHOOP couldn't answer. Check the connection in More, then try again."); return
         }
         if let spec = AnyaActions.parse(reply).compactMap({ b -> AnyaPlanSpec? in if case .plan(let p) = b { return p } else { return nil } }).first { suggestion = spec }
         else { askError = String(localized: "WHOOP didn't return a plan this time. Try again.") }
