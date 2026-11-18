@@ -7,7 +7,7 @@
 #
 # Contrast with fork-testing-build.yml: THAT publishes the rolling `testing-latest` PRERELEASE (a
 # snapshot), which releases/latest deliberately ignores. THIS never touches testing-latest.
-name: Release build
+name: Rebrand
 
 on:
   workflow_dispatch:
