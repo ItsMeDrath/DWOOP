@@ -178,7 +178,7 @@ struct NunaNutritionView: View {
         Button { addInAnya = true } label: {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Tell WHOOP what you ate").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
-                Text("Describe a meal in your own words and she works out the calories and macros. You check it before it goes in the diary.")
+                Text("Describe a meal in your own words and WHOOP estimates the calories and macros. Review it before it goes in the diary.")
                     .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
                 HStack(spacing: 8) {
                     Text("Add with WHOOP").font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
@@ -220,7 +220,7 @@ struct NunaNutritionView: View {
             detail = String(localized: "The calories are there, but not the protein. A protein-rich food would close most of the gap.")
         case .nothingLogged:
             line = String(localized: "Nothing logged yet today.")
-            detail = String(localized: "Tell WHOOP what you ate and she logs it for you.")
+            detail = String(localized: "Tell WHOOP what you ate and it prepares a meal entry for you to review.")
         case .onTrack:
             line = String(localized: "You're right on your target today.")
             detail = String(localized: "Calories and protein are where they should be.")
@@ -244,7 +244,7 @@ struct NunaNutritionView: View {
         } else {
             line = String(localized: "\(nutFmt(eaten)) kcal so far, \(nutFmt(m.p)) g protein.")
         }
-        let detail = target == nil ? String(localized: "Set a plan in Strategy and WHOOP reads the day against a target.") : String(localized: "Tell WHOOP what you ate next and she adds it for you.")
+        let detail = target == nil ? String(localized: "Set a plan in Strategy and WHOOP reads the day against a target.") : String(localized: "Tell WHOOP what you ate next and it prepares another meal entry for you to review.")
         return AnyView(
             NunaAnyaCard(verbatim: line, detail: detail, buttonTitle: "Add with WHOOP", onButton: { addInAnya = true }) { addInAnya = true }
                 .environment(\.nunaAnyaCardContext, "nutrition")
