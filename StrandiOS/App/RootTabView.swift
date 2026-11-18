@@ -554,7 +554,15 @@ struct RootTabView: View {
         // Drive this tab's root scroll-to-top on an at-root re-tap (#198 follow-up); read by ScreenScaffold
         // / LiquidTodayView inside. Only THIS tab's token changes on its reselect, so the others don't scroll.
         .environment(\.scrollToTopSignal, scrollSignal)
-        .tabItem { Label(title, systemImage: icon) }
+        .tabItem {
+            if icon == "sparkles" {
+                Label { Text(title) } icon: {
+                    Image("WHOOPCoachLogo").renderingMode(.original).resizable().scaledToFit()
+                }
+            } else {
+                Label(title, systemImage: icon)
+            }
+        }
     }
 
     // The "More" tab is the app's catch-all index. Keep every destination visible in one calm, scrollable
