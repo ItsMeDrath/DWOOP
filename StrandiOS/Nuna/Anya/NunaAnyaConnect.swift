@@ -13,8 +13,8 @@ struct NunaAnyaConnectView: View {
     @StateObject private var chatGPT = ChatGPTAuthModel.shared
 
     var body: some View {
-        NunaDetailScreen("Connect Anya") {
-            Text("Anya uses the AI provider you choose. Your key is kept in the Keychain and does not leave this iPhone.")
+        NunaDetailScreen("Connect WHOOP") {
+            Text("WHOOP uses the AI provider you choose. Your key is kept in the Keychain and does not leave this iPhone.")
                 .font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
             group("No key") {
                 Button { choose(.appleIntelligence) } label: {
@@ -42,7 +42,7 @@ struct NunaAnyaConnectView: View {
                 }.buttonStyle(.plain)
             }
             NunaCard(small: true) {
-                NunaToggleRow("Let Anya use my numbers", subtitle: "Summaries of your computed scores, not raw data", systemImage: "lock.open", isOn: $coach.dataConsent).padding(.vertical, 8)
+                NunaToggleRow("Let WHOOP use my numbers", subtitle: "Summaries of your computed scores, not raw data", systemImage: "lock.open", isOn: $coach.dataConsent).padding(.vertical, 8)
             }
             Text("Only a text summary of numbers already computed on this iPhone is sent to your chosen provider, and only after you allow it and ask. Raw heartbeat intervals, PPG and motion are never sent.")
                 .font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).fixedSize(horizontal: false, vertical: true).textCase(nil)
@@ -119,7 +119,7 @@ struct NunaAnyaKeyView: View {
             }
             modelCard
             NunaCard(small: true) {
-                NunaToggleRow("Let Anya use my numbers", subtitle: "Summaries of computed scores, not raw data", systemImage: "lock.open", isOn: $coach.dataConsent).padding(.vertical, 8)
+                NunaToggleRow("Let WHOOP use my numbers", subtitle: "Summaries of computed scores, not raw data", systemImage: "lock.open", isOn: $coach.dataConsent).padding(.vertical, 8)
             }
             Text("Usage is billed by the provider to your account. The key only leaves this iPhone to reach this provider.")
                 .font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).fixedSize(horizontal: false, vertical: true).textCase(nil)
@@ -324,7 +324,7 @@ struct NunaAnyaChatGPTView: View {
             if let e = auth.errorMessage, !e.isEmpty {
                 Text(verbatim: e).font(.nuna(size: 13, weight: .semibold)).foregroundStyle(NunaPalette.alertText).fixedSize(horizontal: false, vertical: true).textCase(nil)
             }
-            Text("The token is kept in Apple's Keychain and refreshed automatically. Sign out any time from Anya settings.")
+            Text("The token is kept in Apple's Keychain and refreshed automatically. Sign out any time from WHOOP settings.")
                 .font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textMuted).fixedSize(horizontal: false, vertical: true).textCase(nil)
         }
         .onAppear { if coach.provider != .chatGPT { coach.provider = .chatGPT }; auth.refreshConnection() }
