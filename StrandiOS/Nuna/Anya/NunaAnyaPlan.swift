@@ -79,7 +79,7 @@ struct NunaAnyaPlanView: View {
                 NunaCard {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("No plan yet").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
-                        Text("Anya needs today's Recovery to suggest a session. Wear the strap overnight and sync, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+                        Text("WHOOP needs today's Recovery to suggest a session. Wear the strap overnight and sync, then come back.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                     }.frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
@@ -192,7 +192,7 @@ struct NunaAnyaPlanView: View {
                     coach.pendingPrompt = "Here is the session you suggested for today: \(title(plan)), main zone \(plan.mainZone). My Recovery is \(charge)%. Adjust it to fit my day and explain the change."
                     router.requestedDestination = .coach
                 } label: {
-                    Text("Ask Anya to change it").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).frame(maxWidth: .infinity).frame(height: 52).background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
+                    Text("Ask WHOOP to change it").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).frame(maxWidth: .infinity).frame(height: 52).background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
                 }.buttonStyle(.plain)
             }
         }
