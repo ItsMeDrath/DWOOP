@@ -7,7 +7,7 @@
 #
 # Contrast with fork-testing-build.yml: THAT publishes the rolling `testing-latest` PRERELEASE (a
 # snapshot), which releases/latest deliberately ignores. THIS never touches testing-latest.
-name: Release build
+name: Rebrand
 
 on:
   workflow_dispatch:
@@ -242,7 +242,7 @@ jobs:
             .apps[0].versions |= ([{
                 version: $v, buildVersion: $b, date: $d,
                 localizedDescription: $desc, downloadURL: $url, size: $size, minOSVersion: $min
-              }] + (map(select(.version != $v))))
+              }] + (map(select(.version != $v)))
             | .apps[0].version            = $v
             | .apps[0].buildVersion       = $b
             | .apps[0].versionDate        = $d
