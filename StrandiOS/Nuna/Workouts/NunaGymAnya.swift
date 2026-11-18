@@ -39,7 +39,7 @@ struct NunaGymProposal {
     }
 }
 
-/// Programs Anya made, kept apart so the Gym tab can show them under "Anya special".
+/// Programs Anya made, kept apart so the Gym tab can show them under "WHOOP special".
 enum NunaAnyaPrograms {
     private static let key = "nuna.gym.anyaPrograms"
     static var ids: Set<String> { Set(UserDefaults.standard.stringArray(forKey: key) ?? []) }
@@ -137,7 +137,7 @@ final class NunaGymAnyaModel: ObservableObject {
                     return .init(exercise: c.name, primary: e.primary, secondary: e.secondary, sets: c.sets, repsLow: e.reps, repsHigh: nil, weightKg: e.weight,
                                  restSec: nil, note: nil, programItemId: nil)
                 }
-                proposal = NunaGymProposal(title: String(localized: "Anya's session"), programId: nil, rows: rows, fromProgram: false)
+                proposal = NunaGymProposal(title: String(localized: "WHOOP's session"), programId: nil, rows: rows, fromProgram: false)
             }
         }
         reading = Reading(habit: habit, trend: trend, condition: condition, charge: charge, programName: programName, proposal: proposal, sessionCount: facts.count)
@@ -173,7 +173,7 @@ struct NunaGymAnyaCard: View {
             if coachEnabled, !session.isActive, let r = model.reading {
                 // The same card as Generate with Anya had: a title, Anya's read of the day in a line or two, and the way into the plan, which has the whole read.
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("Today with Anya").font(.nuna(size: 16.5, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
+                    Text("Today with WHOOP").font(.nuna(size: 16.5, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                     Text(verbatim: headline(r)).font(.nuna(size: 15, weight: .regular)).foregroundStyle(NunaPalette.textSecondary)
                         .lineSpacing(3).fixedSize(horizontal: false, vertical: true).multilineTextAlignment(.leading).textCase(nil)
                     if r.proposal != nil {
@@ -208,8 +208,8 @@ struct NunaGymAnyaCard: View {
     private func headline(_ r: NunaGymAnyaModel.Reading) -> String {
         guard let h = r.habit else {
             return r.sessionCount == 0
-                ? String(localized: "Log a few gym sessions and Anya learns your gym days, then helps plan each one.")
-                : String(localized: "Anya needs about four sessions to read your gym habit. Until then, here is a session from what you already do.")
+                ? String(localized: "Log a few gym sessions and WHOOP learns your gym days, then helps plan each one.")
+                : String(localized: "WHOOP needs about four sessions to read your gym habit. Until then, here is a session from what you already do.")
         }
         let name = r.programName
         if h.trainedToday { return String(localized: "You trained today. Give those muscles a day before you load them again.") }
@@ -299,11 +299,11 @@ struct NunaGymAnyaSheet: View {
                 }.buttonStyle(.plain).disabled(session.isActive)
                 if !proposal.fromProgram {
                     Button { Task { await saveProgram() } } label: {
-                        Text(saved ? "Saved in Anya special" : "Save as a program").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
+                        Text(saved ? "Saved in WHOOP special" : "Save as a program").font(.nuna(size: 16, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
                             .frame(maxWidth: .infinity).frame(height: 52).background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
                     }.buttonStyle(.plain).disabled(saved)
                 }
-                nunaFootnote("Anya reads your own sessions, your Recovery and your readiness, on this iPhone. A suggestion, not a prescription.")
+                nunaFootnote("WHOOP reads your own sessions, your Recovery and your readiness, on this iPhone. A suggestion, not a prescription.")
             }
             .toolbar(.hidden, for: .navigationBar)
         }
@@ -347,7 +347,7 @@ struct NunaGymAnyaSheet: View {
         let now = Int(Date().timeIntervalSince1970)
         let id = UUID().uuidString
         let f = DateFormatter(); f.locale = AppLanguage.activeLocale; f.setLocalizedDateFormatFromTemplate("EEE d MMM")
-        let name = String((String(localized: "Anya") + " · " + f.string(from: Date())).prefix(60))
+        let name = String((String(localized: "WHOOP") + " · " + f.string(from: Date())).prefix(60))
         _ = try? await store.upsertLiftPrograms([LiftProgramRow(id: id, deviceId: repo.deviceId, name: name, note: nil, createdAt: now, updatedAt: now, archived: false)])
         // The usual numbers, not today's lighter ones: the program is for every day.
         let items = proposal.rows.enumerated().map { i, r in
