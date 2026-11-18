@@ -88,7 +88,7 @@ struct NunaFitnessAgeSummary: View {
                 empty
             }
             NavigationLink(value: NunaTodayRoute.fitnessAge) {
-                Text("Go to fitness age").font(.nuna(size: 12, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                Text("Go to WHOOP Age").font(.nuna(size: 12, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     .foregroundStyle(NunaPalette.textPrimary).frame(maxWidth: .infinity).frame(height: 52)
                     .background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.card, style: .continuous))
             }
@@ -128,7 +128,7 @@ struct NunaFitnessAgeSummary: View {
         let blue = NunaPalette.effortModerate
         return HStack(alignment: .top, spacing: 14) {
             Image(systemName: "hourglass").font(.nuna(size: 16, weight: .regular)).foregroundStyle(blue).padding(.top, 2)
-            Text("Your fitness age is calibrating for its first 90 days, so fluctuations are normal. As more weeks of readings come in, it will stabilize.")
+            Text("Your WHOOP Age is calibrating for its first 90 days, so fluctuations are normal. As more weeks of readings come in, it will stabilize.")
                 .font(.nuna(size: 13.5, weight: .semibold)).foregroundStyle(blue).textCase(nil).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 0)
             Button { withAnimation(.easeOut(duration: 0.2)) { calibratingHidden = true } } label: {
