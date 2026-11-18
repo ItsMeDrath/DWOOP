@@ -5,18 +5,6 @@
       "idiom": "universal",
       "platform": "ios",
       "size": "1024x1024"
-    },
-    {
-      "filename": "whoop.png",
-      "idiom": "universal",
-      "platform": "ios",
-      "size": "1024x1024",
-      "appearances": [
-        {
-          "appearance": "luminosity",
-          "value": "dark"
-        }
-      ]
     }
   ],
   "info": {
