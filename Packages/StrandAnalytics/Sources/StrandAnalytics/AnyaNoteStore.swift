@@ -56,7 +56,7 @@ public struct AnyaNoteStore {
         let list = notes(module).suffix(limit)
         guard !list.isEmpty else { return nil }
         let f = DateFormatter(); f.dateFormat = "yyyy-MM-dd HH:mm"; f.locale = Locale(identifier: "en_US_POSIX")
-        return "Anya's notes from this module:\n" + list.map { "- \(f.string(from: Date(timeIntervalSince1970: TimeInterval($0.ts)))) \($0.text)" }.joined(separator: "\n")
+        return "WHOOP's notes from this module:\n" + list.map { "- \(f.string(from: Date(timeIntervalSince1970: TimeInterval($0.ts)))) \($0.text)" }.joined(separator: "\n")
     }
 }
 
