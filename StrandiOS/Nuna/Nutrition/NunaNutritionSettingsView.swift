@@ -23,8 +23,8 @@ struct NunaNutritionSettingsView: View {
                     }.buttonStyle(.plain)
                 }
             }
-            NunaSettingsSection("Anya") {
-                NunaSettingsSwitch("Anya speaks up", subtitle: "Tells you when the day runs over or short of your target", systemImage: "sparkles", isOn: $nudges)
+            NunaSettingsSection("WHOOP") {
+                NunaSettingsSwitch("WHOOP speaks up", subtitle: "Tells you when the day runs over or short of your target", systemImage: "sparkles", isOn: $nudges)
             }
         }
     }
