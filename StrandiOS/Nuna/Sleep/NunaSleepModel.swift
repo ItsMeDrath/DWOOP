@@ -121,6 +121,7 @@ final class NunaSleepModel: ObservableObject {
     @Published private(set) var nights: [NunaNight] = []
     /// metric key -> (day key -> value)
     @Published private(set) var series: [String: [String: Double]] = [:]
+    @Published private(set) var sleepStressHighPct: [String: Double] = [:]
     @Published private(set) var loaded = false
     /// Recency-weighted debt over the latest nights (same ledger the Default Sleep tab shows).
     @Published private(set) var ledger: SleepDebtLedger?
@@ -169,22 +170,32 @@ final class NunaSleepModel: ObservableObject {
         return series["sleep_efficiency", default: [:]][n.dayKey]
     }
 
-    /// Bedtime spread over the 14 nights up to this one: 100 when you go to bed at the same time.
+    /// Five-night consistency: both bedtime and wake time are considered.
     func consistency(_ n: NunaNight) -> Double? {
-        if let v = series["sleep_consistency"]?[n.dayKey] { return v }
         guard let i = nights.firstIndex(where: { $0.id == n.id }) else { return nil }
-        let window = nights.dropFirst(i).prefix(14)
-        let cal = Calendar.current
-        let mins: [Double] = window.map { night in
-            let c = cal.dateComponents([.hour, .minute], from: night.onset)
-            var m = Double((c.hour ?? 0) * 60 + (c.minute ?? 0))
-            if m < 12 * 60 { m += 24 * 60 }
-            return m
+        let window = Array(nights.dropFirst(i).prefix(NunaSleepConsistency.windowNights).reversed())
+        guard window.count == NunaSleepConsistency.windowNights else { return nil }
+        func clock(_ date: Date, bedtime: Bool) -> Double {
+            let c = Calendar.current.dateComponents([.hour, .minute], from: date)
+            var minutes = Double((c.hour ?? 0) * 60 + (c.minute ?? 0))
+            if minutes < 12 * 60 { minutes += 24 * 60 }
+            if !bedtime && minutes < 24 * 60 { minutes += 24 * 60 }
+            return minutes
         }
-        guard mins.count >= 3 else { return nil }
-        let mean = mins.reduce(0, +) / Double(mins.count)
-        let sd = (mins.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(mins.count)).squareRoot()
-        return max(0, min(100, 100 * (1 - sd / 120)))
+        return NunaSleepConsistency.score(bedTimes: window.map { clock($0.onset, bedtime: true) },
+                                          wakeTimes: window.map { clock($0.wake, bedtime: false) })
+    }
+
+    /// The agreed 60/20/10/10 Sleep Score. Missing data earns neutral half-credit, never a fabricated perfect score.
+    func sleepScore(_ n: NunaNight) -> Double? {
+        guard let hours = hoursVsNeeded(n), let efficiency = efficiency(n) else { return nil }
+        func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
+        let durationPoints = clamp(hours / 100)
+        let consistencyPoints = clamp((consistency(n) ?? 45) / 90)
+        let efficiencyPoints = clamp(efficiency / 90)
+        let highStress = sleepStressHighPct[n.dayKey] ?? 50
+        let stressPoints = clamp(1 - highStress / 100)
+        return ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
     }
 
     /// Debt in minutes as of the latest night, when there is one.
@@ -333,6 +344,22 @@ final class NunaSleepModel: ObservableObject {
             all[k] = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         }
         series = all
+        let stressHistory = NunaStressHistory()
+        await stressHistory.ensure(days: out.map(\.wakeDate), repo: repo)
+        var highStress: [String: Double] = [:]
+        for night in out {
+            if let zones = stressHistory.entries[night.dayKey]?.zones(.sleep), zones.total > 0 {
+                highStress[night.dayKey] = zones.high / zones.total * 100
+            }
+        }
+        let stressStatus = await StressEngine.shared.status(repo: repo)
+        if stressStatus.isReady, let todayNight = out.first(where: { Calendar.current.isDateInToday($0.wakeDate) }) {
+            let start = Calendar.current.startOfDay(for: todayNight.wakeDate)
+            if let result = await StressEngine.shared.day(repo: repo, from: Int(start.timeIntervalSince1970), to: Int(Date().timeIntervalSince1970)), result.sleep.total > 0 {
+                highStress[todayNight.dayKey] = result.sleep.high / result.sleep.total * 100
+            }
+        }
+        sleepStressHighPct = highStress
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
         fallbackNeed = SleepModel.sleepNeedMin(days: repo.days)
         let napByDay = SleepModel.napSleepMinutesByDay(navDays: SleepModel.navDays(navSessions: sessions), habitualMidsleepSec: hab)

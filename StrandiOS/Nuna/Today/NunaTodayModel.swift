@@ -55,6 +55,7 @@ final class NunaTodayModel: ObservableObject {
     /// `vo2max_est`. A key is missing when there is no earlier reading. HRV, resting heart rate, respiratory rate and blood oxygen
     /// keep their deltas above.
     @Published private(set) var previous: [String: Double] = [:]
+    private let sleepModel = NunaSleepModel()
 
     var isToday: Bool { dayOffset == 0 }
 
@@ -153,15 +154,12 @@ final class NunaTodayModel: ObservableObject {
         }
         effort = StrainScorer.effectiveEffort(live: live, stored: row?.strain)
 
-        async let restA = repo.exploreSeries(key: "sleep_performance", source: "my-whoop")
         async let stepsA = repo.exploreSeries(key: "steps_est", source: "my-whoop")
         async let appleA = repo.appleDailyRows()
         async let workoutsA = repo.workoutRows()
 
-        let restSeries = await restA
-        let restByDay = Dictionary(restSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
-        rest = TodayView.freshRestScore(todayValue: restByDay[key], lastDay: restSeries.last?.day,
-                                        lastValue: restSeries.last?.value, isTodaySelected: today, todayKey: key)
+        await sleepModel.load(repo: repo)
+        rest = sleepModel.nights.first(where: { $0.dayKey == key }).flatMap { sleepModel.sleepScore($0) }
 
 
         // Steps and calories: measured on the strap first, then Apple Health, then the on-device estimate.

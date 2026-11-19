@@ -24,7 +24,7 @@ struct NunaRestDetailView: View {
     /// The Rest ring is always this steel blue, whatever the score; the bars inside it say how the night reads.
     private static let ringBlue = Color(hex: "#7BA4C4")
 
-    private var rest: Double? { model.value("sleep_performance") ?? series.latest?.value }
+    private var rest: Double? { model.night.flatMap { model.sleepScore($0) } }
 
     /// How many days before today the night on show ended, so the trend card below ends on that morning.
     private var nightDaysAgo: Int {
@@ -45,7 +45,7 @@ struct NunaRestDetailView: View {
                 NunaBodyClockLink()
             }
             NunaExpandRow(title: "How it's calculated", subtitle: "Four parts of the night",
-                          text: "Sleep adds up how long you slept against what you need (half of the score), how much of your time in bed you were asleep, the share of deep and REM sleep, and how regular your bedtime is. It is an estimate computed on this phone from your strap's data.\n\nEach part has a range for Poor, Sufficient and Optimal.\n\nHours vs. needed: Optimal 85%+, Sufficient 70–85%, Poor under 70%.\nSleep consistency: Optimal 80%+, Sufficient 70–80%, Poor under 70%.\nSleep efficiency: Optimal 85%+, Sufficient 70–85%, Poor under 70%.")
+                          text: "Sleep is scored from four parts: Hours vs. needed (60 points), Sleep consistency (20 points), Sleep efficiency (10 points) and High Sleep Stress (10 points). Hours vs. needed earns all 60 points at 100%. Consistency and efficiency earn all their points at 90% or higher. Sleep Stress earns all 10 points when 0% of scored sleep is in the High stress zone.\n\nConsistency uses only the latest five nights and compares both bedtime and wake time. The score is an estimate computed on this phone from your strap's data.")
         }
         .task(id: "\(repo.refreshSeq)-\(autoNaps)") {
             await series.load(repo: repo, key: "sleep_performance", source: "my-whoop")
@@ -116,10 +116,10 @@ struct NunaRestDetailView: View {
             let f = DateFormatter(); f.locale = AppLanguage.activeLocale; f.setLocalizedDateFormatFromTemplate("EEE")
             return f.string(from: d)
         }
-        // The bed and wake time each night is measured against: the mean of the nights up to it, up to 14.
+        // The bed and wake time each night is measured against the same five-night window as the score.
         func ideal(_ n: NunaNight) -> (bed: Double, wake: Double) {
             guard let i = model.nights.firstIndex(where: { $0.id == n.id }) else { return (hours(n.onset, evening: true), hours(n.wake, evening: false)) }
-            let window = model.nights.dropFirst(i).prefix(14)
+            let window = model.nights.dropFirst(i).prefix(NunaSleepConsistency.windowNights)
             let beds = window.map { hours($0.onset, evening: true) }, wakes = window.map { hours($0.wake, evening: false) }
             return (beds.reduce(0, +) / Double(max(beds.count, 1)), wakes.reduce(0, +) / Double(max(wakes.count, 1)))
         }
@@ -228,7 +228,8 @@ struct NunaRestDetailView: View {
             NunaWeeklyHeading()
             NunaWeeklyTrendCard(title: "Sleep performance", key: "sleep_performance", style: .bars, color: steel,
                                 barFill: { _, _ in steel }, labelFill: { _, _ in steel },
-                                destination: { AnyView(NunaTrendHost(initial: .restPerformance, endingDaysAgo: ending)) }, valueText: percent, endingDaysAgo: ending)
+                                destination: { AnyView(NunaTrendHost(initial: .restPerformance, endingDaysAgo: ending)) },
+                                points: points { model.sleepScore($0) }, valueText: percent, endingDaysAgo: ending)
             NunaTwoLineWeeklyCard(title: "Hours vs. needed (hours)", slept: byDay { $0.daily?.totalSleepMin ?? $0.asleepMin },
                                   needed: byDay { model.need($0) }, endingDaysAgo: ending,
                                   destination: { AnyView(NunaTrendHost(initial: .hoursNeededHours, endingDaysAgo: ending)) })
@@ -272,7 +273,11 @@ struct NunaRestDetailView: View {
                 NunaDivider()
                 row("Sleep efficiency", "met:sleep-efficiency", model.efficiency(night), sufficientFrom: 70, optimalFrom: 85, page: .efficiency)
                 NunaDivider()
-                row("Restorative sleep", "met:restorative-sleep", model.restorative(night), sufficientFrom: 50, optimalFrom: 75, page: .restorative)
+                NavigationLink { NunaTrendHost(initial: .stressSleep, endingDaysAgo: nightDaysAgo) } label: {
+                    let high = model.sleepStressHighPct[night.dayKey]
+                    NunaLevelRow(title: "High Sleep Stress", icon: NunaStressCategory.sleep.icon, percent: high,
+                                 level: high.map { NunaLevel.of(100 - $0, sufficientFrom: 95, optimalFrom: 99) })
+                }.buttonStyle(.plain)
             }
             NunaLevelLegend().padding(.top, 8)
         }

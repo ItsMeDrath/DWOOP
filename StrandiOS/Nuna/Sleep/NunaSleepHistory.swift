@@ -5,6 +5,20 @@ import StrandDesign
 import WhoopStore
 import StrandAnalytics
 
+/// Sleep consistency is calculated from the five latest nights only. Both the Sleep tab and its trend use this same rule.
+enum NunaSleepConsistency {
+    static let windowNights = 5
+    static func score(bedTimes: [Double], wakeTimes: [Double]) -> Double? {
+        guard bedTimes.count == windowNights, wakeTimes.count == windowNights else { return nil }
+        func sd(_ values: [Double]) -> Double {
+            let mean = values.reduce(0, +) / Double(values.count)
+            return (values.reduce(0) { $0 + ($1 - mean) * ($1 - mean) } / Double(values.count)).squareRoot()
+        }
+        let spread = (sd(bedTimes) + sd(wakeTimes)) / 2
+        return max(0, min(100, 100 * (1 - spread / 90)))
+    }
+}
+
 /// The sleep figures of every stored day, for the long trend pages (a week, a month, six months). `NunaSleepModel` holds only the last month of nights
 /// with their stage timelines; these pages need the year, so they read the daily rows and series, which are what the model's own figures come from.
 @MainActor
@@ -44,8 +58,7 @@ final class NunaSleepHistory: ObservableObject {
             if let deep = row.deepMin, let rem = row.remMin { d[row.day] = deep; r[row.day] = rem }
         }
         let need = await repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: 400)
-        let cons = await repo.exploreSeries(key: "sleep_consistency", source: "my-whoop", days: 400)
-        asleepMin = a; deepMin = d; remMin = r
+         asleepMin = a; deepMin = d; remMin = r
         // Efficiency is stored as a fraction on some rows and a percentage on others; the series, when there is one, wins.
         var eff: [String: Double] = [:]
         for row in repo.days { if let e = row.efficiency, e > 0 { eff[row.day] = e <= 1 ? e * 100 : e } }
@@ -62,14 +75,40 @@ final class NunaSleepHistory: ObservableObject {
         for p in await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 400) where p.value > 0 && st[p.day] == nil { st[p.day] = p.value }
         steps = st
         effort = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        performance = Dictionary((await repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        charge = Dictionary((await repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+         charge = Dictionary((await repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         let healthy = SleepModel.debtNeedMin(days: repo.days)
         debtMin = Dictionary(SleepDebt.debtSeries(series: a.keys.sorted().map { ($0, a[$0]) }, needHours: healthy / 60).map { ($0.day, max($0.value, 0)) },
                              uniquingKeysWith: { _, l in l })
         await loadBedTimes(repo: repo)
         needMin = Dictionary(need.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        consistency = Dictionary(cons.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+        let nightKeys = bedHour.keys.filter { wakeHour[$0] != nil }.sorted()
+        var fiveNightConsistency: [String: Double] = [:]
+        if nightKeys.count >= NunaSleepConsistency.windowNights {
+            for i in (NunaSleepConsistency.windowNights - 1)..<nightKeys.count {
+                let window = Array(nightKeys[(i - NunaSleepConsistency.windowNights + 1)...i])
+                if let value = NunaSleepConsistency.score(bedTimes: window.compactMap { bedHour[$0] },
+                                                          wakeTimes: window.compactMap { wakeHour[$0] }) {
+                    fiveNightConsistency[nightKeys[i]] = value
+                }
+            }
+        }
+        consistency = fiveNightConsistency
+        let stressHistory = NunaStressHistory()
+        await stressHistory.ensure(days: nightKeys.compactMap { NunaDayFormat.parse($0) }, repo: repo)
+        var computedPerformance: [String: Double] = [:]
+        for day in nightKeys {
+            guard let asleep = a[day], let eff = eff[day], asleep > 0 else { continue }
+            let needValue = need.first(where: { $0.day == day })?.value ?? Self.fallbackNeed
+            let durationPoints = min(max(asleep / max(needValue, 1), 0), 1)
+            let consistencyPoints = min(max((fiveNightConsistency[day] ?? 45) / 90, 0), 1)
+            let efficiencyPoints = min(max(eff / 90, 0), 1)
+            let stressPoints: Double
+            if let zones = stressHistory.entries[day]?.zones(.sleep), zones.total > 0 {
+                stressPoints = min(max(1 - zones.high / zones.total, 0), 1)
+            } else { stressPoints = 0.5 }
+            computedPerformance[day] = (0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100
+        }
+        performance = computedPerformance
         loaded = true
     }
 
