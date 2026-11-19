@@ -242,6 +242,7 @@ struct NunaProfileView: View {
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @State private var workouts: [WorkoutRow] = []
     @State private var fitnessAge: Double?
+    @StateObject private var sleepModel = NunaSleepModel.shared
     @State private var highlightsPeriod = Period.all
     @State private var summaryPeriod = Period.all
 
@@ -288,6 +289,7 @@ struct NunaProfileView: View {
         .sheet(isPresented: $showInbox) { NunaUpdatesInbox(onClose: { showInbox = false }).nunaSheetChrome(detents: [.large]) }
         .task(id: repo.refreshSeq) {
             workouts = await repo.workoutRows()
+            await sleepModel.load(repo: repo, historyDays: max(repo.days.count + 7, 60), includeMotion: false)
             let m = NunaTodayModel(); await m.load(repo: repo, profile: profile)
             fitnessAge = m.extras["body_age"]
         }
@@ -425,7 +427,10 @@ struct NunaProfileView: View {
 
     // MARK: Achievements
 
-    private func rest(_ d: DailyMetric) -> Double { AnalyticsEngine.Rest.composite(daily: d) ?? 0 }
+    private func rest(_ d: DailyMetric) -> Double {
+        guard let night = sleepModel.nights.first(where: { $0.dayKey == d.day }) else { return 0 }
+        return sleepModel.sleepScore(night) ?? 0
+    }
 
     private var achievements: some View {
         let list = NunaAchievementCatalog.build(days: allDays, workouts: workouts)
