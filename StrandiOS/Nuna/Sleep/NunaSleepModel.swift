@@ -154,10 +154,25 @@ final class NunaSleepModel: ObservableObject {
     /// only the personal baseline.
     func hasStoredNeed(_ n: NunaNight) -> Bool { importedNeed[n.dayKey] != nil || series["sleep_need_min"]?[n.dayKey] != nil }
 
-    func need(_ n: NunaNight) -> Double { importedNeed[n.dayKey] ?? series["sleep_need_min"]?[n.dayKey] ?? fallbackNeed }
+    /// The healthy minimum every night's need starts from: 7.5 hours.
+    static let healthyMin = 450.0
+
+    /// Sleep debt as of each night, measured against the healthy minimum (the same recurrence the ledger uses).
+    private(set) var debtByDay: [String: Double] = [:]
+
+    func debt(_ n: NunaNight) -> Double { debtByDay[n.dayKey] ?? 0 }
+
+    /// The night's need: the healthy minimum, plus recent strain, plus sleep debt. Strain is what a stored (imported) need holds above the
+    /// healthy minimum and the debt; a night with no stored need has none. Sleep screen and trend pages both read this one figure.
+    func need(_ n: NunaNight) -> Double {
+        let stored = importedNeed[n.dayKey] ?? series["sleep_need_min"]?[n.dayKey]
+        return max(stored ?? 0, Self.healthyMin + debt(n))
+    }
+
+    /// The part of the need that recent strain adds.
+    func strain(_ n: NunaNight) -> Double { max(need(n) - Self.healthyMin - debt(n), 0) }
 
     func hoursVsNeeded(_ n: NunaNight) -> Double? {
-        if let v = series["hours_vs_needed_pct"]?[n.dayKey] { return v }
         let asleep = n.daily?.totalSleepMin ?? n.asleepMin
         return asleep > 0 ? asleep / need(n) * 100 : nil
     }
@@ -341,6 +356,10 @@ final class NunaSleepModel: ObservableObject {
                                  daily: row, proportional: proportional, motion: motion,
                                  editTarget: SleepView.mainNightSession(group, habitualMidsleepSec: hab)))
         }
+        debtByDay = Dictionary(
+            SleepDebt.debtSeries(series: out.reversed().map { ($0.dayKey, $0.daily?.totalSleepMin ?? $0.asleepMin) },
+                                 needHours: Self.healthyMin / 60).map { ($0.day, max($0.value, 0)) },
+            uniquingKeysWith: { _, l in l })
         if let selectDayKey, let i = out.firstIndex(where: { $0.dayKey == selectDayKey }) { index = i }
         else if let selectIndex, selectIndex > 0, selectIndex < out.count { index = selectIndex }
         nights = out

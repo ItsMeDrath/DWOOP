@@ -27,12 +27,9 @@ final class NunaSleepHistory: ObservableObject {
     @Published private(set) var deepMin: [String: Double] = [:]
     @Published private(set) var remMin: [String: Double] = [:]
     @Published private(set) var needMin: [String: Double] = [:]
-    /// The stored Hours vs. needed (%) of each day, when there is one: the figure the Sleep screen shows first.
-    @Published private(set) var hoursPct: [String: Double] = [:]
-    /// The same need the Sleep screen measures a night against: a figure from an import, else the stored need, else the personal estimate.
-    /// A fixed 450 here made these pages disagree with the ring (Hours vs. needed 106% against 95%, Sleep 91% against 88%).
+    /// A need stored by an import. The need a night is measured against is the healthy minimum plus recent strain plus sleep debt, exactly as
+    /// on the Sleep screen, so the ring and these pages agree.
     private var importedNeed: [String: Double] = [:]
-    private var fallbackNeedMin = 450.0
     @Published private(set) var consistency: [String: Double] = [:]
     @Published private(set) var efficiency: [String: Double] = [:]
     /// Steps each day: the strap's count, with the combined and estimated series filling the days it has none.
@@ -64,9 +61,6 @@ final class NunaSleepHistory: ObservableObject {
         }
         let need = await repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: 400)
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
-        fallbackNeedMin = SleepModel.sleepNeedMin(days: repo.days)
-        hoursPct = Dictionary((await repo.exploreSeries(key: "hours_vs_needed_pct", source: "my-whoop", days: 400)).map { ($0.day, $0.value) },
-                              uniquingKeysWith: { _, l in l })
          asleepMin = a; deepMin = d; remMin = r
         // Efficiency is stored as a fraction on some rows and a percentage on others; the series, when there is one, wins.
         var eff: [String: Double] = [:]
@@ -85,8 +79,7 @@ final class NunaSleepHistory: ObservableObject {
         steps = st
         effort = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
          charge = Dictionary((await repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        let healthy = SleepModel.debtNeedMin(days: repo.days)
-        debtMin = Dictionary(SleepDebt.debtSeries(series: a.keys.sorted().map { ($0, a[$0]) }, needHours: healthy / 60).map { ($0.day, max($0.value, 0)) },
+        debtMin = Dictionary(SleepDebt.debtSeries(series: a.keys.sorted().map { ($0, a[$0]) }, needHours: NunaSleepModel.healthyMin / 60).map { ($0.day, max($0.value, 0)) },
                              uniquingKeysWith: { _, l in l })
         await loadBedTimes(repo: repo)
         needMin = Dictionary(need.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
@@ -109,7 +102,7 @@ final class NunaSleepHistory: ObservableObject {
         var computedPerformance: [String: Double] = [:]
         for day in nightKeys {
             guard let asleep = a[day], let eff = eff[day], asleep > 0 else { continue }
-            let durationPoints = min(max((hoursVsNeeded(day) ?? asleep / max(need(day), 1) * 100) / 100, 0), 1)
+            let durationPoints = min(max(asleep / max(need(day), 1), 0), 1)
             let consistencyPoints = min(max((fiveNightConsistency[day] ?? 45) / 90, 0), 1)
             let efficiencyPoints = min(max(eff / 90, 0), 1)
             let stressPoints: Double
@@ -168,9 +161,9 @@ final class NunaSleepHistory: ObservableObject {
         bedHour = bed; wakeHour = wake
     }
 
-    func need(_ day: String) -> Double { importedNeed[day] ?? needMin[day] ?? fallbackNeedMin }
+    func need(_ day: String) -> Double { max(importedNeed[day] ?? needMin[day] ?? 0, NunaSleepModel.healthyMin + (debtMin[day] ?? 0)) }
 
-    func hoursVsNeeded(_ day: String) -> Double? { hoursPct[day] ?? asleepMin[day].map { $0 / need(day) * 100 } }
+    func hoursVsNeeded(_ day: String) -> Double? { asleepMin[day].map { $0 / need(day) * 100 } }
 
     /// The oldest day with a night, so the date stepper knows where to stop.
     var oldest: Date? {
