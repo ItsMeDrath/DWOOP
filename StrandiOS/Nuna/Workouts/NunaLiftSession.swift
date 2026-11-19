@@ -818,6 +818,7 @@ struct NunaLiftSessionView: View {
                                  programId: session.programId, programName: session.programName,
                                  sessionRpe: LiftFormat.number(sessionRpeText), note: session.programName)
         _ = try? await store.upsertLiftSessions([row])
+        let repo = self.repo
         let rows = finished.enumerated().map { ord, s -> LiftSetRow in
             let item = engine.planItem(for: s.slot)
             return LiftSetRow(id: UUID().uuidString, deviceId: repo.deviceId, sessionId: sessionId, ord: ord, exercise: item?.exercise ?? "",
@@ -835,7 +836,6 @@ struct NunaLiftSessionView: View {
         // A session logged here may go to Strava (one that came from Hevy or Apple Health never does, see `StravaOwnGym`). In automatic mode
         // it goes now, from the workout as the lists read it, with the heart rate the strap measured filled in.
         StravaOwnGym.add(startTs: workout.startTs, sport: workout.sport)
-        let repo = self.repo
         Task {
             await repo.refresh()
             if let row = await repo.workoutRows().first(where: { $0.startTs == workout.startTs && $0.sport == workout.sport }) {
