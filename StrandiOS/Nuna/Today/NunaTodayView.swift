@@ -116,17 +116,19 @@ private struct NunaPinnedRings: View {
     var body: some View { NunaScoreRings(charge: charge, effort: effort, rest: rest, effortScale: effortScale, collapse: state.t) }
 }
 
-/// "WHOOP" in thin wide letters over the rings; it folds away as the rings shrink.
+/// The supplied vector WHOOP wordmark above the rings; it folds away with the rings as the header scrolls.
 private struct NunaPinnedBrand: View {
     @ObservedObject var state: NunaCollapse
     let height: CGFloat
     var body: some View {
-        // The wordmark of the reference: about 17 pt, a regular stroke, wide letters, near white. The tracking is added after the last letter too, so
-        // the same amount is taken off the leading side to keep the word on the centre line.
-        Text("WHOOP").font(.nuna(size: 17, weight: .medium)).tracking(4.0).foregroundStyle(NunaPalette.textPrimary)
-            .frame(maxWidth: .infinity).frame(height: height * (1 - state.t), alignment: .center).clipped().offset(y: -3 * (1 - state.t))
+        WhoopWordmark()
+            // The vector's native ratio is 247:40; 14 pt high matches the existing header's optical alignment.
+            .frame(width: 86.45, height: 14)
+            .frame(maxWidth: .infinity)
+            .frame(height: height * (1 - state.t), alignment: .center)
+            .clipped()
+            .offset(y: -3 * (1 - state.t))
             .opacity(Double(max(0, 1 - state.t * 1.8)))
-            .accessibilityHidden(true)
     }
 }
 
