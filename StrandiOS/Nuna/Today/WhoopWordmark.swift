@@ -150,3 +150,4 @@ struct WhoopMonogram: Shape {
             }
         }
     }
+}
