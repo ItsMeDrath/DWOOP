@@ -93,9 +93,9 @@
 "Outside your range" = "Di luar rentangmu";
 "%@ %@ from yesterday" = "%1$@ %2$@ dari kemarin";
 "%@ %@ from average" = "%1$@ %2$@ dari rata-rata";
-"Anya" = "Anya";
-"Anya's morning suggestion." = "Saran pagi dari Anya.";
-"No suggestion yet. Turn on the morning brief in Anya." = "Belum ada saran. Nyalakan ringkasan pagi di Anya.";
+"WHOOP" = "WHOOP";
+"WHOOP's morning suggestion." = "Saran pagi dari WHOOP.";
+"No suggestion yet. Turn on the morning brief in WHOOP." = "Belum ada saran. Nyalakan ringkasan pagi di WHOOP.";
 "No suggestion yet" = "Belum ada saran";
 "%lld%% of %@" = "%1$lld%% dari %2$@";
 "Today's steps and your target." = "Langkah hari ini dan targetmu.";

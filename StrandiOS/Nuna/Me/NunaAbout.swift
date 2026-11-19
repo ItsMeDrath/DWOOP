@@ -37,7 +37,7 @@ struct NunaWhatsNewView: View {
                 .padding(.horizontal, 18).frame(height: 50).background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
             }.buttonStyle(.plain)
             if showNoop {
-                nunaFootnote("The releases of NOOP that PHMN is built on.")
+                nunaFootnote("The NOOP engine releases used by this WHOOP app.")
                 ForEach(Array(AppChangelog.releases.prefix(shown))) { r in
                     releaseCard(version: r.version, title: r.title, date: r.date, items: r.items, highlight: false, prefix: "NOOP ")
                 }

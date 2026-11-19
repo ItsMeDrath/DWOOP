@@ -318,7 +318,7 @@ struct PHMNTriRingsWidget: Widget {
     static let kind = "PHMNTriRingsWidget"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: PHMNGlanceProvider()) { e in GlanceCard(entry: e) { TriRingsView(d: $0) } }
-            .configurationDisplayName("PHMN Scores")
+            .configurationDisplayName("WHOOP Scores")
             .description("Sleep, Recovery and Strain, with your day streak and strap battery.")
             .supportedFamilies([.systemMedium]).contentMarginsDisabled()
     }
@@ -332,7 +332,7 @@ struct PHMNSleepRingWidget: Widget {
                 SingleRingView(d: d, label: "Sleep", fraction: d.sleepFraction, color: Glance.steel, value: d.s.rest.map(String.init) ?? "–", percent: d.s.rest != nil)
             }
         }
-        .configurationDisplayName("PHMN Sleep")
+        .configurationDisplayName("WHOOP Sleep")
         .description("Last night's Sleep score in one ring.")
         .supportedFamilies([.systemSmall]).contentMarginsDisabled()
     }
@@ -346,7 +346,7 @@ struct PHMNStrainRingWidget: Widget {
                 SingleRingView(d: d, label: "Strain", fraction: d.strainFraction, color: d.strainColor, gradient: d.strainGradient, target: d.strainTarget, value: d.strainText)
             }
         }
-        .configurationDisplayName("PHMN Strain")
+        .configurationDisplayName("WHOOP Strain")
         .description("Today's Strain in one ring, with the stretch to aim for.")
         .supportedFamilies([.systemSmall]).contentMarginsDisabled()
     }
@@ -360,7 +360,7 @@ struct PHMNRecoveryRingWidget: Widget {
                 SingleRingView(d: d, label: "Recovery", fraction: d.recoveryFraction, color: d.recoveryColor, value: d.s.recovery.map(String.init) ?? "–", percent: d.s.recovery != nil)
             }
         }
-        .configurationDisplayName("PHMN Recovery")
+        .configurationDisplayName("WHOOP Recovery")
         .description("Today's Recovery score in one ring.")
         .supportedFamilies([.systemSmall]).contentMarginsDisabled()
     }
@@ -370,7 +370,7 @@ struct PHMNDualRingSmallWidget: Widget {
     static let kind = "PHMNDualRingSmallWidget"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: PHMNGlanceProvider()) { e in GlanceCard(entry: e) { SmallDualView(d: $0) } }
-            .configurationDisplayName("PHMN Recovery and Strain")
+            .configurationDisplayName("WHOOP Recovery and Strain")
             .description("Recovery and Strain as two rings.")
             .supportedFamilies([.systemSmall]).contentMarginsDisabled()
     }
@@ -380,7 +380,7 @@ struct PHMNDualRingWideWidget: Widget {
     static let kind = "PHMNDualRingWideWidget"
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: Self.kind, provider: PHMNGlanceProvider()) { e in GlanceCard(entry: e) { WideDualView(d: $0) } }
-            .configurationDisplayName("PHMN Rings with HRV")
+            .configurationDisplayName("WHOOP Rings with HRV")
             .description("Recovery and Strain rings with HRV and Calories beside them.")
             .supportedFamilies([.systemMedium]).contentMarginsDisabled()
     }
