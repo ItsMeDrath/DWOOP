@@ -11,12 +11,10 @@ struct NunaAppearanceView: View {
     @AppStorage(NunaTheme.storageKey) private var themeRaw = NunaTheme.Mode.dark.rawValue
     @AppStorage(NunaThemePrefs.skinKey) private var skinRaw = NunaThemePrefs.Skin.standard.rawValue
     @AppStorage(NunaThemePrefs.densityKey) private var densityRaw = NunaThemePrefs.Density.standard.rawValue
-    @AppStorage("appIcon.name") private var iconName = ""
     @AppStorage(UnitPrefs.systemKey) private var unitSystem = UnitSystem.metric.rawValue
     @AppStorage(UnitPrefs.distanceSystemKey) private var distance = ""
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScale = EffortScale.whoop.rawValue
     @AppStorage(NunaSleepChartStyle.storageKey) private var sleepChartRaw = NunaSleepChartStyle.classic.rawValue
-    @State private var iconError: String?
     @AppStorage(NunaTabBarPrefs.autoHideKey) private var barAutoHide = false
     @AppStorage(NunaTabBarPrefs.glassKey) private var barGlass = false
     @AppStorage(NunaTabBarPrefs.transparencyKey) private var barTransparency = NunaTabBarPrefs.defaultTransparency
@@ -25,7 +23,7 @@ struct NunaAppearanceView: View {
 
     var body: some View {
         NunaDetailScreen("Appearance") {
-                Text("Choose light or dark, spacing and the app icon. Colour and type follow the app's design guide.")
+                Text("Choose light or dark and adjust the app's spacing. Colour and type follow the app's design guide.")
                     .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
                 experienceCard
                 NunaCard(small: true, padding: EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18)) {
@@ -39,14 +37,8 @@ struct NunaAppearanceView: View {
                 densityCard
                 barCard
                 sleepChartCard
-                #if os(iOS)
-                iconCard
-                #endif
                 nunaFootnote("Haptics are under Strap automations, the Live Activity under History sync and the morning brief under Anya.")
         }
-        .alert("Couldn't change the app icon", isPresented: Binding(get: { iconError != nil }, set: { if !$0 { iconError = nil } })) {
-            Button("OK", role: .cancel) {}
-        } message: { Text(verbatim: iconError ?? "") }
     }
 
     // MARK: Pieces
@@ -217,37 +209,6 @@ struct NunaAppearanceView: View {
                     }
                 }
             }
-        }
-    }
-
-    private var iconCard: some View {
-        NunaCard {
-            VStack(alignment: .leading, spacing: 14) {
-                nunaTrendsCap("App icon")
-                HStack(spacing: 12) {
-                    iconChoice("", "Orbit", AnyView(Image("IconOrbit").resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))))
-                    iconChoice("AppIcon-Butterfly", "Butterfly", AnyView(Image("IconButterfly").resizable().scaledToFit().clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))))
-                }
-            }
-        }
-    }
-
-    private func iconChoice(_ name: String, _ title: LocalizedStringKey, _ art: AnyView) -> some View {
-        Button { setIcon(name) } label: {
-            VStack(spacing: 8) {
-                art.frame(width: 62, height: 62).overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(iconName == name ? NunaPalette.accent : NunaPalette.hairline, lineWidth: iconName == name ? 2.5 : 1))
-                Text(title).font(.nuna(size: 12.5, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
-            }.frame(maxWidth: .infinity)
-        }.buttonStyle(.plain)
-    }
-
-    private func setIcon(_ name: String) {
-        iconName = name
-        let target = name.isEmpty ? nil : name
-        Task { @MainActor in
-            guard UIApplication.shared.supportsAlternateIcons, UIApplication.shared.alternateIconName != target else { return }
-            do { try await UIApplication.shared.setAlternateIconName(target) }
-            catch { iconName = UIApplication.shared.alternateIconName ?? ""; iconError = error.localizedDescription }
         }
     }
 

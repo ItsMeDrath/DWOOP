@@ -271,16 +271,6 @@ targets:
         AppGroupIdentifier: "$(APP_GROUP_ID)"
         LSApplicationCategoryType: public.app-category.healthcare-fitness
         UILaunchScreen: {}
-        # Alternate app icon. The primary icon is the asset-catalog AppIcon (the butterfly and blade inside the orbit ring); the
-        # alternate "AppIcon-Butterfly" (the same mark without the ring) is declared here so
-        # UIApplication.setAlternateIconName("AppIcon-Butterfly") can switch to it at runtime.
-        # CFBundleIconFiles is intentionally empty — the artwork lives in the asset catalog, shipped
-        # via ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS, so no loose PNGs are listed here.
-        CFBundleIcons:
-          CFBundleAlternateIcons:
-            AppIcon-Butterfly:
-              CFBundleIconFiles: []
-              UIPrerenderedIcon: false
         NSSupportsLiveActivities: true
         # Fonts for the WHP style, from the WHOOP brand guide: DINPro for figures and Proxima Nova for words (licensed fonts, kept in Fonts/WHOOPType;
         # D-DIN-PRO and Montserrat stay as the fallback when one of these is missing).
