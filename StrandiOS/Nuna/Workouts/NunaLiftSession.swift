@@ -809,6 +809,7 @@ struct NunaLiftSessionView: View {
         let endTs = Int(Date().timeIntervalSince1970)
         let sessionId = UUID().uuidString
         let finished = session.setsToSave(completingUnfinished: unfinishedChoice == .complete)
+        let repo = self.repo
         guard !finished.isEmpty else {
             if programChoice == .update { await writeSetCountsToProgram(store: store, plan: engine.plan) }
             await finishAndDismiss()
@@ -818,7 +819,6 @@ struct NunaLiftSessionView: View {
                                  programId: session.programId, programName: session.programName,
                                  sessionRpe: LiftFormat.number(sessionRpeText), note: session.programName)
         _ = try? await store.upsertLiftSessions([row])
-        let repo = self.repo
         let rows = finished.enumerated().map { ord, s -> LiftSetRow in
             let item = engine.planItem(for: s.slot)
             return LiftSetRow(id: UUID().uuidString, deviceId: repo.deviceId, sessionId: sessionId, ord: ord, exercise: item?.exercise ?? "",
