@@ -1756,7 +1756,7 @@ struct SettingsView: View {
             configurationLine("HRV window", value: recommended.hrvWindowRaw == HrvWindow.whole.rawValue ? "Whole night" : "Deep sleep")
             configurationLine("Sleep staging", value: recommended.sleepStagingV2 ? "V2" : "V1")
             configurationLine("Motion-aware wake", value: recommended.motionAwareWake ? "On · self-gated" : "Off · sparse-safe")
-            configurationLine("Strain display", value: recommended.effortScaleRaw == EffortScale.whoop.rawValue ? "WHOOP 0–21" : "NOOP 0–100")
+            configurationLine("Strain display", value: "WHOOP 0–21")
             configurationLine("Low-battery protection", value: recommended.powerSaving ? "On at (recommended.powerSavingBatteryPct)%" : "Off · 5/MG battery")
             configurationLine("Pause HRV when low", value: recommended.pauseHrvOnLowBattery ? "On" : "Off")
             configurationLine("Background refresh", value: recommended.lowRefresh ? "Hourly" : "Normal")
