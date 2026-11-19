@@ -18,6 +18,7 @@ final class SleepModelDebtTests: XCTestCase {
         XCTAssertEqual(metric.latest ?? -1, ledger.magnitudeMin, accuracy: 1e-9)
     }
 
+    #if os(iOS)
     func testWhoopStrainAddsThreeMinutesPerPointToSleepNeed() {
         // 5.3 WHOOP Strain is stored internally as 5.3 × (100 / 21) Effort.
         let internalEffort = 5.3 * (100.0 / 21.0)
