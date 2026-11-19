@@ -20,6 +20,8 @@ struct NunaRestDetailView: View {
     @AppStorage(NunaNapPrefs.autoDetectKey) private var autoNaps = true
     /// The journal's evening habits against this wearer's own Rest, for the night's line.
     @State private var factors: NunaSleepFactorContext?
+    /// Keep the latest night hidden until the requested historical night has been selected. This avoids a one-frame jump to today. 
+    @State private var selectionResolved = false
 
     /// The Rest ring is always this steel blue, whatever the score; the bars inside it say how the night reads.
     private static let ringBlue = Color(hex: "#7BA4C4")
@@ -36,25 +38,35 @@ struct NunaRestDetailView: View {
     var body: some View {
         // The night sits in the header, as the day does on the Charge page, with the info and settings buttons at the right.
         NunaDetailScreen(restCaption, trailing: AnyView(headerButtons), centersTitle: true) {
-            hero
-            if let night = model.night { components(night) }
-            if let night = model.night {
-                NunaSleepNightSections(model: model, night: night, showsNeed: false, showsBodyClock: false)
-                insights(night)
-                weeklyTrends
-                NunaBodyClockLink()
+            if selectionResolved {
+                hero
+                if let night = model.night { components(night) }
+                if let night = model.night {
+                    NunaSleepNightSections(model: model, night: night, showsNeed: false, showsBodyClock: false)
+                    insights(night)
+                    weeklyTrends
+                    NunaBodyClockLink()
+                }
+                NunaExpandRow(title: "How it's calculated", subtitle: "Four parts of the night",
+                              text: "Sleep is scored from four parts: Hours vs. needed (60 points), Sleep consistency (20 points), Sleep efficiency (10 points) and High Sleep Stress (10 points). Hours vs. needed earns all 60 points at 100%. Consistency and efficiency earn all their points at 90% or higher. Sleep Stress earns all 10 points when 0% of scored sleep is in the High stress zone.\\n\\nConsistency uses only the latest five nights and compares both bedtime and wake time. The score is an estimate computed on this phone from your strap's data.")
+            } else {
+                ProgressView().tint(NunaPalette.textSecondary).frame(maxWidth: .infinity, minHeight: 240)
             }
-            NunaExpandRow(title: "How it's calculated", subtitle: "Four parts of the night",
-                          text: "Sleep is scored from four parts: Hours vs. needed (60 points), Sleep consistency (20 points), Sleep efficiency (10 points) and High Sleep Stress (10 points). Hours vs. needed earns all 60 points at 100%. Consistency and efficiency earn all their points at 90% or higher. Sleep Stress earns all 10 points when 0% of scored sleep is in the High stress zone.\n\nConsistency uses only the latest five nights and compares both bedtime and wake time. The score is an estimate computed on this phone from your strap's data.")
         }
         .task(id: "\(repo.refreshSeq)-\(autoNaps)") {
+            selectionResolved = false
             await series.load(repo: repo, key: "sleep_performance", source: "my-whoop")
             await model.load(repo: repo)
+            if model.loaded, startIndex > 0, startIndex < model.nights.count {
+                model.index = startIndex
+            } else if model.loaded, startIndex == 0, router.todayDayOffset > 0,
+                      let i = model.nights.firstIndex(where: { $0.dayKey == NunaSelectedDay.key(offset: router.todayDayOffset) }) {
+                model.index = i
+            } else {
+                model.index = 0
+            }
             factors = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: series.byDay)
-            if model.loaded, startIndex > 0, startIndex < model.nights.count, model.index == 0 { model.index = startIndex }
-            // Opened from Today on another day: the night that ended that morning.
-            else if model.loaded, startIndex == 0, router.todayDayOffset > 0, model.index == 0,
-                    let i = model.nights.firstIndex(where: { $0.dayKey == NunaSelectedDay.key(offset: router.todayDayOffset) }) { model.index = i }
+            selectionResolved = true
         }
         // Her line is about the latest night, so she reads it only while that night is on show.
         .nunaAnyaFloating(context: "sleep", line: (model.index == 0 && router.todayDayOffset == 0) ? anyaLine : nil,

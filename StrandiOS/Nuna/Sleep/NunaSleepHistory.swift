@@ -120,13 +120,38 @@ final class NunaSleepHistory: ObservableObject {
             let c = Calendar.current.dateComponents([.hour, .minute], from: Date(timeIntervalSince1970: TimeInterval(ts)))
             return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
         }
+        let motions = await repo.sessionMotions(sessions: sessions)
         for group in SleepModel.navDays(navSessions: sessions) {
             let main = SleepView.mainNightGroup(group, habitualMidsleepSec: hab)
             guard let last = main.last else { continue }
             let onset = SleepModel.nightOnsetTs(main)
             let key = Repository.localDayKey(Date(timeIntervalSince1970: TimeInterval(last.endTs)))
+
+            // Match NunaSleepModel's effective wake time: remove an unrecorded tail at the end
+            // of the night before calculating consistency. Using the raw session end here made
+            // the long-range trend disagree with the selected-night Sleep card.
+            var intervals: [SleepInterval] = []
+            var motion: [NunaMotionEpoch] = []
+            for block in main {
+                let start = block.effectiveStartTs
+                if let segments = SleepView.decodeSegments(block.stagesJSON, sessionStart: start) {
+                    let shift = TimeInterval(start - onset)
+                    intervals += segments.intervals.map {
+                        SleepInterval(stage: $0.stage, start: $0.start + shift, end: $0.end + shift)
+                    }
+                }
+                if let samples = motions[block.startTs] {
+                    let base = TimeInterval(start - onset)
+                    motion += samples.enumerated().map {
+                        NunaMotionEpoch(t: base + TimeInterval($0.offset) * 30, v: $0.element)
+                    }
+                }
+            }
+            let effectiveWake = NunaNightTail.cutoff(intervals: intervals, motion: motion)
+                .map { Date(timeIntervalSince1970: TimeInterval(onset) + $0) }
+                ?? Date(timeIntervalSince1970: TimeInterval(last.endTs))
             let b = hours(onset) < 12 ? hours(onset) + 24 : hours(onset)
-            var w = hours(last.endTs) + 24
+            var w = hours(Int(effectiveWake.timeIntervalSince1970)) + 24
             if w <= b { w += 24 }
             bed[key] = b; wake[key] = w
         }
