@@ -43,6 +43,8 @@ enum NunaSleepNeedCalculation {
     static let healthyMin = 450.0
     static let debtCarry = 0.70
     static let minimumDebtMin = 10.0
+    /// DailyMetric.strain is stored as internal 0–100 Effort; sleep need uses WHOOP's 0–21 Strain.
+    static let whoopStrainPerEffortPoint = 21.0 / 100.0
 
     static func calculate(sleep: [(day: String, mainMin: Double, napMin: Double)],
                           strainByDay: [String: Double]) -> [String: Result] {
@@ -63,7 +65,9 @@ enum NunaSleepNeedCalculation {
                 previousDay = ""
             }
             // The total target is capped at 10 hours, including both strain and carried debt.
-            let rawStrainMin = max(strainByDay[previousDay] ?? 0, 0) * 3.0
+            // Convert internal 0–100 Effort to WHOOP 0–21 Strain before applying 3 min per point.
+            let whoopStrain = max(strainByDay[previousDay] ?? 0, 0) * whoopStrainPerEffortPoint
+            let rawStrainMin = whoopStrain * 3.0
             let strainMin = min(rawStrainMin, 600.0 - healthyMin)
             let availableDebtRoom = max(600.0 - healthyMin - strainMin, 0)
             let appliedDebtMin = min(carriedDebt, availableDebtRoom)
