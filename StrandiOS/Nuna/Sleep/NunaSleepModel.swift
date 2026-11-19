@@ -62,11 +62,15 @@ enum NunaSleepNeedCalculation {
             } else {
                 previousDay = ""
             }
-            let strainMin = max(strainByDay[previousDay] ?? 0, 0) * 3.0
-            let needMin = healthyMin + strainMin + carriedDebt
+            // The total target is capped at 10 hours, including both strain and carried debt.
+            let rawStrainMin = max(strainByDay[previousDay] ?? 0, 0) * 3.0
+            let strainMin = min(rawStrainMin, 600.0 - healthyMin)
+            let availableDebtRoom = max(600.0 - healthyMin - strainMin, 0)
+            let appliedDebtMin = min(carriedDebt, availableDebtRoom)
+            let needMin = min(600.0, healthyMin + strainMin + appliedDebtMin)
             let credited = SleepDebt.creditedSleepMin(mainSleepMin: night.mainMin, napSleepMin: night.napMin) ?? night.mainMin
             let calculatedDebt = debtCarry * max(0, needMin - credited)
-            result[night.day] = Result(needMin: needMin, strainMin: strainMin, debtMin: carriedDebt)
+            result[night.day] = Result(needMin: needMin, strainMin: strainMin, debtMin: appliedDebtMin)
             carriedDebt = calculatedDebt < minimumDebtMin ? 0 : calculatedDebt
         }
         return result
