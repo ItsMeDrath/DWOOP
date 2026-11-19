@@ -94,8 +94,10 @@ struct NunaTrendsMetricView: View {
         ]) { key in kind = key == "charge" ? .charge : (key == "effort" ? .effort : .rest) })
         .task(id: repo.refreshSeq) {
             await m.load(repo: repo)
-            if kind == .rest { await sleep.load(repo: repo, historyDays: 400, includeMotion: false)
-            if kind == .rest { m.applySleepScores(from: sleep) } }
+            if kind == .rest {
+                await sleep.load(repo: repo, historyDays: 400, includeMotion: false)
+                m.applySleepScores(from: sleep)
+            }
             if kind == .charge { await day.load(repo: repo, profile: profile) }
         }
     }
