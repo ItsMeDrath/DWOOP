@@ -572,6 +572,15 @@ struct NunaTodayView: View {
     }
 
     private var dateTitle: String {
+        let calendar = Calendar.current
+
+        if calendar.isDateInToday(model.displayDate) {
+            return String(localized: "Today")
+        }
+        if calendar.isDateInYesterday(model.displayDate) {
+            return String(localized: "Yesterday")
+        }
+
         let f = DateFormatter()
         f.locale = AppLanguage.activeLocale
         f.setLocalizedDateFormatFromTemplate("EEE d MMM")
