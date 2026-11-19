@@ -56,6 +56,10 @@ final class NunaTodayModel: ObservableObject {
     /// keep their deltas above.
     @Published private(set) var previous: [String: Double] = [:]
     private let sleepModel = NunaSleepModel()
+    /// What the sleep model was last loaded for. Changing the day only picks another night out of it, so it is not read again until the data
+    /// refreshes or the nap setting changes; reloading 60 days of sessions on every date change is what made the Sleep score lag behind
+    /// Charge and Effort.
+    private var sleepLoadKey: String?
 
     var isToday: Bool { dayOffset == 0 }
 
@@ -158,7 +162,11 @@ final class NunaTodayModel: ObservableObject {
         async let appleA = repo.appleDailyRows()
         async let workoutsA = repo.workoutRows()
 
-        await sleepModel.load(repo: repo)
+        let sleepKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
+        if !sleepModel.loaded || sleepLoadKey != sleepKey {
+            await sleepModel.load(repo: repo)
+            sleepLoadKey = sleepKey
+        }
         rest = sleepModel.nights.first(where: { $0.dayKey == key }).flatMap { sleepModel.sleepScore($0) }
 
 

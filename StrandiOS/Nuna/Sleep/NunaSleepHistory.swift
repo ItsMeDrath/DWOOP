@@ -86,8 +86,10 @@ final class NunaSleepHistory: ObservableObject {
         if nightKeys.count >= NunaSleepConsistency.windowNights {
             for i in (NunaSleepConsistency.windowNights - 1)..<nightKeys.count {
                 let window = Array(nightKeys[(i - NunaSleepConsistency.windowNights + 1)...i])
-                if let value = NunaSleepConsistency.score(bedTimes: window.compactMap { bedHour[$0] },
-                                                          wakeTimes: window.compactMap { wakeHour[$0] }) {
+                // `score` measures the spread in minutes (a 90 minute spread is 0%), and these are hours: passing them straight in made every
+                // week read about 99%, while the Sleep tab's card, which works in minutes, showed the real figure.
+                if let value = NunaSleepConsistency.score(bedTimes: window.compactMap { bedHour[$0].map { $0 * 60 } },
+                                                          wakeTimes: window.compactMap { wakeHour[$0].map { $0 * 60 } }) {
                     fiveNightConsistency[nightKeys[i]] = value
                 }
             }
