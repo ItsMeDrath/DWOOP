@@ -51,6 +51,13 @@ final class NunaTrendsModel: ObservableObject {
         loaded = true
     }
 
+    /// Use the exact per-night Sleep Score calculation shared with the Sleep circle.
+    func applySleepScores(from sleep: NunaSleepModel) {
+        rest = sleep.nights.compactMap { night in
+            sleep.sleepScore(night).map { (day: night.dayKey, value: $0) }
+        }.sorted { $0.day < $1.day }
+    }
+
     /// `StressModel` keys its days as UTC midnights.
     nonisolated private static func utcDay(_ d: Date) -> String {
         let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(identifier: "UTC"); f.dateFormat = "yyyy-MM-dd"

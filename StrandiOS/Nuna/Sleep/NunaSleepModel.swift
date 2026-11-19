@@ -278,15 +278,16 @@ final class NunaSleepModel: ObservableObject {
 
     /// `selectDayKey` or `selectIndex` pick the night to stand on in the same step that the nights are stored, so there is never a moment
     /// with the new nights and the latest one selected.
-    func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil) async {
+    func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil,
+              historyDays: Int = 60, includeMotion: Bool = true) async {
         let hab = await repo.habitualMidsleepSec()
-        let sessions = await repo.allSleepSessions(days: 60)
-        let motions = await repo.sessionMotions(sessions: sessions)
+        let sessions = await repo.allSleepSessions(days: historyDays)
+        let motions = includeMotion ? await repo.sessionMotions(sessions: sessions) : [:]
         var daily: [String: DailyMetric] = [:]
         for d in repo.days { daily[d.day] = d }
 
         var out: [NunaNight] = []
-        for group in SleepModel.navDays(navSessions: sessions).prefix(30) {
+        for group in SleepModel.navDays(navSessions: sessions) {
             let main = SleepView.mainNightGroup(group, habitualMidsleepSec: hab)
             guard let first = main.first, let last = main.last else { continue }
             let mainStarts = Set(main.map(\.startTs))
@@ -366,7 +367,7 @@ final class NunaSleepModel: ObservableObject {
 
         var all: [String: [String: Double]] = [:]
         for k in Self.keys {
-            let s = await repo.exploreSeries(key: k, source: "my-whoop", days: 60)
+            let s = await repo.exploreSeries(key: k, source: "my-whoop", days: historyDays)
             all[k] = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         }
         series = all

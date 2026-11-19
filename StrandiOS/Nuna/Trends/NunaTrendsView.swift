@@ -35,6 +35,7 @@ struct NunaTrendsView: View {
     @EnvironmentObject private var repo: Repository
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @StateObject private var m = NunaTrendsModel()
+    @StateObject private var sleep = NunaSleepModel()
     @State private var range = 30
     /// How many whole windows back the screen is looking: 0 is the window ending today.
     @State private var page = 0
@@ -77,7 +78,11 @@ struct NunaTrendsView: View {
         .background(NunaBackdrop())
         .nunaTrendsDestinations()
         .nunaTodayDestinations()
-        .task(id: repo.refreshSeq) { await m.load(repo: repo) }
+        .task(id: repo.refreshSeq) {
+            await m.load(repo: repo)
+            await sleep.load(repo: repo, historyDays: 400, includeMotion: false)
+            m.applySleepScores(from: sleep)
+        }
         .sheet(isPresented: $showReport) { NunaTrendsReportSheet(days: repo.days).environmentObject(repo) }
         .sheet(isPresented: $showCoach) { NunaAnyaSheet(context: "trends") }
         .environment(\.nunaAnyaCardContext, "trends")
