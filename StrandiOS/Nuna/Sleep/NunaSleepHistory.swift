@@ -59,7 +59,7 @@ final class NunaSleepHistory: ObservableObject {
             a[row.day] = t
             if let deep = row.deepMin, let rem = row.remMin { d[row.day] = deep; r[row.day] = rem }
         }
-        let need = await repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: 400)
+        let needSeries = await repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: 400)
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
          asleepMin = a; deepMin = d; remMin = r
         // Efficiency is stored as a fraction on some rows and a percentage on others; the series, when there is one, wins.
@@ -82,7 +82,7 @@ final class NunaSleepHistory: ObservableObject {
         debtMin = Dictionary(SleepDebt.debtSeries(series: a.keys.sorted().map { ($0, a[$0]) }, needHours: NunaSleepModel.healthyMin / 60).map { ($0.day, max($0.value, 0)) },
                              uniquingKeysWith: { _, l in l })
         await loadBedTimes(repo: repo)
-        needMin = Dictionary(need.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+        needMin = Dictionary(needSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         let nightKeys = bedHour.keys.filter { wakeHour[$0] != nil }.sorted()
         var fiveNightConsistency: [String: Double] = [:]
         if nightKeys.count >= NunaSleepConsistency.windowNights {
