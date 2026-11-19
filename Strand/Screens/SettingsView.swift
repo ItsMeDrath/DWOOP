@@ -194,9 +194,6 @@ struct SettingsView: View {
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""   // #1846
-    // Effort display scale (#268). Display-only — Effort stays stored 0–100, this only chooses whether
-    // it's shown on NOOP's 0–100 axis or WHOOP's 0–21 Day Strain axis.
-    @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @AppStorage(UnitPrefs.trendChartStyleKey) private var trendChartStyleRaw = TrendChartStyle.line.rawValue
     @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
     // Live-HR Live Activity (Lock Screen + Dynamic Island), iOS only (#336). Default on.
@@ -1097,17 +1094,11 @@ struct SettingsView: View {
                     .accessibilityLabel("Skin temperature display")
                 }
                 rowDivider
-                // Effort scale (#268) — show NOOP's native 0–100 Effort or WHOOP's 0–21 Day Strain axis.
-                // Display-only; the stored value never changes, so a flip just re-labels every Effort read-out.
+                // Strain is always presented on WHOOP's 0–21 Day Strain scale.
                 FormRow(label: "Strain scale") {
-                    Picker("Strain scale", selection: $effortScaleRaw) {
-                        Text("0-100").tag(EffortScale.hundred.rawValue)
-                        Text("0-21").tag(EffortScale.whoop.rawValue)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.menu)
-                    .tint(StrandPalette.accent)
-                    .accessibilityLabel("Strain scale")
+                    Text("WHOOP · 0–21")
+                        .font(StrandFont.subhead)
+                        .foregroundStyle(StrandPalette.textPrimary)
                 }
 
                 // #1545: directly under the Effort SCALE row on purpose. It shipped in the experimental
