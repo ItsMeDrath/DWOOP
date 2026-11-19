@@ -69,9 +69,6 @@ struct NunaChargeDetailView: View {
                     NunaDivider()
                     signal("Sleep performance", "met:sleep-performance", key: "sleep_performance", value: day.rest ?? restSeries.latest(asOf: cutoff)?.value,
                            average: average30(restSeries), good: true)
-                    NunaDivider()
-                    signal("Skin temperature", "vital:temp", key: "skin_temp", value: skinSeries.latest(asOf: cutoff)?.value,
-                           average: average30(skinSeries), decimals: 1, signed: true, good: nil)
                 }
                 NunaTrendLegend(text: router.todayDayOffset == 0 ? "Today vs. last 30 days" : "This day vs. the 30 days before")
                     .padding(.top, 8)
