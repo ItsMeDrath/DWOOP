@@ -62,13 +62,15 @@ final class NunaTodayModel: ObservableObject {
     /// refreshes or the nap setting changes; reloading 60 days of sessions on every date change is what made the Sleep score lag behind
     /// Charge and Effort.
     private var sleepLoadKey: String?
+    /// The day key the last load used for today (it can be the calendar day's row in the small hours), so the instant pick agrees with it.
+    private var todayKey: String?
 
     var isToday: Bool { dayOffset == 0 }
 
     /// Stands the shared sleep model on the picked day's night and takes its score, with no loading. Nothing happens until it has loaded once.
     private func selectCachedSleepNight() {
         guard sleepModel.loaded else { return }
-        let key = Repository.localDayKey(selectedLogicalDay)
+        let key = (dayOffset == 0 ? todayKey : nil) ?? Repository.localDayKey(selectedLogicalDay)
         if let i = sleepModel.nights.firstIndex(where: { $0.dayKey == key }) {
             sleepModel.index = i
             rest = sleepModel.sleepScore(sleepModel.nights[i])
@@ -118,6 +120,10 @@ final class NunaTodayModel: ObservableObject {
 
     func load(repo: Repository, profile: ProfileStore) async {
         let key = dayKey(repo: repo)
+        // A load that the user has moved on from (another date picked while it ran) must not write its day over the one now chosen.
+        let startedOffset = dayOffset
+        var stale: Bool { dayOffset != startedOffset }
+        if startedOffset == 0 { todayKey = key }
         let today = isToday
         let row = today ? (repo.today ?? repo.days.last(where: { $0.day == key }))
                         : repo.days.last(where: { $0.day == key })
@@ -182,6 +188,7 @@ final class NunaTodayModel: ObservableObject {
             await sleepModel.load(repo: repo)
             sleepLoadKey = sleepKey
         }
+        guard !stale else { return }
         let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
         sleepModel.index = pickedNight ?? 0
         rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
@@ -189,6 +196,7 @@ final class NunaTodayModel: ObservableObject {
 
         // Steps and calories: measured on the strap first, then Apple Health, then the on-device estimate.
         let stepsSeries = await stepsA
+        guard !stale else { return }
         let stepsByDay = Dictionary(stepsSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
         let estSteps = stepsByDay[key] ?? (today ? stepsSeries.last?.value : nil)
         let appleKey = TodayView.appleHealthDayKey(selectedDayKey: key, localDayKey: Repository.localDayKey(Date()), isToday: today)

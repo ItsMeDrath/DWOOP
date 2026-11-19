@@ -42,6 +42,12 @@ struct NunaRestDetailView: View {
         return model.index == 0
     }
 
+    /// A day was picked on Today but there is no night recorded for it. It shows that, not the latest night in its place.
+    private var missingRequestedNight: Bool {
+        guard model.loaded, let key = requestedKey else { return false }
+        return !model.nights.contains(where: { $0.dayKey == key })
+    }
+
     /// How many days before today the night on show ended, so the trend card below ends on that morning.
     private var nightDaysAgo: Int {
         guard let n = model.night else { return router.todayDayOffset }
@@ -52,7 +58,16 @@ struct NunaRestDetailView: View {
     var body: some View {
         // The night sits in the header, as the day does on the Charge page, with the info and settings buttons at the right.
         NunaDetailScreen(restCaption, trailing: AnyView(headerButtons), centersTitle: true) {
-            if selectionResolved || readyToShow {
+            if (selectionResolved || readyToShow), missingRequestedNight {
+                NunaCard {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("No sleep recorded this day").font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textPrimary)
+                        Text("There is no night for this date, so there is nothing to show instead of another day's sleep.")
+                            .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            } else if selectionResolved || readyToShow {
                 hero
                 if let night = model.night { components(night) }
                 if let night = model.night {
