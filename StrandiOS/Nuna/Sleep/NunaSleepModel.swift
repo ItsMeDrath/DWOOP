@@ -31,6 +31,49 @@ struct NunaNight: Identifiable {
 
 struct NunaMotionEpoch { let t: TimeInterval; let v: Double }
 
+
+/// Shared iPhone-only sleep need calculation for selected nights and long-range history.
+enum NunaSleepNeedCalculation {
+    struct Result {
+        let needMin: Double
+        let strainMin: Double
+        let debtMin: Double
+    }
+
+    static let healthyMin = NunaSleepNeedCalculation.healthyMin
+    static let debtCarry = 0.70
+    static let minimumDebtMin = 10.0
+
+    static func calculate(sleep: [(day: String, mainMin: Double, napMin: Double)],
+                          strainByDay: [String: Double]) -> [String: Result] {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = .current
+        formatter.dateFormat = "yyyy-MM-dd"
+        var carriedDebt = 0.0
+        var result: [String: Result] = [:]
+
+        for night in sleep.sorted(by: { $0.day < $1.day }) where night.mainMin > 0 {
+            let previousDay: String
+            if let date = formatter.date(from: night.day),
+               let previous = Calendar.current.date(byAdding: .day, value: -1, to: date) {
+                previousDay = Repository.localDayKey(previous)
+            } else {
+                previousDay = ""
+            }
+            let strainMin = max(strainByDay[previousDay] ?? 0, 0) * 3.0
+            let needMin = healthyMin + strainMin + carriedDebt
+            let credited = SleepDebt.creditedSleepMin(mainSleepMin: night.mainMin, napSleepMin: night.napMin) ?? night.mainMin
+            let calculatedDebt = debtCarry * max(0, needMin - credited)
+            result[night.day] = Result(needMin: needMin, strainMin: strainMin, debtMin: carriedDebt)
+            carriedDebt = calculatedDebt < minimumDebtMin ? 0 : calculatedDebt
+        }
+        return result
+    }
+}
+
+
 /// Where the night really ended when the strap stopped recording before the session did. Movement the strap measured is never
 /// exactly zero, so a run of exact zeros right after the last sleep is a stretch with no recording (the strap was off the wrist or
 /// had not synced yet), and calling it "awake" would put the person in bed long after they got up. The night is cut a few minutes
@@ -139,7 +182,7 @@ final class NunaSleepModel: ObservableObject {
     var hasOlder: Bool { index + 1 < reach }
     var hasNewer: Bool { index > 0 }
 
-    private static let keys = ["sleep_performance", "sleep_need_min", "sleep_debt_min", "hours_vs_needed_pct",
+    private static let keys = ["sleep_performance", "sleep_need_min", "sleep_debt_min", "hours_vs_needed_pct", "strain",
                                "sleep_consistency", "restorative_pct", "sleep_efficiency", "restorative_min"]
 
     func value(_ key: String, _ night: NunaNight? = nil) -> Double? {
@@ -162,15 +205,11 @@ final class NunaSleepModel: ObservableObject {
 
     func debt(_ n: NunaNight) -> Double { debtByDay[n.dayKey] ?? 0 }
 
-    /// The night's need: the healthy minimum, plus recent strain, plus sleep debt. Strain is what a stored (imported) need holds above the
-    /// healthy minimum and the debt; a night with no stored need has none. Sleep screen and trend pages both read this one figure.
-    func need(_ n: NunaNight) -> Double {
-        let stored = importedNeed[n.dayKey] ?? series["sleep_need_min"]?[n.dayKey]
-        return max(stored ?? 0, Self.healthyMin + debt(n))
-    }
+    func need(_ n: NunaNight) -> Double { needByDay[n.dayKey] ?? Self.healthyMin }
+    func strain(_ n: NunaNight) -> Double { strainByDay[n.dayKey] ?? 0 }
 
-    /// The part of the need that recent strain adds.
-    func strain(_ n: NunaNight) -> Double { max(need(n) - Self.healthyMin - debt(n), 0) }
+    private(set) var needByDay: [String: Double] = [:]
+    private(set) var strainByDay: [String: Double] = [:]
 
     func hoursVsNeeded(_ n: NunaNight) -> Double? {
         let asleep = n.daily?.totalSleepMin ?? n.asleepMin
@@ -217,7 +256,7 @@ final class NunaSleepModel: ObservableObject {
     }
 
     /// Debt in minutes as of the latest night, when there is one.
-    var debtMin: Double? { index == 0 ? ledger.flatMap { $0.isDebt ? $0.magnitudeMin : nil } : nil }
+    var debtMin: Double? { index == 0 ? night.map { debt($0) }.flatMap { $0 > 0 ? $0 : nil } : nil }
 
     /// The mean of a figure over up to 14 nights before the selected one, once there are at least three of them.
     func usual(_ f: (NunaNight) -> Double?) -> Double? {
@@ -357,10 +396,6 @@ final class NunaSleepModel: ObservableObject {
                                  daily: row, proportional: proportional, motion: motion,
                                  editTarget: SleepView.mainNightSession(group, habitualMidsleepSec: hab)))
         }
-        debtByDay = Dictionary(
-            SleepDebt.debtSeries(series: out.reversed().map { ($0.dayKey, $0.daily?.totalSleepMin ?? $0.asleepMin) },
-                                 needHours: Self.healthyMin / 60).map { ($0.day, max($0.value, 0)) },
-            uniquingKeysWith: { _, l in l })
         if let selectDayKey, let i = out.firstIndex(where: { $0.dayKey == selectDayKey }) { index = i }
         else if let selectIndex, selectIndex > 0, selectIndex < out.count { index = selectIndex }
         nights = out
@@ -371,6 +406,18 @@ final class NunaSleepModel: ObservableObject {
             all[k] = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         }
         series = all
+
+        let calculations = NunaSleepNeedCalculation.calculate(
+            sleep: out.map { n in
+                (day: n.dayKey, mainMin: n.daily?.totalSleepMin ?? n.asleepMin,
+                 napMin: n.naps.reduce(0) { $0 + $1.asleepMin })
+            },
+            strainByDay: all["strain"] ?? [:]
+        )
+        needByDay = calculations.mapValues { $0.needMin }
+        strainByDay = calculations.mapValues { $0.strainMin }
+        debtByDay = calculations.mapValues { $0.debtMin }
+        ledger = nil
         let stressHistory = NunaStressHistory()
         await stressHistory.ensure(days: out.map(\.wakeDate), repo: repo)
         var highStress: [String: Double] = [:]

@@ -27,6 +27,7 @@ final class NunaSleepHistory: ObservableObject {
     @Published private(set) var deepMin: [String: Double] = [:]
     @Published private(set) var remMin: [String: Double] = [:]
     @Published private(set) var needMin: [String: Double] = [:]
+    @Published private(set) var strainMin: [String: Double] = [:]
     /// A need stored by an import. The need a night is measured against is the healthy minimum plus recent strain plus sleep debt, exactly as
     /// on the Sleep screen, so the ring and these pages agree.
     private var importedNeed: [String: Double] = [:]
@@ -59,7 +60,7 @@ final class NunaSleepHistory: ObservableObject {
             a[row.day] = t
             if let deep = row.deepMin, let rem = row.remMin { d[row.day] = deep; r[row.day] = rem }
         }
-        let needSeries = await repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: 400)
+        let strainScores = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
          asleepMin = a; deepMin = d; remMin = r
         // Efficiency is stored as a fraction on some rows and a percentage on others; the series, when there is one, wins.
@@ -79,10 +80,20 @@ final class NunaSleepHistory: ObservableObject {
         steps = st
         effort = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
          charge = Dictionary((await repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        debtMin = Dictionary(SleepDebt.debtSeries(series: a.keys.sorted().map { ($0, a[$0]) }, needHours: NunaSleepModel.healthyMin / 60).map { ($0.day, max($0.value, 0)) },
-                             uniquingKeysWith: { _, l in l })
         await loadBedTimes(repo: repo)
-        needMin = Dictionary(needSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+        let hab = await repo.habitualMidsleepSec()
+        let sessions = await repo.allSleepSessions(days: 400)
+        let napByDay = SleepModel.napSleepMinutesByDay(navDays: SleepModel.navDays(navSessions: sessions), habitualMidsleepSec: hab)
+        let calculations = NunaSleepNeedCalculation.calculate(
+            sleep: a.keys.sorted().compactMap { day in
+                guard let main = a[day] else { return nil }
+                return (day: day, mainMin: main, napMin: napByDay[day] ?? 0)
+            },
+            strainByDay: strainScores
+        )
+        needMin = calculations.mapValues { $0.needMin }
+        strainMin = calculations.mapValues { $0.strainMin }
+        debtMin = calculations.mapValues { $0.debtMin }
         let nightKeys = bedHour.keys.filter { wakeHour[$0] != nil }.sorted()
         var fiveNightConsistency: [String: Double] = [:]
         if nightKeys.count >= NunaSleepConsistency.windowNights {
@@ -161,7 +172,7 @@ final class NunaSleepHistory: ObservableObject {
         bedHour = bed; wakeHour = wake
     }
 
-    func need(_ day: String) -> Double { max(importedNeed[day] ?? needMin[day] ?? 0, NunaSleepModel.healthyMin + (debtMin[day] ?? 0)) }
+    func need(_ day: String) -> Double { needMin[day] ?? NunaSleepModel.healthyMin }
 
     func hoursVsNeeded(_ day: String) -> Double? { asleepMin[day].map { $0 / need(day) * 100 } }
 
