@@ -194,6 +194,8 @@ struct SettingsView: View {
     @AppStorage(UnitPrefs.distanceSystemKey) private var distanceSystemRaw = ""
     @AppStorage(UnitPrefs.temperatureKey) private var temperatureRaw = ""
     @AppStorage(UnitPrefs.skinTempDisplayKey) private var skinTempDisplayRaw = ""   // #1846
+    // Legacy preference retained for device-configuration compatibility; the iPhone UI always displays WHOOP 0–21.
+    @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @AppStorage(UnitPrefs.trendChartStyleKey) private var trendChartStyleRaw = TrendChartStyle.line.rawValue
     @AppStorage(UnitPrefs.hrvWindowKey) private var hrvWindowRaw = HrvWindow.whole.rawValue
     // Live-HR Live Activity (Lock Screen + Dynamic Island), iOS only (#336). Default on.
