@@ -13,7 +13,9 @@ import WhoopStore
 @MainActor
 final class NunaTodayModel: ObservableObject {
     /// 0 = today, 1 = yesterday, ...
-    @Published var dayOffset = 0
+    /// Picking another day moves the Sleep score at once from the nights already loaded, the way Charge and Effort follow the day, instead of
+    /// waiting for the reload that follows.
+    @Published var dayOffset = 0 { didSet { if dayOffset != oldValue { selectCachedSleepNight() } } }
 
     @Published private(set) var day: DailyMetric?
     @Published private(set) var charge: LiquidTodayView.ChargeDisplay = .noData
@@ -55,13 +57,26 @@ final class NunaTodayModel: ObservableObject {
     /// `vo2max_est`. A key is missing when there is no earlier reading. HRV, resting heart rate, respiratory rate and blood oxygen
     /// keep their deltas above.
     @Published private(set) var previous: [String: Double] = [:]
-    private let sleepModel = NunaSleepModel()
+    private let sleepModel = NunaSleepModel.shared
     /// What the sleep model was last loaded for. Changing the day only picks another night out of it, so it is not read again until the data
     /// refreshes or the nap setting changes; reloading 60 days of sessions on every date change is what made the Sleep score lag behind
     /// Charge and Effort.
     private var sleepLoadKey: String?
 
     var isToday: Bool { dayOffset == 0 }
+
+    /// Stands the shared sleep model on the picked day's night and takes its score, with no loading. Nothing happens until it has loaded once.
+    private func selectCachedSleepNight() {
+        guard sleepModel.loaded else { return }
+        let key = Repository.localDayKey(selectedLogicalDay)
+        if let i = sleepModel.nights.firstIndex(where: { $0.dayKey == key }) {
+            sleepModel.index = i
+            rest = sleepModel.sleepScore(sleepModel.nights[i])
+        } else {
+            sleepModel.index = 0
+            rest = nil
+        }
+    }
 
     /// Re-reads today's stress curve on its own, so the Stress card and screen follow the day without a full reload. Cheap when no new
     /// heart rate has arrived: the curve is memoised on a fingerprint of today's samples.
@@ -167,7 +182,9 @@ final class NunaTodayModel: ObservableObject {
             await sleepModel.load(repo: repo)
             sleepLoadKey = sleepKey
         }
-        rest = sleepModel.nights.first(where: { $0.dayKey == key }).flatMap { sleepModel.sleepScore($0) }
+        let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
+        sleepModel.index = pickedNight ?? 0
+        rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
 
 
         // Steps and calories: measured on the strap first, then Apple Health, then the on-device estimate.

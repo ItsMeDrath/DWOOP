@@ -117,6 +117,9 @@ struct NunaNap: Identifiable {
 @MainActor
 final class NunaSleepModel: ObservableObject {
     /// 0 = latest night, 1 = the one before, ...
+    /// The one model the Today screen and the Sleep screen both read, so the Sleep screen opens on nights that are already loaded.
+    static let shared = NunaSleepModel()
+
     @Published var index = 0
     @Published private(set) var nights: [NunaNight] = []
     /// metric key -> (day key -> value)

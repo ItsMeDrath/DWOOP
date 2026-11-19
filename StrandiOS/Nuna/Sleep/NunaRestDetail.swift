@@ -14,7 +14,7 @@ struct NunaRestDetailView: View {
     @EnvironmentObject private var router: NavRouter
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
     @StateObject private var series = NunaSeriesModel()
-    @StateObject private var model = NunaSleepModel()
+    @ObservedObject private var model = NunaSleepModel.shared
     @State private var showCoach = false
     @State private var showInfo = false
     @AppStorage(NunaNapPrefs.autoDetectKey) private var autoNaps = true
@@ -33,6 +33,15 @@ struct NunaRestDetailView: View {
         startIndex == 0 && router.todayDayOffset > 0 ? NunaSelectedDay.key(offset: router.todayDayOffset) : nil
     }
 
+    /// True when the shared model already holds the nights and stands on the one asked for (Today puts it on the picked day), so the page can
+    /// be drawn on the first frame, with no loading screen.
+    private var readyToShow: Bool {
+        guard model.loaded, !model.nights.isEmpty else { return false }
+        if startIndex > 0 { return startIndex < model.nights.count && model.index == startIndex }
+        if let key = requestedKey { return model.index == (model.nights.firstIndex(where: { $0.dayKey == key }) ?? 0) }
+        return model.index == 0
+    }
+
     /// How many days before today the night on show ended, so the trend card below ends on that morning.
     private var nightDaysAgo: Int {
         guard let n = model.night else { return router.todayDayOffset }
@@ -43,7 +52,7 @@ struct NunaRestDetailView: View {
     var body: some View {
         // The night sits in the header, as the day does on the Charge page, with the info and settings buttons at the right.
         NunaDetailScreen(restCaption, trailing: AnyView(headerButtons), centersTitle: true) {
-            if selectionResolved {
+            if selectionResolved || readyToShow {
                 hero
                 if let night = model.night { components(night) }
                 if let night = model.night {
@@ -59,7 +68,8 @@ struct NunaRestDetailView: View {
             }
         }
         .task(id: "\(repo.refreshSeq)-\(autoNaps)-\(router.todayDayOffset)") {
-            selectionResolved = false
+            // Already showing the right night from what Today loaded: refresh underneath, without a loading screen in between.
+            if !readyToShow { selectionResolved = false }
             await series.load(repo: repo, key: "sleep_performance", source: "my-whoop")
             // A run that a newer one has replaced must not touch the screen: it would reveal the page on whatever night the model held.
             guard !Task.isCancelled else { return }
