@@ -35,7 +35,6 @@ final class SleepModelDebtTests: XCTestCase {
         XCTAssertEqual(result["2026-06-02"]?.strainMin ?? -1, 63.0, accuracy: 1e-9)
     }
 
-    }
     #endif
 
     func testImportedWhoopDebtRemainsVerbatim() {
