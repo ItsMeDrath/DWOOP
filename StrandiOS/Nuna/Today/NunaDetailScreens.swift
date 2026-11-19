@@ -24,6 +24,8 @@ struct NunaChargeDetailView: View {
     @StateObject private var day = NunaTodayModel()
     /// Last night's Rest and skin-temperature deviation: two of the signals Charge is made of.
     @StateObject private var restSeries = NunaSeriesModel()
+    /// The same calculated sleep-performance history used by the Sleep trend page.
+    @StateObject private var sleepPerformanceHistory = NunaSleepHistory()
     @StateObject private var skinSeries = NunaSeriesModel()
     /// The daily series the 30-day averages under the ring are made from.
     @StateObject private var hrvSeries = NunaSeriesModel()
@@ -81,6 +83,7 @@ struct NunaChargeDetailView: View {
             day.dayOffset = router.todayDayOffset
             await series.load(repo: repo, key: "recovery", source: "my-whoop")
             await restSeries.load(repo: repo, key: "sleep_performance", source: "my-whoop")
+            await sleepPerformanceHistory.load(repo: repo)
             await skinSeries.load(repo: repo, key: "skin_temp", source: "my-whoop")
             await hrvSeries.load(repo: repo, key: "hrv", source: "my-whoop")
             await rhrSeries.load(repo: repo, key: "rhr", source: "my-whoop")
@@ -140,7 +143,9 @@ struct NunaChargeDetailView: View {
             NunaWeeklyTrendCard(title: "Respiratory rate", key: "resp_rate", style: .line, decimals: 1, color: NunaPalette.effortModerate,
                                 destination: { AnyView(NunaTrendHost(initial: .respiratory, endingDaysAgo: router.todayDayOffset)) }, endingDaysAgo: router.todayDayOffset)
             NunaWeeklyTrendCard(title: "Sleep performance", key: "sleep_performance", style: .bars, color: NunaPalette.restDeep, labelColor: NunaPalette.restText,
-                                destination: { AnyView(NunaTrendHost(initial: .restPerformance, endingDaysAgo: router.todayDayOffset)) }, endingDaysAgo: router.todayDayOffset)
+                                destination: { AnyView(NunaTrendHost(initial: .restPerformance, endingDaysAgo: router.todayDayOffset)) },
+                                points: sleepPerformanceHistory.performance.map { (day: $0.key, value: $0.value) }.sorted { $0.day < $1.day },
+                                valueText: { "\(Int($0.rounded()))%" }, endingDaysAgo: router.todayDayOffset)
             NunaWeeklyTrendCard(title: "Skin temperature", key: "skin_temp", style: .line, decimals: 1, signed: true, color: NunaPalette.effortModerate, endingDaysAgo: router.todayDayOffset)
         }
     }
