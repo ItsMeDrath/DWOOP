@@ -101,8 +101,7 @@ enum UnitPrefs {
     /// `SkinTempDisplay.Kind.deviation.rawValue` to lead with the ±baseline move. Display-only; nothing
     /// stored ever changes. Same key string as the Android `units.skinTempDisplay` pref.
     static let skinTempDisplayKey = "units.skinTempDisplay"
-    /// Effort display scale (#268). Stored raw is an `EffortScale` rawValue; an unset/unknown value
-    /// resolves to `.hundred` (NOOP's native axis). Mirrored on Android by NoopPrefs("effort.scale").
+    /// Legacy Effort display-scale key. Kept for backwards compatibility; iPhone display is fixed to WHOOP 0–21.
     static let effortScaleKey = "effort.scale"
 
     /// Trend chart style (line vs bar). Stored raw is a `TrendChartStyle` rawValue; an unset/unknown
@@ -115,13 +114,9 @@ enum UnitPrefs {
     /// reads it and a Settings switch re-scores. Mirrored on Android by NoopPrefs("hrv.window").
     static let hrvWindowKey = "hrv.window"
 
-    /// Display factor for the #268 Effort scale: the stored 0-100 value multiplied by this renders on
-    /// the user's chosen axis (1.0 for the native 0-100, 0.21 for the WHOOP-style 0-21). Display-only,
-    /// mirrors Android's effortDisplayFactor helper so digest sentences match the charts on both.
-    static func currentEffortDisplayFactor() -> Double {
-        let raw = UserDefaults.standard.string(forKey: effortScaleKey) ?? ""
-        return raw == EffortScale.whoop.rawValue ? 1.0 : 0.21
-    }
+    /// The iPhone app always presents Strain on WHOOP's 0–21 scale. Stored Effort remains 0–100.
+    /// Keep the legacy helper for summaries and notifications so they use the same display conversion.
+    static func currentEffortDisplayFactor() -> Double { 0.21 }
 
     /// Whether the live-HR Live Activity (Lock Screen + Dynamic Island) may show, iOS only (#336).
     /// Defaults to ON. The user can turn it off in Notifications settings without digging into iOS
@@ -153,11 +148,9 @@ enum UnitPrefs {
         UnitSystem(rawValue: raw) ?? system
     }
 
-    /// Resolve the stored Effort-scale raw value, defaulting to WHOOP's 0–21 Day Strain axis (Nov 2026: the defaults follow the
-    /// WHOOP app, and the iOS root already seeded this value on first launch). Someone who chose 0–100 keeps it: the stored value wins.
-    static func resolveEffortScale(_ raw: String) -> EffortScale {
-        EffortScale(rawValue: raw) ?? .whoop
-    }
+    /// The iPhone app uses WHOOP's 0–21 Day Strain axis consistently. Ignore legacy 0–100 preferences
+    /// without rewriting stored data or changing the underlying Effort calculations.
+    static func resolveEffortScale(_ raw: String) -> EffortScale { .whoop }
 }
 
 // MARK: - Pure conversion + formatting
