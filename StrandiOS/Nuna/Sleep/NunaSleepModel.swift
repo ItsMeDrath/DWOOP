@@ -40,7 +40,7 @@ enum NunaSleepNeedCalculation {
         let debtMin: Double
     }
 
-    static let healthyMin = NunaSleepNeedCalculation.healthyMin
+    static let healthyMin = 450.0
     static let debtCarry = 0.70
     static let minimumDebtMin = 10.0
 
