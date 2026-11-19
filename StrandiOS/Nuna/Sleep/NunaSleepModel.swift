@@ -258,7 +258,9 @@ final class NunaSleepModel: ObservableObject {
         return out.sorted { $0.nap.start < $1.nap.start }
     }
 
-    func load(repo: Repository) async {
+    /// `selectDayKey` or `selectIndex` pick the night to stand on in the same step that the nights are stored, so there is never a moment
+    /// with the new nights and the latest one selected.
+    func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil) async {
         let hab = await repo.habitualMidsleepSec()
         let sessions = await repo.allSleepSessions(days: 60)
         let motions = await repo.sessionMotions(sessions: sessions)
@@ -336,6 +338,8 @@ final class NunaSleepModel: ObservableObject {
                                  daily: row, proportional: proportional, motion: motion,
                                  editTarget: SleepView.mainNightSession(group, habitualMidsleepSec: hab)))
         }
+        if let selectDayKey, let i = out.firstIndex(where: { $0.dayKey == selectDayKey }) { index = i }
+        else if let selectIndex, selectIndex > 0, selectIndex < out.count { index = selectIndex }
         nights = out
 
         var all: [String: [String: Double]] = [:]

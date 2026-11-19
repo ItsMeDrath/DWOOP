@@ -28,6 +28,11 @@ struct NunaRestDetailView: View {
 
     private var rest: Double? { model.night.flatMap { model.sleepScore($0) } }
 
+    /// The night the screen was asked to open on: the one Today had picked, by its day key. nil when the caller named a night by position.
+    private var requestedKey: String? {
+        startIndex == 0 && router.todayDayOffset > 0 ? NunaSelectedDay.key(offset: router.todayDayOffset) : nil
+    }
+
     /// How many days before today the night on show ended, so the trend card below ends on that morning.
     private var nightDaysAgo: Int {
         guard let n = model.night else { return router.todayDayOffset }
@@ -53,19 +58,23 @@ struct NunaRestDetailView: View {
                 ProgressView().tint(NunaPalette.textSecondary).frame(maxWidth: .infinity, minHeight: 240)
             }
         }
-        .task(id: "\(repo.refreshSeq)-\(autoNaps)") {
+        .task(id: "\(repo.refreshSeq)-\(autoNaps)-\(router.todayDayOffset)") {
             selectionResolved = false
             await series.load(repo: repo, key: "sleep_performance", source: "my-whoop")
-            await model.load(repo: repo)
+            // A run that a newer one has replaced must not touch the screen: it would reveal the page on whatever night the model held.
+            guard !Task.isCancelled else { return }
+            await model.load(repo: repo, selectDayKey: requestedKey, selectIndex: startIndex)
+            guard !Task.isCancelled else { return }
             if model.loaded, startIndex > 0, startIndex < model.nights.count {
                 model.index = startIndex
-            } else if model.loaded, startIndex == 0, router.todayDayOffset > 0,
-                      let i = model.nights.firstIndex(where: { $0.dayKey == NunaSelectedDay.key(offset: router.todayDayOffset) }) {
+            } else if model.loaded, startIndex == 0, let key = requestedKey,
+                      let i = model.nights.firstIndex(where: { $0.dayKey == key }) {
                 model.index = i
             } else {
                 model.index = 0
             }
             factors = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: series.byDay)
+            guard !Task.isCancelled else { return }
             selectionResolved = true
         }
         // Her line is about the latest night, so she reads it only while that night is on show.
