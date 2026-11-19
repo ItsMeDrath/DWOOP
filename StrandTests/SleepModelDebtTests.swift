@@ -18,6 +18,22 @@ final class SleepModelDebtTests: XCTestCase {
         XCTAssertEqual(metric.latest ?? -1, ledger.magnitudeMin, accuracy: 1e-9)
     }
 
+    func testWhoopStrainAddsThreeMinutesPerPointToSleepNeed() {
+        // 5.3 WHOOP Strain is stored internally as 5.3 × (100 / 21) Effort.
+        let internalEffort = 5.3 * (100.0 / 21.0)
+        let result = NunaSleepNeedCalculation.calculate(
+            sleep: [(day: "2026-06-02", mainMin: 450, napMin: 0)],
+            strainByDay: ["2026-06-01": internalEffort])
+        XCTAssertEqual(result["2026-06-02"]?.strainMin ?? -1, 5.3 * 3.0, accuracy: 1e-9)
+    }
+
+    func testMaximumWhoopStrainAddsSixtyThreeMinutes() {
+        let result = NunaSleepNeedCalculation.calculate(
+            sleep: [(day: "2026-06-02", mainMin: 450, napMin: 0)],
+            strainByDay: ["2026-06-01": 100.0])
+        XCTAssertEqual(result["2026-06-02"]?.strainMin ?? -1, 63.0, accuracy: 1e-9)
+    }
+
     func testImportedWhoopDebtRemainsVerbatim() {
         let days = [day("2026-06-01", sleep: 480)]
         let imported = ["2026-06-01": ImportedSleepFigures(
