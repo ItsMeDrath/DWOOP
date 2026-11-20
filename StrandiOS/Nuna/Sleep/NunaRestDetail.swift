@@ -62,7 +62,7 @@ struct NunaRestDetailView: View {
                     NunaBodyClockLink()
                 }
                 NunaExpandRow(title: "How it's calculated", subtitle: "Four parts of the night",
-                              text: "Sleep is scored from four parts: Hours vs. needed (60 points), Sleep consistency (20 points), Sleep efficiency (10 points) and High Sleep Stress (10 points). Hours vs. needed earns all 60 points at 100%. Consistency and efficiency earn all their points at 90% or higher. Sleep Stress earns all 10 points when 0% of scored sleep is in the High stress zone.\\n\\nConsistency uses only the latest five nights and compares both bedtime and wake time. The score is an estimate computed on this phone from your strap's data.")
+                              text: "Sleep is scored from four parts: Hours vs. needed (60 points), Sleep consistency (20 points), Sleep efficiency (10 points) and High Sleep Stress (10 points). Hours vs. needed earns all 60 points at 100%. Consistency and efficiency earn all their points at 90% or higher. High Sleep Stress earns 10 points below 1%, 7.5 points from 1% to below 3%, 5 points from 3% to below 6%, 2 points from 6% to below 11%, and 0 points at 11% or higher. The displayed stress percentage is truncated to a whole number.\\n\\nConsistency uses only the latest five nights and compares both bedtime and wake time. The score is an estimate computed on this phone from your strap's data.")
             } else {
                 ProgressView().tint(NunaPalette.textSecondary).frame(maxWidth: .infinity, minHeight: 240)
             }
@@ -297,8 +297,9 @@ struct NunaRestDetailView: View {
                 NunaDivider()
                 NavigationLink { NunaTrendHost(initial: .stressSleep, endingDaysAgo: nightDaysAgo) } label: {
                     let high = model.sleepStressHighPct[night.dayKey]
-                    NunaLevelRow(title: "High Sleep Stress", icon: NunaStressCategory.sleep.icon, percent: high,
-                                 level: high.map { NunaLevel.of(100 - $0, sufficientFrom: 95, optimalFrom: 99) })
+                    NunaLevelRow(title: "High Sleep Stress", icon: NunaStressCategory.sleep.icon,
+                                 percent: high.map { NunaSleepStressScoring.displayPercent($0) },
+                                 level: high.map { NunaLevel.of(NunaSleepStressScoring.levelValue($0), sufficientFrom: 94.0001, optimalFrom: 99.1) })
                 }.buttonStyle(.plain)
             }
             NunaLevelLegend().padding(.top, 8)
