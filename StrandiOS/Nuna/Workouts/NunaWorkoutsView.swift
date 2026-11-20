@@ -89,7 +89,6 @@ struct NunaWorkoutsView: View {
         .scrollIndicators(.hidden)
         .background(NunaBackdrop())
         .toolbar(.hidden, for: .navigationBar)
-        .nunaWorkoutDestinations()
         .nunaTodayDestinations()
         .navigationDestination(isPresented: $openStart) { NunaWorkoutStartView(sport: nil, resume: autoOpenStart || resumeLive) }
         .onChange(of: openStart) { _, open in if !open { resumeLive = false } }
