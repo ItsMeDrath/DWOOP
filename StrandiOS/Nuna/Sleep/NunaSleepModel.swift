@@ -145,6 +145,27 @@ struct NunaMovementSummary {
     }
 }
 
+/// One shared interpretation of the percentage of sleep spent in the High stress zone.
+enum NunaSleepStressScoring {
+    /// Stress component points, normalized to 0...1 for the 10% Sleep Performance weight.
+    static func points(highPercent: Double?) -> Double {
+        guard let value = highPercent, value.isFinite else { return 0.5 }
+        if value < 1.0 { return 1.0 }
+        if value < 3.0 { return 0.75 }
+        if value < 6.0 { return 0.5 }
+        if value < 11.0 { return 0.2 }
+        return 0.0
+    }
+
+    /// Whole-number display truncates the percentage; it never rounds up.
+    static func displayPercent(_ value: Double) -> Double { Double(max(0, Int(value))) }
+
+    /// Status thresholds: optimal below 1%, sufficient below 6%, poor from 6% onward.
+    static func levelValue(_ highPercent: Double) -> Double {
+        100.0 - highPercent
+    }
+}
+
 struct NunaNap: Identifiable {
     var id: Int { start.timeIntervalSince1970.hashValue }
     let start: Date
@@ -258,8 +279,7 @@ final class NunaSleepModel: ObservableObject {
         let durationPoints = clamp(hours / 100)
         let consistencyPoints = clamp((consistency(n) ?? 45) / 90)
         let efficiencyPoints = clamp(efficiency / 90)
-        let highStress = sleepStressHighPct[n.dayKey] ?? 50
-        let stressPoints = clamp(1 - highStress / 100)
+        let stressPoints = NunaSleepStressScoring.points(highPercent: sleepStressHighPct[n.dayKey])
         return ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
     }
 
