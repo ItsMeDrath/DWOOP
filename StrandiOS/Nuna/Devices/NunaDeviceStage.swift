@@ -14,7 +14,7 @@ struct NunaStrapArt: View {
             .blur(radius: active ? 0 : 5)
             .opacity(active ? 1 : 0.7)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-            .offset(x: -8)
+            .offset(x: -12)
             .animation(.easeInOut(duration: 0.18), value: active)
             .accessibilityHidden(true)
     }
@@ -22,7 +22,7 @@ struct NunaStrapArt: View {
 
 /// The charging flow: drops of blue fall from the top of the column towards the battery bar, growing as they go and shrinking away as they reach it,
 /// one after another, as the WHOOP app draws it. A small bolt stands at the top, where the charger is.
-struct NunaChargeFlow: View {
+struct NunaChargeFlow {
     static let height: CGFloat = 124
     /// The circle with the bolt in it, and the length of the column it stands over.
     static let badge: CGFloat = 36
