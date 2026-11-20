@@ -78,7 +78,7 @@ struct NunaHoursVsNeededCard: View {
         let top = max(asleepMin, neededMin, 1)
         NunaCard {
             VStack(alignment: .leading, spacing: 18) {
-                NunaRestFigure(title: "Hours vs. needed", value: percent, usual: usual)
+                NunaRestFigure(title: "Hours vs. needed", value: percent.map { min($0, 100) }, usual: usual.map { min($0, 100) })
                 VStack(alignment: .leading, spacing: 8) {
                     line("Hours of sleep", NunaRestChart.hm(asleepMin))
                     GeometryReader { geo in
