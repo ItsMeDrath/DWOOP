@@ -145,13 +145,13 @@ public enum VitalityEngine {
                                     lnHazard: clamp((exp - vo2) / 3.5, -4, 4) * 0.130))
         }
         if let sh = inputs.sleepHours {
-            // Short sleep below 7 h adds hazard. From 7 h through 9 h, each additional
-            // hour is protective; the benefit reaches its maximum at 9 h and then saturates.
+            // 7.5 h is break-even. Shorter sleep adds age; longer sleep reduces age
+            // progressively through 9 h, where the protective benefit saturates.
             let lnHazard: Double
-            if sh < 7.0 {
-                lnHazard = clamp(7.0 - sh, 0, 3) * 0.110
-            } else if sh > 7.0 {
-                lnHazard = -clamp(sh - 7.0, 0, 2.0) * 0.110
+            if sh < 7.5 {
+                lnHazard = clamp(7.5 - sh, 0, 3.5) * 0.110
+            } else if sh > 7.5 {
+                lnHazard = -clamp(sh - 7.5, 0, 1.5) * 0.110
             } else {
                 lnHazard = 0
             }
