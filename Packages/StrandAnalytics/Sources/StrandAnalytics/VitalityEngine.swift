@@ -125,7 +125,7 @@ public enum VitalityEngine {
     /// value, so an average person nets ~0. Published per-unit hazard ratios (conservative, clamped):
     ///   • Resting HR: +~10.5% all-cause mortality per +10 bpm (UK Biobank / meta-analyses). ref `restingHRBreakEven` (60).
     ///   • VO₂max: ~14% per MET (3.5 ml/kg/min) vs the age/sex-expected value (FRIEND). fitter = protective.
-    ///   • Sleep duration: U-shaped, optimum ~7.5 h; only deviation beyond ±0.5 h adds hazard (~12%/h).
+    ///   • Sleep duration: 7.5 h break-even; shorter sleep adds hazard and longer sleep is protective through 9 h (~11%/h), then saturates.
     ///   • Sleep regularity: most-regular vs least ≈ HR 0.70 (UK Biobank SRI). ref `consistencyBreakEven` (0.70 of the 0–1 range).
     ///   • HRV (RMSSD): ~16% per relative SD below the age norm (lower HRV = higher hazard).
     ///   • Steps: ~12% per 1,000 steps/day up to ~7k, diminishing to ~11k (pooled step-mortality meta).
