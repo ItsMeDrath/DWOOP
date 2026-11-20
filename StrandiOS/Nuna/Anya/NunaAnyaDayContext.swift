@@ -83,12 +83,13 @@ enum NunaAnyaDayContext {
         guard !recent.isEmpty else { return "" }
         let average = scores.isEmpty ? "—" : "\(Int((scores.reduce(0, +) / Double(scores.count)).rounded()))%"
         func pct(_ value: Double?) -> String { value.map { "\(Int($0.rounded()))%" } ?? "unavailable" }
+        func stressPct(_ value: Double?) -> String { value.map { "\(Int(max(0, $0)))%" } ?? "unavailable" }
         var lines = ["SLEEP PERFORMANCE (same iOS 60/20/10/10 score as the Sleep ring):",
                      "30-night average: \(average) (\(scores.count) nights with a calculable score).",
                      "Recent nights (newest first):"]
         for night in recent {
             let score = model.sleepScore(night).map { "\(Int($0.rounded()))%" } ?? "unavailable"
-            lines.append("  \(night.dayKey): score \(score); hours vs needed \(pct(model.hoursVsNeeded(night))); consistency \(pct(model.consistency(night))); efficiency \(pct(model.efficiency(night))); high sleep stress \(pct(model.sleepStressHighPct[night.dayKey])).")
+            lines.append("  \(night.dayKey): score \(score); hours vs needed \(pct(model.hoursVsNeeded(night))); consistency \(pct(model.consistency(night))); efficiency \(pct(model.efficiency(night))); high sleep stress \(stressPct(model.sleepStressHighPct[night.dayKey])).")
         }
         lines.append("Weights: hours vs needed 60%, five-night consistency 20%, efficiency 10%, low sleep stress 10%; restorative sleep is display-only and contributes 0%.")
         return lines.joined(separator: "\n")
