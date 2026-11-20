@@ -5,34 +5,18 @@ import StrandDesign
 /// The WHOOP MG strap product render used by Device Settings.
 struct NunaStrapArt: View {
     var active: Bool
-    @State private var on = true
 
     var body: some View {
-        ZStack {
-            Image("WHOOPBand")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 278, height: 320)
-                .blur(radius: active ? 0 : 5)
-                .opacity(active ? 1 : 0.7)
-            Circle()
-                .fill(active ? NunaPalette.charge : NunaPalette.alert)
-                .frame(width: 7, height: 7)
-                .opacity(active ? (on ? 1 : 0.2) : 1)
-                .shadow(color: (active ? NunaPalette.charge : NunaPalette.alert).opacity(active ? (on ? 0.9 : 0) : 0.8), radius: 8)
-                .offset(x: -54, y: -92)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .animation(.easeInOut(duration: 0.18), value: active)
-        .task(id: active) {
-            on = true
-            guard active else { return }
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 700_000_000)
-                withAnimation(.easeInOut(duration: 0.25)) { on.toggle() }
-            }
-        }
-        .accessibilityHidden(true)
+        Image("WHOOPBand")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 264, height: 304)
+            .blur(radius: active ? 0 : 5)
+            .opacity(active ? 1 : 0.7)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .offset(x: -8)
+            .animation(.easeInOut(duration: 0.18), value: active)
+            .accessibilityHidden(true)
     }
 }
 
