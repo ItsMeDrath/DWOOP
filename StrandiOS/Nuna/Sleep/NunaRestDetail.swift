@@ -83,7 +83,7 @@ struct NunaRestDetailView: View {
             } else {
                 model.index = 0
             }
-            factors = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: series.byDay)
+            factors = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: model.scoresByDay())
             guard !Task.isCancelled else { return }
             selectionResolved = true
         }

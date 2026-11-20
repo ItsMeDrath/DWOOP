@@ -281,7 +281,13 @@ final class NunaPlanModel: ObservableObject {
 
     /// A sleep score by day, in percent, as the strap and the sleep model keep it.
     static func percentSeries(_ kind: NunaPlanKind, repo: Repository) async -> [String: Double] {
-        let key = kind == .sleepConsistency ? "sleep_consistency" : "sleep_performance"
+        // Sleep performance is the Sleep Score the screens show (60/20/10/10 with the sleep stress tiers), not the older stored series.
+        if kind != .sleepConsistency {
+            let sleepModel = NunaSleepModel()
+            await sleepModel.load(repo: repo)
+            return sleepModel.scoresByDay().filter { $0.value > 0 }
+        }
+        let key = "sleep_consistency"
         var out: [String: Double] = [:]
         for p in await repo.exploreSeries(key: key, source: "my-whoop", days: 400) where p.value > 0 { out[p.day] = p.value <= 1 ? p.value * 100 : p.value }
         return out

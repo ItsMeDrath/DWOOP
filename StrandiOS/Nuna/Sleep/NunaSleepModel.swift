@@ -283,6 +283,14 @@ final class NunaSleepModel: ObservableObject {
         return ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
     }
 
+    /// The Sleep Score of every loaded night, keyed by the day the night ended: the one rule the screens, Anya and the factor
+    /// comparisons share (the stored `sleep_performance` series is the older formula and has no sleep stress term).
+    func scoresByDay() -> [String: Double] {
+        var out: [String: Double] = [:]
+        for n in nights { if let s = sleepScore(n) { out[n.dayKey] = s } }
+        return out
+    }
+
     /// Debt in minutes as of the latest night, when there is one.
     var debtMin: Double? { index == 0 ? night.map { debt($0) }.flatMap { $0 > 0 ? $0 : nil } : nil }
 

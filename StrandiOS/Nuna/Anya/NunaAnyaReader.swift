@@ -146,8 +146,7 @@ enum NunaAnyaReader {
         let sleepModel = NunaSleepModel()
         await sleepModel.load(repo: repo)
         if let night = sleepModel.night, let read = SleepRead.analyze(sleepModel.sleepFacts(night, debtMin: sleepModel.debtMin)) {
-            let restSeries = await repo.exploreSeries(key: "sleep_performance", source: "my-whoop")
-            let context = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: Dictionary(restSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l }))
+            let context = await NunaSleepFactorContext.load(repo: repo, restByWakeDay: sleepModel.scoresByDay())
             let parts = NunaInsightText.sleepParts(read, factors: context, wakeDay: night.dayKey)
             var vals: [String: Double] = ["rest": rest]
             if let v = m.sleepMinutes { vals["sleepMin"] = v }

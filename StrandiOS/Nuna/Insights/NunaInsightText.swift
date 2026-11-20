@@ -468,7 +468,7 @@ extension NunaSleepModel {
         let rhrUsual = mean { $0.daily?.restingHr.map(Double.init) }
         let wakeEvents = night.intervals.filter { $0.stage == .awake && $0.end - $0.start >= 60 }.count
         return SleepFacts(
-            restPct: value("sleep_performance", night),
+            restPct: sleepScore(night),
             asleepMin: night.daily?.totalSleepMin ?? night.asleepMin,
             needMin: need(night), debtMin: debtMin,
             hoursPct: hoursVsNeeded(night), efficiencyPct: efficiency(night), restorativePct: restorative(night),
