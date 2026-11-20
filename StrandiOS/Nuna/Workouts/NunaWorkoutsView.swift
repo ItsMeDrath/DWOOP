@@ -37,11 +37,6 @@ extension View {
 /// the recent history. Everything comes from saved workouts, daily Effort and lifting sessions.
 struct NunaWorkoutsView: View {
     var autoOpenStart = false
-    @State private var openStart = false
-    /// A separate path for Start Activity and the Strength Trainer pages opened from it.
-    @State private var startPath = NavigationPath()
-    /// The banner of a running session opens the start screen straight on its live screen.
-    @State private var resumeLive = false
     @State private var didAutoOpen = false
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var intelligence: IntelligenceEngine
@@ -72,7 +67,7 @@ struct NunaWorkoutsView: View {
             VStack(spacing: NunaSpacing.section) {
                 header
                 NunaPageTabs([(value: 0, title: "Workout"), (value: 2, title: "Insight")], selection: $tab)
-                NunaActiveWorkoutBanner { resumeLive = true; openStart = true }
+                NunaActiveWorkoutBanner { openStartActivity() }
                 if !m.loaded {
                     ProgressView().tint(NunaPalette.textSecondary).frame(maxWidth: .infinity, minHeight: 160)
                 } else if tab == 0 {
@@ -92,17 +87,7 @@ struct NunaWorkoutsView: View {
         .background(NunaBackdrop())
         .toolbar(.hidden, for: .navigationBar)
         .nunaTodayDestinations()
-        .navigationDestination(isPresented: $openStart) {
-            NavigationStack(path: $startPath) {
-                NunaWorkoutStartView(sport: nil, resume: autoOpenStart || resumeLive)
-                    .nunaWorkoutDestinations()
-            }
-            .environment(\.nunaPushWorkout) { startPath.append($0) }
-        }
-        .onChange(of: openStart) { _, open in
-            if !open { resumeLive = false; startPath = NavigationPath() }
-        }
-        .onAppear { if autoOpenStart, !didAutoOpen { didAutoOpen = true; openStart = true } }
+        .onAppear { if autoOpenStart, !didAutoOpen { didAutoOpen = true; openStartActivity() } }
         .task(id: repo.refreshSeq) {
             await m.load(repo: repo)
             suggestion = autoDetect ? await repo.autoDetectSuggestion() : nil
@@ -120,6 +105,10 @@ struct NunaWorkoutsView: View {
         }
         .environment(\.nunaAnyaCardContext, "workouts")
     }
+
+    /// Start Activity opens as the same full-screen sheet as from Home (the shell's `.activeWorkout` route), so it covers the tab bar
+    /// and the Strength Trainer pages opened from it stay in that sheet's own navigation path. A running session opens on its live screen.
+    private func openStartActivity() { router.requestedDestination = .activeWorkout }
 
     // MARK: Header
 
@@ -413,7 +402,7 @@ struct NunaWorkoutsView: View {
                 HStack(spacing: 12) {
                     Button { showManual = true } label: { workoutAction("Add activity", icon: "plus") }
                         .buttonStyle(.plain)
-                    Button { openStart = true } label: { workoutAction("Start activity", icon: "stopwatch") }
+                    Button { openStartActivity() } label: { workoutAction("Start activity", icon: "stopwatch") }
                         .buttonStyle(.plain)
                 }
             }

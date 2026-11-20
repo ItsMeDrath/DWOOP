@@ -171,6 +171,9 @@ struct NunaRootView: View {
             NavigationStack { NunaJournalView().nunaTodayDestinations().nunaMeDestinations() }.preferredColorScheme(NunaTheme.colorScheme)
         }
         .onChange(of: router.requestedDestination) { _, dest in handle(dest) }
+        // The sheets share one path; a sheet closed by swiping down must not leave a pushed page for the next one to open on.
+        .onChange(of: routed) { _, dest in if dest == nil { sheetPath = NavigationPath() } }
+        .onChange(of: showDevices) { _, on in if !on { sheetPath = NavigationPath() } }
         #if DEBUG
         // `--open-journal`: a debug build opens the Journal once at launch, to look at it without finding the card on Today.
         .task {
