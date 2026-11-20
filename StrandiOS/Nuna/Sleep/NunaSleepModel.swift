@@ -442,6 +442,14 @@ final class NunaSleepModel: ObservableObject {
             }
         }
         sleepStressHighPct = highStress
+
+        // Keep iOS Sleep Performance history on the exact score shown by the Sleep ring.
+        // Imported WHOOP values and the legacy Rest composite are not interchangeable with it.
+        var scoredPerformance: [String: Double] = [:]
+        for night in out {
+            if let score = sleepScore(night) { scoredPerformance[night.dayKey] = score }
+        }
+        series["sleep_performance"] = scoredPerformance
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
         fallbackNeed = SleepModel.sleepNeedMin(days: repo.days)
         let napByDay = SleepModel.napSleepMinutesByDay(navDays: SleepModel.navDays(navSessions: sessions), habitualMidsleepSec: hab)

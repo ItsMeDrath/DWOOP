@@ -67,7 +67,31 @@ enum NunaAnyaDayContext {
             sessionFeelings: feelings,
             outdoorLine: outdoor?.line,
             outdoorLevel: outdoor?.level)
-        return AnyaDayContext.block(input)
+        // Refresh the same iOS sleep model used by the Sleep ring, then pass its real
+        // scores and components to Anya instead of relying on the stale daily summary alone.
+        let sleepModel = NunaSleepModel.shared
+        await sleepModel.load(repo: repo, historyDays: 60, includeMotion: false)
+        let sleepContext = Self.sleepPerformanceBlock(model: sleepModel)
+        return [AnyaDayContext.block(input), sleepContext].filter { !$0.isEmpty }.joined(separator: "\n\n")
+    }
+
+
+    /// Uses the same per-night score and components as the iOS Sleep ring.
+    @MainActor private static func sleepPerformanceBlock(model: NunaSleepModel) -> String {
+        let recent = Array(model.nights.prefix(14))
+        let scores = Array(model.nights.prefix(30)).compactMap { model.sleepScore($0) }
+        guard !recent.isEmpty else { return "" }
+        let average = scores.isEmpty ? "—" : "\(Int((scores.reduce(0, +) / Double(scores.count)).rounded()))%"
+        func pct(_ value: Double?) -> String { value.map { "\(Int($0.rounded()))%" } ?? "unavailable" }
+        var lines = ["SLEEP PERFORMANCE (same iOS 60/20/10/10 score as the Sleep ring):",
+                     "30-night average: \(average) (\(scores.count) nights with a calculable score).",
+                     "Recent nights (newest first):"]
+        for night in recent {
+            let score = model.sleepScore(night).map { "\(Int($0.rounded()))%" } ?? "unavailable"
+            lines.append("  \(night.dayKey): score \(score); hours vs needed \(pct(model.hoursVsNeeded(night))); consistency \(pct(model.consistency(night))); efficiency \(pct(model.efficiency(night))); high sleep stress \(pct(model.sleepStressHighPct[night.dayKey])).")
+        }
+        lines.append("Weights: hours vs needed 60%, five-night consistency 20%, efficiency 10%, low sleep stress 10%; restorative sleep is display-only and contributes 0%.")
+        return lines.joined(separator: "\n")
     }
 
     /// The reading and what it means for training, in plain English for Anya.
