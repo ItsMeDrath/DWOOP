@@ -38,6 +38,8 @@ extension View {
 struct NunaWorkoutsView: View {
     var autoOpenStart = false
     @State private var openStart = false
+    /// A separate path for Start Activity and the Strength Trainer pages opened from it.
+    @State private var startPath = NavigationPath()
     /// The banner of a running session opens the start screen straight on its live screen.
     @State private var resumeLive = false
     @State private var didAutoOpen = false
@@ -90,8 +92,16 @@ struct NunaWorkoutsView: View {
         .background(NunaBackdrop())
         .toolbar(.hidden, for: .navigationBar)
         .nunaTodayDestinations()
-        .navigationDestination(isPresented: $openStart) { NunaWorkoutStartView(sport: nil, resume: autoOpenStart || resumeLive) }
-        .onChange(of: openStart) { _, open in if !open { resumeLive = false } }
+        .navigationDestination(isPresented: $openStart) {
+            NavigationStack(path: $startPath) {
+                NunaWorkoutStartView(sport: nil, resume: autoOpenStart || resumeLive)
+                    .nunaWorkoutDestinations()
+            }
+            .environment(\.nunaPushWorkout) { startPath.append($0) }
+        }
+        .onChange(of: openStart) { _, open in
+            if !open { resumeLive = false; startPath = NavigationPath() }
+        }
         .onAppear { if autoOpenStart, !didAutoOpen { didAutoOpen = true; openStart = true } }
         .task(id: repo.refreshSeq) {
             await m.load(repo: repo)
