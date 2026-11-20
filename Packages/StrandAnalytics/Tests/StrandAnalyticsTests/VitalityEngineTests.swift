@@ -176,6 +176,21 @@ final class VitalityEngineTests: XCTestCase {
         XCTAssertEqual(VitalityEngine.rmssdNorm(forAge: 90), 20, accuracy: 0.01)   // clamps to last anchor
     }
 
+    /// Sleep duration becomes progressively protective through 9 hours, then the benefit saturates.
+    func testSleepDurationBenefitThroughNineHours() {
+        func sleepHazard(_ hours: Double) -> Double {
+            VitalityEngine.contributions(.init(chronoAge: 40, sleepHours: hours))
+                .first { $0.key == "sleep" }!.lnHazard
+        }
+        XCTAssertEqual(sleepHazard(6.0), 0.110, accuracy: 1e-9)
+        XCTAssertEqual(sleepHazard(7.0), 0, accuracy: 1e-9)
+        XCTAssertEqual(sleepHazard(7.5), 0, accuracy: 1e-9)
+        XCTAssertLessThan(sleepHazard(8.0), 0)
+        XCTAssertLessThan(sleepHazard(9.0), sleepHazard(8.0))
+        XCTAssertEqual(sleepHazard(9.0), -0.165, accuracy: 1e-9)
+        XCTAssertEqual(sleepHazard(9.5), sleepHazard(9.0), accuracy: 1e-9)
+    }
+
     func testSleepConsistency() {
         XCTAssertEqual(VitalityEngine.sleepConsistency(nightlyHours: [7, 7, 7, 7])!, 1.0, accuracy: 1e-9)
         XCTAssertEqual(VitalityEngine.sleepConsistency(nightlyHours: [6, 8, 6, 8])!, 0.857, accuracy: 0.005)
