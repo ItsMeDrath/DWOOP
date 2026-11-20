@@ -279,11 +279,25 @@ struct NunaEffortDetailView: View {
             ?? String(localized: "Your Strain is \(UnitFormatter.effortDisplay(e, scale: scale)) of \(UnitFormatter.effortScaleMax(scale)) so far today.")
     }
 
-    /// Steps by day: the estimate and Apple Health's count, the larger of the two for a day that has both.
+    /// Steps by day: measured WHOOP/merged daily counts first, then Apple Health, then the on-device estimate.
+    /// Keep the same source precedence as the Steps trend page so this embedded weekly card cannot go blank
+    /// when the detail page has readings from the strap's real `steps` series.
     private func loadSteps() async {
         var byDay: [String: Double] = [:]
-        for r in await repo.appleDailyRows() { if let s = r.steps, s > 0 { byDay[r.day] = Double(s) } }
-        for p in await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 60) where p.value > 0 { byDay[p.day] = max(byDay[p.day] ?? 0, p.value) }
+        for row in repo.days {
+            if let steps = row.steps, steps > 0 {
+                byDay[row.day] = Double(steps)
+            }
+        }
+        for row in await repo.appleDailyRows() {
+            if byDay[row.day] == nil, let steps = row.steps, steps > 0 {
+                byDay[row.day] = Double(steps)
+            }
+        }
+        for point in await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 60)
+            where point.value > 0 && byDay[point.day] == nil {
+            byDay[point.day] = point.value
+        }
         stepsPoints = byDay.map { (day: $0.key, value: $0.value) }
     }
 
