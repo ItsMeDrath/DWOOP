@@ -145,9 +145,17 @@ public enum VitalityEngine {
                                     lnHazard: clamp((exp - vo2) / 3.5, -4, 4) * 0.130))
         }
         if let sh = inputs.sleepHours {
-            let dev = max(0, abs(sh - 7.5) - 0.5)   // only deviation > ±0.5 h is a risk; optimum is neutral
-            out.append(Contribution(key: "sleep", label: "Sleep duration",
-                                    lnHazard: clamp(dev, 0, 3) * 0.110))
+            // Short sleep below 7 h adds hazard. From 7.5 h through 9 h, each additional
+            // hour is protective; the benefit reaches its maximum at 9 h and then saturates.
+            let lnHazard: Double
+            if sh < 7.0 {
+                lnHazard = clamp(7.0 - sh, 0, 3) * 0.110
+            } else if sh > 7.5 {
+                lnHazard = -clamp(sh - 7.5, 0, 1.5) * 0.110
+            } else {
+                lnHazard = 0
+            }
+            out.append(Contribution(key: "sleep", label: "Sleep duration", lnHazard: lnHazard))
         }
         if let c = inputs.sleepConsistency {
             out.append(Contribution(key: "consistency", label: "Sleep regularity",
