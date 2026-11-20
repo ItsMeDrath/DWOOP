@@ -37,6 +37,8 @@ struct NunaRootView: View {
 
     @State private var selection = Tab.today.rawValue
     @State private var paths: [NavigationPath] = Array(repeating: NavigationPath(), count: Tab.allCases.count)
+    /// The routed Start Activity sheet owns its own path so Strength Trainer pages never land behind the tab screen.
+    @State private var sheetPath = NavigationPath()
     @State private var showDevices = false
     /// Anya's sheet, opened by the round button beside the tab bar.
     @State private var showAnya = false
@@ -222,7 +224,7 @@ struct NunaRootView: View {
     }
 
     private func sheetStack<Content: View>(@ViewBuilder content: () -> Content) -> some View {
-        NavigationStack {
+        NavigationStack(path: $sheetPath) {
             content()
                 .tabRouteDestinations()
                 .nunaWorkoutDestinations()
@@ -235,10 +237,11 @@ struct NunaRootView: View {
                 .toolbarBackground(.hidden, for: .navigationBar)
                 .toolbar {
                     ToolbarItem(placement: .topBarTrailing) {
-                        Button("Done") { showDevices = false; routed = nil }
+                        Button("Done") { showDevices = false; routed = nil; sheetPath = NavigationPath() }
                     }
                 }
         }
+        .environment(\.nunaPushWorkout) { sheetPath.append($0) }
     }
 
     @ViewBuilder private func destinationView(_ dest: NavRouter.Destination) -> some View {
