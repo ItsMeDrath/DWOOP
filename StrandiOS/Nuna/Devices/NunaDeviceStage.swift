@@ -87,7 +87,7 @@ struct NunaBatteryGauge: View {
     let model: String
     let estimate: String?
 
-    /// Red at 10% or less, yellow up to 30%, green above. The WHOOP app showed yellow at 22% to 24% (the PHNM bar was green there): the exact limit is not
+    /// Red at 10% or less, yellow up to 30%, green above. The WHOOP app showed yellow at 22% to 24% (the PHMN bar was green there): the exact limit is not
     /// published, so 30% is the nearest round figure that covers what was seen, and not an official one.
     private var tint: Color { (pct ?? 100) <= 10 ? NunaPalette.alert : ((pct ?? 100) <= 30 ? NunaPalette.warning : NunaPalette.charge) }
     private let barHeight: CGFloat = 250
