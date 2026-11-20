@@ -123,17 +123,39 @@ struct NunaScoreRings: View {
     /// The figure keeps the size it had in the larger ring (30 pt) while the ring itself is smaller.
     private func numberSize(_ ringSize: CGFloat) -> CGFloat { max(ringSize * 0.27, 31 * min(ringSize / 92, 1)) }
 
+    /// The dashboard's full-size rings keep all three brand/score labels inside the existing gauge.
+    /// The gauge geometry, progress, colour, line width and sizing are deliberately unchanged.
     private func ringView(_ v: RingValues, size: CGFloat) -> some View {
         NunaRingGauge(fraction: v.fraction, color: v.color, gradient: v.gradient, target: v.target, size: size, lineWidth: max(3.5, size * 0.09)) {
             if size >= 60 {
-                HStack(alignment: .firstTextBaseline, spacing: 1) {
-                    Text(verbatim: v.number).font(.nuna(size: numberSize(size), weight: .bold, design: NunaType.design))
-                        .tracking(nunaTrackingNumber(numberSize(size))).foregroundStyle(NunaPalette.textPrimary).minimumScaleFactor(0.6).lineLimit(1)
-                    if !v.unit.isEmpty && v.number != "–" {
-                        Text(verbatim: v.unit).font(.nuna(size: numberSize(size) * 0.68, weight: .bold)).foregroundStyle(NunaPalette.textPrimary.opacity(0.85))
+                VStack(spacing: 1) {
+                    WhoopWordmark()
+                        .frame(width: size * 0.43, height: size * 0.073)
+                    HStack(alignment: .firstTextBaseline, spacing: 1) {
+                        Text(verbatim: v.number).font(.nuna(size: numberSize(size) * 0.88, weight: .bold, design: NunaType.design))
+                            .tracking(nunaTrackingNumber(numberSize(size) * 0.88)).foregroundStyle(NunaPalette.textPrimary).minimumScaleFactor(0.6).lineLimit(1)
+                        if !v.unit.isEmpty && v.number != "–" {
+                            Text(verbatim: v.unit).font(.nuna(size: numberSize(size) * 0.60, weight: .bold)).foregroundStyle(NunaPalette.textPrimary.opacity(0.85))
+                        }
                     }
+                    Text(verbatim: ringInteriorName(for: v.label))
+                        .font(.nuna(size: size * 0.072, weight: .heavy))
+                        .tracking(0.35)
+                        .textCase(.uppercase)
+                        .foregroundStyle(NunaPalette.textPrimary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.65)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    private func ringInteriorName(for label: LocalizedStringKey) -> String {
+        switch label {
+        case "Recovery": return "RECOVERY"
+        case "Strain": return "STRAIN"
+        default: return "SLEEP PERFORMANCE"
         }
     }
 
