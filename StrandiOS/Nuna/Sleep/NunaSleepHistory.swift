@@ -116,10 +116,8 @@ final class NunaSleepHistory: ObservableObject {
             let durationPoints = min(max(asleep / max(need(day), 1), 0), 1)
             let consistencyPoints = min(max((fiveNightConsistency[day] ?? 45) / 90, 0), 1)
             let efficiencyPoints = min(max(eff / 90, 0), 1)
-            let stressPoints: Double
-            if let zones = stressHistory.entries[day]?.zones(.sleep), zones.total > 0 {
-                stressPoints = min(max(1 - zones.high / zones.total, 0), 1)
-            } else { stressPoints = 0.5 }
+            let highStressPercent = stressHistory.entries[day]?.zones(.sleep).flatMap { $0.total > 0 ? $0.high / $0.total * 100 : nil }
+            let stressPoints = NunaSleepStressScoring.points(highPercent: highStressPercent)
             computedPerformance[day] = (0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100
         }
         performance = computedPerformance
