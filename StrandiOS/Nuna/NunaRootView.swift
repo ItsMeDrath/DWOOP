@@ -205,6 +205,7 @@ struct NunaRootView: View {
                 .background(NunaBackdrop())
                 .toolbar(.hidden, for: .navigationBar)
                 .tabRouteDestinations()
+                .nunaWorkoutDestinations()
                 .nunaAnyaDestinations()
                 .nunaDeviceDestinations()
                 .nunaMeDestinations()
@@ -224,6 +225,7 @@ struct NunaRootView: View {
         NavigationStack {
             content()
                 .tabRouteDestinations()
+                .nunaWorkoutDestinations()
                 .nunaTodayDestinations()
                 .nunaDeviceDestinations()
                 .nunaAnyaDestinations()
@@ -249,7 +251,7 @@ struct NunaRootView: View {
         case .trends: NunaTrendsView()
         case .workouts: NunaWorkoutsView()
         // Start activity opens the start screen itself, not the Workouts page with the start screen pushed on it: closing it returns to where it was opened.
-        case .activeWorkout: NunaWorkoutStartView(sport: nil, resume: true).nunaWorkoutDestinations()
+        case .activeWorkout: NunaWorkoutStartView(sport: nil, resume: true)
         case .liveSession: LiquidTodayView()
         case .journal: NunaJournalView()
         case .coach: NunaAnyaView()
