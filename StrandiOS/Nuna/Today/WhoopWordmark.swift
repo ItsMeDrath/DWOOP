@@ -1,6 +1,7 @@
 import SwiftUI
 
-/// Exact path coordinates transcribed from supplied WHOOP Android vector resource.
+/// Exact path coordinates transcribed from supplied WHOOP Android vector resource, the letters only: the registered mark that follows
+/// the P in the vector is left out, so the drawing is 236:40.
 struct WhoopWordmark: View {
     var body: some View {
         GeometryReader { geometry in
@@ -8,7 +9,7 @@ struct WhoopWordmark: View {
         }.accessibilityLabel("WHOOP")
     }
     nonisolated static func drawingPath(in rect: CGRect) -> Path {
-        let scale = min(rect.width / 247, rect.height / 40)
+        let scale = min(rect.width / 236, rect.height / 40)
         return Path { path in
                 path.move(to: CGPoint(x: 68.25, y: 0.05))
                 path.addLine(to: CGPoint(x: 63.37, y: 0.05))
@@ -91,41 +92,9 @@ struct WhoopWordmark: View {
                 path.addLine(to: CGPoint(x: 29.85, y: 0.05))
                 path.addLine(to: CGPoint(x: 25.11, y: 0.05))
                 path.closeSubpath()
-                path.move(to: CGPoint(x: 243.25, y: 5.89))
-                path.addCurve(to: CGPoint(x: 240.3, y: 2.95), control1: CGPoint(x: 241.62, y: 5.89), control2: CGPoint(x: 240.3, y: 4.57))
-                path.addCurve(to: CGPoint(x: 243.25, y: 0.0), control1: CGPoint(x: 240.3, y: 1.32), control2: CGPoint(x: 241.62, y: 0.0))
-                path.addCurve(to: CGPoint(x: 246.2, y: 2.95), control1: CGPoint(x: 244.88, y: 0.0), control2: CGPoint(x: 246.2, y: 1.32))
-                path.addCurve(to: CGPoint(x: 243.25, y: 5.89), control1: CGPoint(x: 246.2, y: 4.57), control2: CGPoint(x: 244.88, y: 5.89))
-                path.closeSubpath()
-                path.move(to: CGPoint(x: 243.25, y: 0.55))
-                path.addCurve(to: CGPoint(x: 240.89, y: 2.95), control1: CGPoint(x: 241.93, y: 0.55), control2: CGPoint(x: 240.89, y: 1.6))
-                path.addCurve(to: CGPoint(x: 243.25, y: 5.35), control1: CGPoint(x: 240.89, y: 4.29), control2: CGPoint(x: 241.93, y: 5.35))
-                path.addCurve(to: CGPoint(x: 245.6, y: 2.95), control1: CGPoint(x: 244.57, y: 5.35), control2: CGPoint(x: 245.6, y: 4.29))
-                path.addCurve(to: CGPoint(x: 243.25, y: 0.55), control1: CGPoint(x: 245.6, y: 1.6), control2: CGPoint(x: 244.57, y: 0.55))
-                path.closeSubpath()
-                path.move(to: CGPoint(x: 243.87, y: 4.53))
-                path.addLine(to: CGPoint(x: 243.22, y: 3.27))
-                path.addLine(to: CGPoint(x: 242.81, y: 3.27))
-                path.addLine(to: CGPoint(x: 242.81, y: 4.53))
-                path.addLine(to: CGPoint(x: 242.22, y: 4.53))
-                path.addLine(to: CGPoint(x: 242.22, y: 1.35))
-                path.addLine(to: CGPoint(x: 243.42, y: 1.35))
-                path.addCurve(to: CGPoint(x: 244.44, y: 2.33), control1: CGPoint(x: 244.02, y: 1.35), control2: CGPoint(x: 244.44, y: 1.8))
-                path.addCurve(to: CGPoint(x: 243.81, y: 3.19), control1: CGPoint(x: 244.44, y: 2.78), control2: CGPoint(x: 244.16, y: 3.07))
-                path.addLine(to: CGPoint(x: 244.52, y: 4.53))
-                path.addLine(to: CGPoint(x: 243.87, y: 4.53))
-                path.closeSubpath()
-                path.move(to: CGPoint(x: 243.34, y: 1.85))
-                path.addLine(to: CGPoint(x: 242.81, y: 1.85))
-                path.addLine(to: CGPoint(x: 242.81, y: 2.81))
-                path.addLine(to: CGPoint(x: 243.34, y: 2.81))
-                path.addCurve(to: CGPoint(x: 243.87, y: 2.32), control1: CGPoint(x: 243.65, y: 2.81), control2: CGPoint(x: 243.87, y: 2.6))
-                path.addCurve(to: CGPoint(x: 243.34, y: 1.84), control1: CGPoint(x: 243.87, y: 2.05), control2: CGPoint(x: 243.66, y: 1.84))
-                path.addLine(to: CGPoint(x: 243.34, y: 1.85))
-                path.closeSubpath()
             }
         .applying(CGAffineTransform(a: scale, b: 0, c: 0, d: scale,
-                                   tx: rect.minX + (rect.width - 247 * scale) / 2,
+                                   tx: rect.minX + (rect.width - 236 * scale) / 2,
                                    ty: rect.minY + (rect.height - 40 * scale) / 2))
     }
 }

@@ -345,9 +345,9 @@ struct NunaScoreHero<Note: View>: View {
             NunaRingGauge(fraction: fraction, color: color, gradient: gradient, target: target, size: ringSize, lineWidth: 24 * ringSize / 300) {
                 VStack(spacing: 6) {
                     if ringWordmark {
-                        // The supplied vector wordmark, soft grey like the word it replaces; the vector's native ratio is 247:40.
+                        // The supplied vector wordmark, soft grey like the word it replaces; the letters' ratio is 236:40.
                         WhoopWordmark()
-                            .frame(width: 86.45 * ringSize / 252, height: 14 * ringSize / 252)
+                            .frame(width: 82.6 * ringSize / 252, height: 14 * ringSize / 252)
                             .opacity(0.55)
                             .padding(.bottom, 4)
                     } else if let ringTitle {
@@ -362,6 +362,7 @@ struct NunaScoreHero<Note: View>: View {
                     }
                     if !suffix.isEmpty { Text(verbatim: suffix).font(.nuna(size: 13, weight: .bold)).foregroundStyle(NunaPalette.textSecondary) }
                     Text(name).font(.nuna(size: 15, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(nameColor ?? NunaPalette.textPrimary)
+                        .multilineTextAlignment(.center).lineLimit(2).minimumScaleFactor(0.8).frame(maxWidth: ringSize * 0.56)
                     if let ringLevel {
                         HStack(spacing: 4) {
                             ForEach(0..<3, id: \.self) { i in

@@ -122,8 +122,8 @@ private struct NunaPinnedBrand: View {
     let height: CGFloat
     var body: some View {
         WhoopWordmark()
-            // The vector's native ratio is 247:40; 14 pt high matches the existing header's optical alignment.
-            .frame(width: 86.45, height: 14)
+            // The letters' ratio is 236:40; 14 pt high matches the existing header's optical alignment.
+            .frame(width: 82.6, height: 14)
             .frame(maxWidth: .infinity)
             .frame(height: height * (1 - state.t), alignment: .center)
             .clipped()

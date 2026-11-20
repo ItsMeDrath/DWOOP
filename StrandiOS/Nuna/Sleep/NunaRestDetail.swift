@@ -185,7 +185,7 @@ struct NunaRestDetailView: View {
     private var hero: some View {
         NunaScoreHero(caption: "",
                       fraction: (rest ?? 0) / 100, number: rest.map { "\(Int($0.rounded()))" } ?? "–", unit: "%",
-                      name: rest.map(nunaRestWord) ?? "Sleep", nameColor: Self.ringBlue,
+                      name: "Sleep performance",
                       color: Self.ringBlue, hasNote: againstRecent != nil,
                       showsCaptionRow: false, ringWordmark: true, ringLevel: rest.map { NunaLevel.of($0, sufficientFrom: 70, optimalFrom: 85) },
                       ringSize: 252, info: $showInfo) {
