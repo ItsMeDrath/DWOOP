@@ -350,6 +350,7 @@ struct NunaScoreHero<Note: View>: View {
                             .frame(width: 82.6 * ringSize / 252, height: 14 * ringSize / 252)
                             .opacity(0.55)
                             .padding(.bottom, 4)
+                            .offset(y: 6) // About 1 mm lower on the iPhone's 3x display
                     } else if let ringTitle {
                         Text(ringTitle).font(.nuna(size: 22 * ringSize / 300, weight: .medium)).tracking(3).textCase(.uppercase).foregroundStyle(NunaPalette.textSecondary)
                     }
