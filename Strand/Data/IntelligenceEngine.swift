@@ -3203,10 +3203,10 @@ final class IntelligenceEngine: ObservableObject {
     /// recovery call + Android IntelligenceEngine.recomputeRecovery. (#78)
     private static func recomputeRecovery(_ daily: DailyMetric, _ baselines: AnalyticsEngine.ProfileBaselines) -> Double? {
         guard let hrvVal = daily.avgHrv, let rhrVal = daily.restingHr, let hrvBase = baselines.hrv else { return nil }
-        // Charge enrichment: feed the Rest COMPOSITE (÷100) as the sleep-quality term instead of raw
+        // Charge enrichment: feed Recovery's sleep input (÷100; hours 60, consistency 20, efficiency 10, restorative 10) as the sleep-quality term instead of raw
         // efficiency, and fold in the night's skin-temp deviation. Both come from the persisted daily
         // fields (the raw streams are gone in pass 2). (Charge/Effort/Rest scoring redesign.)
-        let restQuality = AnalyticsEngine.Rest.composite(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
+        let restQuality = AnalyticsEngine.Rest.recoveryInput(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
         return RecoveryScorer.recovery(hrv: hrvVal, rhr: Double(rhrVal), resp: daily.respRateBpm,
                                        hrvBaseline: hrvBase, rhrBaseline: baselines.restingHR,
                                        respBaseline: baselines.resp, sleepPerf: restQuality,
@@ -3224,7 +3224,7 @@ final class IntelligenceEngine: ObservableObject {
         guard let hrvVal = daily.avgHrv, let rhrVal = daily.restingHr, let hrvBase = baselines.hrv else {
             return []
         }
-        let restQuality = AnalyticsEngine.Rest.composite(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
+        let restQuality = AnalyticsEngine.Rest.recoveryInput(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
         return RecoveryScorer.chargeDrivers(hrv: hrvVal, rhr: Double(rhrVal), resp: daily.respRateBpm,
                                             hrvBaseline: hrvBase, rhrBaseline: baselines.restingHR,
                                             respBaseline: baselines.resp, sleepPerf: restQuality,
@@ -3242,7 +3242,7 @@ final class IntelligenceEngine: ObservableObject {
             return ["charge day=\(daily.day) nilScore reason=missingInput "
                 + "(hrv/rhr/hrvBaseline required)"]
         }
-        let restQuality = AnalyticsEngine.Rest.composite(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
+        let restQuality = AnalyticsEngine.Rest.recoveryInput(daily: daily).map { $0 / 100.0 } ?? daily.efficiency
         let (_, trace) = RecoveryScorer.recoveryTrace(
             hrv: hrvVal, rhr: Double(rhrVal), resp: daily.respRateBpm,
             hrvBaseline: hrvBase, rhrBaseline: baselines.restingHR,

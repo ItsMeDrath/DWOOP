@@ -863,8 +863,10 @@ public enum AnalyticsEngine {
         // (empty when there is no score / cold-start). Surfaced on DayResult for the UI.
         var chargeDrivers: [ChargeDriver] = []
         if let hrvVal = avgHRVDaily, let rhrVal = restingHRDaily, let hrvBase = baselines.hrv {
-            // Rest-quality term = the Rest composite ÷100 (replaces raw efficiency).
-            let sleepPerf = restScore.map { $0 / 100.0 }
+            // Sleep term = Recovery's own sleep input ÷100 (hours 60, consistency 20, efficiency 10, restorative 10).
+            let sleepPerf: Double? = tstS <= 0 ? nil : Rest.recoveryInput(
+                tstSeconds: tstS, efficiency: efficiency, restorativeSeconds: deepS + remS,
+                needHours: sleepNeedHours, consistency: sleepConsistency, deepSeconds: deepS) / 100.0
             recovery = RecoveryScorer.recovery(
                 hrv: hrvVal,
                 rhr: Double(rhrVal),
@@ -1197,6 +1199,59 @@ public enum AnalyticsEngine {
                 + wConsistency * consistencyScore
             // weighted is in [0,1] (weights sum to 1). Scale to [0,100] and round to 2dp.
             return (weighted * 10000.0).rounded() / 100.0
+        }
+
+        // MARK: Recovery's sleep input
+        //
+        // The Recovery percentage reads its own sleep number, shaped like the Sleep Score the screens show but with restorative sleep in the
+        // last 10% where the screens put High Sleep Stress (stress needs the Nuna screens' stress zones; restorative needs only the night's
+        // saved totals, so Recovery can work it out in the same pass, with no delay). The stored `sleep_performance` series, the graphs,
+        // Anya and the widgets keep the Sleep Score; this is used only as the sleep term of Recovery and its driver rows.
+
+        /// Hours vs needed 60, consistency 20, efficiency 10, restorative sleep 10.
+        public static let recoveryWDuration: Double = 0.60
+        public static let recoveryWConsistency: Double = 0.20
+        public static let recoveryWEfficiency: Double = 0.10
+        public static let recoveryWRestorative: Double = 0.10
+        /// Consistency and efficiency earn all their points at 90% or higher; above that they earn no more.
+        public static let recoveryFullCreditFraction: Double = 0.90
+
+        /// Recovery's sleep input [0,100]. Restorative (deep + REM) earns all 10 points at 50% of the time asleep (`restorativeTarget`), with
+        /// the same deep-sleep adequacy rule as `composite`. Consistency unknown earns half credit, never a fabricated perfect score.
+        public static func recoveryInput(tstSeconds: Double,
+                                         efficiency: Double,
+                                         restorativeSeconds: Double,
+                                         needHours: Double,
+                                         consistency: Double?,
+                                         deepSeconds: Double? = nil) -> Double {
+            func clamp01(_ x: Double) -> Double { max(0.0, min(1.0, x)) }
+            let needSeconds = max(needHours, 0.1) * 3600.0
+            let durationScore = clamp01(tstSeconds / needSeconds)
+            let efficiencyScore = clamp01(efficiency / recoveryFullCreditFraction)
+            let consistencyScore = consistency.map { clamp01($0 / recoveryFullCreditFraction) } ?? 0.5
+            let deepFactor: Double = {
+                guard let deep = deepSeconds, tstSeconds > 0, deepShareTarget > 0 else { return 1.0 }
+                let adequacy = clamp01((deep / tstSeconds) / deepShareTarget)
+                return deepFloorFactor + (1.0 - deepFloorFactor) * adequacy
+            }()
+            let restorativeScore = tstSeconds > 0
+                ? clamp01((restorativeSeconds / tstSeconds) / restorativeTarget) * deepFactor
+                : 0.0
+            let weighted = recoveryWDuration * durationScore
+                + recoveryWConsistency * consistencyScore
+                + recoveryWEfficiency * efficiencyScore
+                + recoveryWRestorative * restorativeScore
+            return (weighted * 10000.0).rounded() / 100.0
+        }
+
+        /// Recovery's sleep input [0,100] from a persisted `DailyMetric` (the pass-2 / display path). nil when there is no sleep.
+        public static func recoveryInput(daily d: DailyMetric, needHours: Double = defaultNeedHours,
+                                         consistency: Double? = nil) -> Double? {
+            guard let tstMin = d.totalSleepMin, tstMin > 0, let eff = d.efficiency else { return nil }
+            let deepSec = (d.deepMin ?? 0) * 60.0
+            return recoveryInput(tstSeconds: tstMin * 60.0, efficiency: eff,
+                                 restorativeSeconds: deepSec + (d.remMin ?? 0) * 60.0,
+                                 needHours: needHours, consistency: consistency, deepSeconds: deepSec)
         }
 
         /// Rest composite [0,100] derived from a persisted `DailyMetric` (the pass-2 / display path —
