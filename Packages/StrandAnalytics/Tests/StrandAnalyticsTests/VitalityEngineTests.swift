@@ -7,7 +7,7 @@ final class VitalityEngineTests: XCTestCase {
     func testAveragePersonReadsAtTheirAge() {
         let r = VitalityEngine.compute(.init(
             chronoAge: 40, restingHR: 60, vo2max: 45, expectedVO2max: 45,
-            sleepHours: 7.5, sleepConsistency: 0.70, rmssd: 45, rmssdNorm: 45, steps: 7000))!
+            sleepHours: 7.0, sleepConsistency: 0.70, rmssd: 45, rmssdNorm: 45, steps: 7000))!
         XCTAssertEqual(r.bodyAge, 40, accuracy: 0.01)
         XCTAssertEqual(r.vitality, 50, accuracy: 0.01)
         XCTAssertEqual(r.deltaYears, 0, accuracy: 0.01)
@@ -18,7 +18,7 @@ final class VitalityEngineTests: XCTestCase {
     func testHealthyPersonIsYounger() {
         let r = VitalityEngine.compute(.init(
             chronoAge: 40, restingHR: 52, vo2max: 55.5, expectedVO2max: 45,
-            sleepHours: 7.5, sleepConsistency: 0.9, rmssd: 54, rmssdNorm: 45, steps: 11000))!
+            sleepHours: 7.0, sleepConsistency: 0.9, rmssd: 54, rmssdNorm: 45, steps: 11000))!
         XCTAssertEqual(r.bodyAge, 32.66, accuracy: 0.1)
         XCTAssertEqual(r.vitality, 68.35, accuracy: 0.2)
         XCTAssertGreaterThan(r.deltaYears, 0)   // younger than chrono age
@@ -36,8 +36,8 @@ final class VitalityEngineTests: XCTestCase {
 
     /// Below the minimum-factor honesty gate → nil (don't show a number on too little data).
     func testNilBelowMinFactors() {
-        XCTAssertNil(VitalityEngine.compute(.init(chronoAge: 40, restingHR: 65, sleepHours: 7.5))) // 2 factors
-        XCTAssertNotNil(VitalityEngine.compute(.init(chronoAge: 40, restingHR: 65, sleepHours: 7.5,
+        XCTAssertNil(VitalityEngine.compute(.init(chronoAge: 40, restingHR: 65, sleepHours: 7.0))) // 2 factors
+        XCTAssertNotNil(VitalityEngine.compute(.init(chronoAge: 40, restingHR: 65, sleepHours: 7.0,
                                                      sleepConsistency: 0.75)))                     // 3 factors
     }
 
@@ -45,7 +45,7 @@ final class VitalityEngineTests: XCTestCase {
     func testClamps() {
         let young = VitalityEngine.compute(.init(
             chronoAge: 22, restingHR: 40, vo2max: 70, expectedVO2max: 40,
-            sleepHours: 7.5, sleepConsistency: 1.0, rmssd: 90, rmssdNorm: 45, steps: 11000))!
+            sleepHours: 7.0, sleepConsistency: 1.0, rmssd: 90, rmssdNorm: 45, steps: 11000))!
         XCTAssertGreaterThanOrEqual(young.bodyAge, VitalityEngine.minBodyAge)
         XCTAssertLessThanOrEqual(young.vitality, 100)
         XCTAssertGreaterThanOrEqual(young.vitality, 0)
@@ -60,7 +60,7 @@ final class VitalityEngineTests: XCTestCase {
     /// Someone exactly at each activity break-even adds no hazard, so the three new factors leave an average person at their age.
     func testActivityFactorsAtBreakEvenAreNeutral() {
         let r = VitalityEngine.compute(.init(
-            chronoAge: 40, restingHR: VitalityEngine.restingHRBreakEven, sleepHours: 7.5, sleepConsistency: VitalityEngine.consistencyBreakEven,
+            chronoAge: 40, restingHR: VitalityEngine.restingHRBreakEven, sleepHours: 7.0, sleepConsistency: VitalityEngine.consistencyBreakEven,
             zonesLowMin: VitalityEngine.lowZoneBreakEven, zonesHighMin: VitalityEngine.highZoneBreakEven, strengthMin: VitalityEngine.strengthBreakEven))!
         XCTAssertEqual(r.bodyAge, 40, accuracy: 0.01)
         XCTAssertEqual(r.factorsUsed, 6)
@@ -92,7 +92,7 @@ final class VitalityEngineTests: XCTestCase {
     func testExistingInputsUnchangedWithoutActivity() {
         let r = VitalityEngine.compute(.init(
             chronoAge: 40, restingHR: 52, vo2max: 55.5, expectedVO2max: 45,
-            sleepHours: 7.5, sleepConsistency: 0.9, rmssd: 54, rmssdNorm: 45, steps: 11000))!
+            sleepHours: 7.0, sleepConsistency: 0.9, rmssd: 54, rmssdNorm: 45, steps: 11000))!
         XCTAssertEqual(r.bodyAge, 32.66, accuracy: 0.1)
         XCTAssertEqual(r.factorsUsed, 6)
     }
@@ -184,10 +184,10 @@ final class VitalityEngineTests: XCTestCase {
         }
         XCTAssertEqual(sleepHazard(6.0), 0.110, accuracy: 1e-9)
         XCTAssertEqual(sleepHazard(7.0), 0, accuracy: 1e-9)
-        XCTAssertEqual(sleepHazard(7.5), 0, accuracy: 1e-9)
-        XCTAssertLessThan(sleepHazard(8.0), 0)
+        XCTAssertLessThan(sleepHazard(7.5), 0)
+        XCTAssertLessThan(sleepHazard(8.0), sleepHazard(7.5))
         XCTAssertLessThan(sleepHazard(9.0), sleepHazard(8.0))
-        XCTAssertEqual(sleepHazard(9.0), -0.165, accuracy: 1e-9)
+        XCTAssertEqual(sleepHazard(9.0), -0.220, accuracy: 1e-9)
         XCTAssertEqual(sleepHazard(9.5), sleepHazard(9.0), accuracy: 1e-9)
     }
 
