@@ -257,7 +257,9 @@ struct NunaExploreWorkoutDetail: View {
                 .background(NunaPalette.glassStrong, in: Capsule())
             }
             .buttonStyle(.plain).disabled(saved)
-            NavigationLink(value: NunaWorkoutRoute.exploreEdit(workout.id)) {
+            NavigationLink {
+                NunaExploreWorkoutEditor(workout: workout)
+            } label: {
                 Text("Next").font(.nuna(size: 17, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.accent)
                     .frame(maxWidth: .infinity).frame(height: 58)
                     .overlay(Capsule().strokeBorder(NunaPalette.accent, lineWidth: 2))
