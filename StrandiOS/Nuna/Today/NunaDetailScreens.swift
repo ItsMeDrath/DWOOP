@@ -37,6 +37,22 @@ struct NunaChargeDetailView: View {
     /// The day picked on Today: nil for today; else the day key the readings below are cut at, so a past day shows its own figures.
     private var cutoff: String? { router.todayDayOffset == 0 ? nil : NunaSelectedDay.key(offset: router.todayDayOffset) }
 
+    /// The mean of the last 30 calculated Sleep Performance nights before the selected day.
+    private var selectedSleepPerformance: Double? {
+        sleepPerformanceHistory.performance[cutoff ?? Repository.localDayKey(Date())]
+    }
+
+    private func averageSleepPerformance30() -> Double? {
+        let before = cutoff ?? Repository.localDayKey(Date())
+        let values = sleepPerformanceHistory.performance
+            .filter { $0.key < before }
+            .sorted { $0.key < $1.key }
+            .suffix(30)
+            .map { $0.value }
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
     /// The mean of the last 30 readings before the day shown, what each figure under the ring is compared with.
     private func average30(_ m: NunaSeriesModel) -> Double? { m.average30(before: cutoff ?? Repository.localDayKey(Date())) }
 
@@ -69,8 +85,8 @@ struct NunaChargeDetailView: View {
                     NunaDivider()
                     signal("Respiratory rate", "met:respiratory-rate", key: "resp_rate", value: day.respiratory, average: average30(respSeries), decimals: 1, good: nil)
                     NunaDivider()
-                    signal("Sleep performance", "met:sleep-performance", key: "sleep_performance", value: day.rest ?? restSeries.latest(asOf: cutoff)?.value,
-                           average: average30(restSeries), good: true)
+                    signal("Sleep performance", "met:sleep-performance", key: "sleep_performance", value: selectedSleepPerformance,
+                           average: averageSleepPerformance30(), good: true)
                 }
                 NunaTrendLegend(text: router.todayDayOffset == 0 ? "Today vs. last 30 days" : "This day vs. the 30 days before")
                     .padding(.top, 8)
