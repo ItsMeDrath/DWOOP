@@ -363,9 +363,13 @@ struct NunaWorkoutStartView: View {
         }
     }
 
+    @Environment(\\.nunaPushWorkout) private var pushWorkout
+
     @ViewBuilder private var strengthShortcut: some View {
         if isStrength {
-            NavigationLink(value: NunaWorkoutRoute.gym) {
+            Button {
+                pushWorkout(.gym)
+            } label: {
                 NunaCard(highlight: true) {
                     NunaListRow("Log sets and weights", description: "Open Strength Trainer to run a program or a freehand session", systemImage: "act:strength-trainer", showsChevron: true)
                 }
