@@ -24,7 +24,7 @@ final class VitalityEngineTests: XCTestCase {
         XCTAssertGreaterThan(r.deltaYears, 0)   // younger than chrono age
     }
 
-    /// A clearly unhealthy person reads older + lower vitality (hand-computed Δage ≈ +9.95).
+    /// A clearly unhealthy person reads older + lower vitality (hand-computed Δage ≈ +10.43).
     func testUnhealthyPersonIsOlder() {
         let r = VitalityEngine.compute(.init(
             chronoAge: 40, restingHR: 80, vo2max: 34.5, expectedVO2max: 45,
