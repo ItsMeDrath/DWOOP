@@ -258,7 +258,7 @@ struct NunaRestDetailView: View {
             NunaWeeklyTrendCard(title: "Hours vs. needed (%)", key: "hours_vs_needed", style: .bars, color: steel,
                                 barFill: { _, _ in steel }, labelFill: { _, _ in steel },
                                 destination: { AnyView(NunaTrendHost(initial: .hoursNeededPct, endingDaysAgo: ending)) },
-                                points: points { model.hoursVsNeeded($0) }, valueText: percent, endingDaysAgo: ending)
+                                points: points { model.hoursVsNeeded($0).map { min($0, 100) } }, valueText: percent, endingDaysAgo: ending)
             NunaStackedWeeklyCard(title: "Restorative sleep (hours)", legend: [("Deep sleep", NunaRestChart.deep), ("REM sleep", NunaRestChart.rem)],
                                   colors: [NunaRestChart.rem, NunaRestChart.deep], byDay: stages, endingDaysAgo: ending,
                                   destination: { AnyView(NunaTrendHost(initial: .restorative, endingDaysAgo: ending)) })
@@ -289,7 +289,7 @@ struct NunaRestDetailView: View {
         }
         return NunaSignalPanel {
             VStack(spacing: 0) {
-                row("Hours vs. needed", "met:hours-vs-needed", model.hoursVsNeeded(night), sufficientFrom: 70, optimalFrom: 85, page: .hoursNeededPct)
+                row("Hours vs. needed", "met:hours-vs-needed", model.hoursVsNeeded(night).map { min($0, 100) }, sufficientFrom: 70, optimalFrom: 85, page: .hoursNeededPct)
                 NunaDivider()
                 row("Sleep consistency", "met:sleep-consistency", model.consistency(night), sufficientFrom: 70, optimalFrom: 80, page: .consistency)
                 NunaDivider()
