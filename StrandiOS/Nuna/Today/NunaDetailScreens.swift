@@ -67,7 +67,7 @@ struct NunaChargeDetailView: View {
                           fraction: (day.charge.pct ?? latest?.value ?? 0) / 100,
                           number: (day.charge.pct ?? latest?.value).map { String(format: "%.0f", $0) } ?? "–",
                           unit: "%", name: chargeWord ?? "Recovery", nameColor: (day.charge.pct ?? latest?.value).map(nunaChargeTextColor), color: (day.charge.pct ?? latest?.value).map(nunaChargeColor) ?? NunaPalette.charge,
-                          hasNote: hasNote, showsCaptionRow: false, ringTitle: "Recovery", ringSize: 252, info: $showInfo) {
+                          hasNote: hasNote, showsCaptionRow: false, ringWordmark: true, ringSize: 252, info: $showInfo) {
                 if let v = day.charge.pct ?? latest?.value, let base = series.baseline {
                     let d = Int((v - base).rounded())
                     let readiness = chip.map { $0.0 + ". " } ?? ""
@@ -243,7 +243,7 @@ struct NunaEffortDetailView: View {
                           suffix: String(localized: "of \(UnitFormatter.effortScaleMax(scale))"),
                           name: level?.0 ?? "Strain", nameColor: level?.1, gradient: day.effort.map(nunaEffortRingColors), target: nunaEffortTargetFractions(charge: day.charge.pct),
                           color: day.effort.map(nunaEffortColor) ?? NunaPalette.effortModerate,
-                          showsCaptionRow: false, ringTitle: "Strain", ringSize: 252, info: $showInfo) {
+                          showsCaptionRow: false, ringWordmark: true, ringSize: 252, info: $showInfo) {
                 Text(verbatim: router.todayDayOffset > 0 ? String(localized: "Cardio load for the day") : (targetNote ?? String(localized: "Cardio load so far today"))).font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                     .fixedSize(horizontal: false, vertical: true).textCase(nil)
             }

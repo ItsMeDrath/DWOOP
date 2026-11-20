@@ -187,7 +187,7 @@ struct NunaRestDetailView: View {
                       fraction: (rest ?? 0) / 100, number: rest.map { "\(Int($0.rounded()))" } ?? "–", unit: "%",
                       name: rest.map(nunaRestWord) ?? "Sleep", nameColor: Self.ringBlue,
                       color: Self.ringBlue, hasNote: againstRecent != nil,
-                      showsCaptionRow: false, ringTitle: "Sleep", ringLevel: rest.map { NunaLevel.of($0, sufficientFrom: 70, optimalFrom: 85) },
+                      showsCaptionRow: false, ringWordmark: true, ringLevel: rest.map { NunaLevel.of($0, sufficientFrom: 70, optimalFrom: 85) },
                       ringSize: 252, info: $showInfo) {
             if let d = againstRecent {
                 Text(verbatim: comparison(d)).font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)

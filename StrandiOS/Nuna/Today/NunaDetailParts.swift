@@ -313,6 +313,8 @@ struct NunaScoreHero<Note: View>: View {
     var showsCaptionRow = true
     /// A word above the figure inside the ring (the score's name), light and spaced; nil leaves the ring as it was.
     var ringTitle: LocalizedStringKey?
+    /// Draws the WHOOP wordmark at the top of the ring in place of `ringTitle`'s word (the Recovery, Strain and Sleep pages).
+    var ringWordmark = false
     /// Three short bars under the name inside the ring, the one that applies lit (poor, sufficient, optimal); nil leaves them out.
     var ringLevel: NunaLevel?
     /// The ring's diameter (300 by default); the stroke and the figures inside scale with it.
@@ -324,10 +326,10 @@ struct NunaScoreHero<Note: View>: View {
 
     init(caption: LocalizedStringKey, chip: LocalizedStringKey? = nil, chipColor: Color? = nil, fraction: Double, number: String,
          unit: String = "", suffix: String = "", name: LocalizedStringKey, nameColor: Color? = nil, gradient: [Color]? = nil, target: ClosedRange<Double>? = nil, color: Color, hasNote: Bool = true,
-         showsCaptionRow: Bool = true, ringTitle: LocalizedStringKey? = nil, ringLevel: NunaLevel? = nil, ringSize: CGFloat = 300, info: Binding<Bool>? = nil, @ViewBuilder note: () -> Note) {
+         showsCaptionRow: Bool = true, ringTitle: LocalizedStringKey? = nil, ringWordmark: Bool = false, ringLevel: NunaLevel? = nil, ringSize: CGFloat = 300, info: Binding<Bool>? = nil, @ViewBuilder note: () -> Note) {
         self.caption = caption; self.chip = chip; self.chipColor = chipColor; self.fraction = fraction; self.number = number
         self.unit = unit; self.suffix = suffix; self.name = name; self.nameColor = nameColor; self.gradient = gradient; self.target = target; self.color = color; self.hasNote = hasNote; self.note = note()
-        self.showsCaptionRow = showsCaptionRow; self.ringTitle = ringTitle; self.ringLevel = ringLevel; self.ringSize = ringSize; self.externalInfo = info
+        self.showsCaptionRow = showsCaptionRow; self.ringTitle = ringTitle; self.ringWordmark = ringWordmark; self.ringLevel = ringLevel; self.ringSize = ringSize; self.externalInfo = info
     }
 
     var body: some View {
@@ -342,7 +344,13 @@ struct NunaScoreHero<Note: View>: View {
             }
             NunaRingGauge(fraction: fraction, color: color, gradient: gradient, target: target, size: ringSize, lineWidth: 24 * ringSize / 300) {
                 VStack(spacing: 6) {
-                    if let ringTitle {
+                    if ringWordmark {
+                        // The supplied vector wordmark, soft grey like the word it replaces; the vector's native ratio is 247:40.
+                        WhoopWordmark()
+                            .frame(width: 86.45 * ringSize / 252, height: 14 * ringSize / 252)
+                            .opacity(0.55)
+                            .padding(.bottom, 4)
+                    } else if let ringTitle {
                         Text(ringTitle).font(.nuna(size: 22 * ringSize / 300, weight: .medium)).tracking(3).textCase(.uppercase).foregroundStyle(NunaPalette.textSecondary)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 2) {
