@@ -299,7 +299,7 @@ struct NunaRestDetailView: View {
                     let high = model.sleepStressHighPct[night.dayKey]
                     NunaLevelRow(title: "High Sleep Stress", icon: NunaStressCategory.sleep.icon,
                                  percent: high.map { NunaSleepStressScoring.displayPercent($0) },
-                                 level: high.map { NunaLevel.of(NunaSleepStressScoring.levelValue($0), sufficientFrom: 94.0001, optimalFrom: 99.1) })
+                                 level: high.map { NunaLevel.of(NunaSleepStressScoring.levelValue($0), sufficientFrom: 94.0001, optimalFrom: 99.0001) })
                 }.buttonStyle(.plain)
             }
             NunaLevelLegend().padding(.top, 8)
