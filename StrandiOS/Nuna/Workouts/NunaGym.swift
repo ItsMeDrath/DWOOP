@@ -219,7 +219,6 @@ struct NunaGymPage: View {
         .background(NunaBackdrop())
         .textCase(nil)
         .toolbar(.hidden, for: .navigationBar)
-        .nunaWorkoutDestinations()
         .nunaTodayDestinations()
         .navigationDestination(isPresented: $openLive) { NunaWorkoutStartView(sport: nil, resume: true) }
         .environment(\.nunaAnyaCardContext, "workouts")
@@ -298,7 +297,6 @@ struct NunaGymView: View {
 
     var body: some View {
         VStack(spacing: NunaSpacing.section) { content }
-        .nunaWorkoutDestinations()
         .task(id: "\(repo.refreshSeq)-\(session.savedSessions)") { await load(); await anyaModel.load(repo: repo, profile: profile, day: anyaDay) }
         // Custom exercises (typed in a picker, or brought in from Hevy) are given their muscles once per launch, in the background.
         .task { await NunaCustomExercises.syncOncePerLaunch(repo: repo, coach: appModel.coach) }
