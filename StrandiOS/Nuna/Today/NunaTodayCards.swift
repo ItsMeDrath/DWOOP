@@ -95,7 +95,7 @@ struct NunaScoreRings: View {
             Group {
                 if collapse < 0.55 {
                     VStack(spacing: 12) {
-                        ringView(v, size: size)
+                        ringView(v, kind: kind, size: size)
                         // The name with a chevron after it: the ring opens its page.
                         HStack(spacing: 4) {
                             Text(verbatim: englishName(kind)).font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
@@ -105,7 +105,7 @@ struct NunaScoreRings: View {
                     }
                 } else {
                     HStack(spacing: 8) {
-                        ringView(v, size: size)
+                        ringView(v, kind: kind, size: size)
                         Text(verbatim: englishName(kind)).font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                             .foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.7)
                     }
@@ -125,7 +125,7 @@ struct NunaScoreRings: View {
 
     /// The dashboard's full-size rings keep all three brand/score labels inside the existing gauge.
     /// The gauge geometry, progress, colour, line width and sizing are deliberately unchanged.
-    private func ringView(_ v: RingValues, size: CGFloat) -> some View {
+    private func ringView(_ v: RingValues, kind: Kind, size: CGFloat) -> some View {
         NunaRingGauge(fraction: v.fraction, color: v.color, gradient: v.gradient, target: v.target, size: size, lineWidth: max(3.5, size * 0.09)) {
             if size >= 60 {
                 VStack(spacing: 1) {
@@ -138,7 +138,7 @@ struct NunaScoreRings: View {
                             Text(verbatim: v.unit).font(.nuna(size: numberSize(size) * 0.60, weight: .bold)).foregroundStyle(NunaPalette.textPrimary.opacity(0.85))
                         }
                     }
-                    Text(verbatim: ringInteriorName(for: v.label))
+                    Text(verbatim: ringInteriorName(for: kind))
                         .font(.nuna(size: size * 0.072, weight: .heavy))
                         .tracking(0.35)
                         .textCase(.uppercase)
@@ -151,11 +151,11 @@ struct NunaScoreRings: View {
         }
     }
 
-    private func ringInteriorName(for label: LocalizedStringKey) -> String {
-        switch label {
-        case "Recovery": return "RECOVERY"
-        case "Strain": return "STRAIN"
-        default: return "SLEEP PERFORMANCE"
+    private func ringInteriorName(for kind: Kind) -> String {
+        switch kind {
+        case .charge: return "RECOVERY"
+        case .effort: return "STRAIN"
+        case .rest: return "SLEEP PERFORMANCE"
         }
     }
 
