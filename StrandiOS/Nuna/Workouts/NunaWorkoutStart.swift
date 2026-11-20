@@ -363,7 +363,7 @@ struct NunaWorkoutStartView: View {
         }
     }
 
-    @Environment(\\.nunaPushWorkout) private var pushWorkout
+    @Environment(\.nunaPushWorkout) private var pushWorkout
 
     @ViewBuilder private var strengthShortcut: some View {
         if isStrength {
