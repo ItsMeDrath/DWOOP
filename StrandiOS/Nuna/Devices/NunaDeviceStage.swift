@@ -11,6 +11,25 @@ struct NunaStrapArt: View {
             .resizable()
             .scaledToFit()
             .frame(width: 264, height: 304)
+            .overlay {
+                GeometryReader { proxy in
+                    RadialGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.42),
+                            .init(color: .black.opacity(0.28), location: 1)
+                        ],
+                        center: .center,
+                        startRadius: proxy.size.width * 0.34,
+                        endRadius: proxy.size.width * 0.76
+                    )
+                    .mask {
+                        Image("WHOOPBand")
+                            .resizable()
+                            .scaledToFit()
+                    }
+                }
+                .allowsHitTesting(false)
+            }
             .blur(radius: active ? 0 : 5)
             .opacity(active ? 1 : 0.7)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
@@ -68,7 +87,7 @@ struct NunaBatteryGauge: View {
     let model: String
     let estimate: String?
 
-    /// Red at 10% or less, yellow up to 30%, green above. The WHOOP app showed yellow at 22% to 24% (the PHMN bar was green there): the exact limit is not
+    /// Red at 10% or less, yellow up to 30%, green above. The WHOOP app showed yellow at 22% to 24% (the PHNM bar was green there): the exact limit is not
     /// published, so 30% is the nearest round figure that covers what was seen, and not an official one.
     private var tint: Color { (pct ?? 100) <= 10 ? NunaPalette.alert : ((pct ?? 100) <= 30 ? NunaPalette.warning : NunaPalette.charge) }
     private let barHeight: CGFloat = 250
