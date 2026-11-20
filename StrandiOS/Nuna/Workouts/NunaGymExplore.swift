@@ -162,7 +162,7 @@ struct NunaGymExploreView: View {
         }
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
             ForEach(NunaExploreWorkout.all(of: results)) { w in
-                NavigationLink(value: NunaWorkoutRoute.exploreWorkout(w.id)) { NunaExploreCard(workout: w) }.buttonStyle(.plain)
+                NavigationLink { NunaExploreWorkoutDetail(workout: w) } label: { NunaExploreCard(workout: w) }.buttonStyle(.plain)
             }
         }
         NavigationLink(value: NunaWorkoutRoute.programImport) {
