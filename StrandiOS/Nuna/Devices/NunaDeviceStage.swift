@@ -10,17 +10,23 @@ struct NunaStrapArt: View {
         Image("WHOOPBand")
             .resizable()
             .scaledToFit()
+            // Calmer than the raw render, so the strap sits in the dark background like the WHOOP app's:
+            // a little darker, less contrast in the weave, and a touch of softness on the sharp texture.
+            .brightness(-0.07)
+            .contrast(0.88)
+            .saturation(0.9)
+            .blur(radius: 0.5)
             .frame(width: 264, height: 304)
             .overlay {
                 GeometryReader { proxy in
                     RadialGradient(
                         stops: [
-                            .init(color: .clear, location: 0.42),
-                            .init(color: .black.opacity(0.28), location: 1)
+                            .init(color: .clear, location: 0.30),
+                            .init(color: .black.opacity(0.55), location: 1)
                         ],
                         center: .center,
-                        startRadius: proxy.size.width * 0.34,
-                        endRadius: proxy.size.width * 0.76
+                        startRadius: proxy.size.width * 0.22,
+                        endRadius: proxy.size.width * 0.74
                     )
                     .mask {
                         Image("WHOOPBand")
@@ -29,6 +35,19 @@ struct NunaStrapArt: View {
                     }
                 }
                 .allowsHitTesting(false)
+            }
+            // The top and bottom of the strap melt into the background instead of ending on a hard edge.
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.14),
+                        .init(color: .black, location: 0.86),
+                        .init(color: .clear, location: 1)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
             }
             .blur(radius: active ? 0 : 5)
             .opacity(active ? 1 : 0.7)
