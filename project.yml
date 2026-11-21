@@ -253,7 +253,6 @@ targets:
     # Indonesian without changing the reference macOS surface.
     resources:
       - path: StrandiOS/Resources/id.lproj
-      - path: StrandiOS/Resources/WhoopOpeningSplash.mp4
       # The exercise library: sample photos and library.json (free-exercise-db, The Unlicense). See Tools/build-exercise-library.py.
       - path: StrandiOS/Resources/ExerciseLibrary
     # Same tracked wrapper as the macOS target (Strand/Oura/ is shared, not per-platform).
