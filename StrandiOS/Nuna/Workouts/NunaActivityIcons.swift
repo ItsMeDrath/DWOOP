@@ -199,6 +199,7 @@ enum NunaActivityIcons {
         "thrillride": "thrill-ride",
         "toddlerwearing": "toddlerwearing",
         "trackfield": "track-and-field",
+        "trackandfield": "track-and-field",
         "trailrunning": "trail-running",
         "trampoline": "trampoline",
         "treadmillrun": "running",
