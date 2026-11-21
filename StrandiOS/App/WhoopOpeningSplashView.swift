@@ -1,7 +1,7 @@
 #if os(iOS)
 import SwiftUI
 
-/// A simple two-second cold-launch splash using the app's original vector WHOOP wordmark.
+/// A simple 1.3-second cold-launch splash using the app's original vector WHOOP wordmark.
 struct WhoopOpeningSplashView: View {
     let onFinished: () -> Void
 
@@ -25,7 +25,7 @@ struct WhoopOpeningSplashView: View {
         .background(Color.black)
         .ignoresSafeArea()
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
                 onFinished()
             }
         }
