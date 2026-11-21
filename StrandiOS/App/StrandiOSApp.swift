@@ -709,6 +709,9 @@ private struct iOSRootView: View {
     /// Starts false so a cold-launch external action can't race this view's onAppear decision about the
     /// automatic What's New sheet. It becomes true only when no sheet is due or its dismissal completes.
     @State private var automaticLaunchSheetResolved = false
+    /// SwiftUI state resets with a new app process, so the splash appears on cold launch only.
+    @State private var launchSplashDecisionMade = false
+    @State private var showOpeningSplash = false
 
     var body: some View {
         #if DEBUG
@@ -763,6 +766,15 @@ private struct iOSRootView: View {
                 .transition(.opacity)
                 .zIndex(2)
             }
+            if launchSplashDecisionMade && showOpeningSplash {
+                WhoopOpeningSplashView {
+                    withAnimation(.easeOut(duration: 0.12)) {
+                        showOpeningSplash = false
+                    }
+                }
+                .transition(.opacity)
+                .zIndex(3)
+            }
         }
         .animation(.easeInOut(duration: 0.35), value: onboarded)
         .animation(.easeInOut(duration: 0.35), value: acceptedTerms)
@@ -770,6 +782,10 @@ private struct iOSRootView: View {
         // combined terms+version update. Gate on terms being current, and re-check when they're
         // accepted (onAppear already fired before acceptance), so What's New shows right after.
         .onAppear {
+            if !launchSplashDecisionMade {
+                showOpeningSplash = onboarded && acceptedTerms == Terms.currentVersion && !demoBypass
+                launchSplashDecisionMade = true
+            }
             showWhatsNewIfDue()
             // Seed the current What's New into the Updates inbox (idempotent per version) so the bell
             // collects it even if the user dismisses the auto sheet.
