@@ -17,7 +17,7 @@ enum NunaActivityKind: String, CaseIterable, Identifiable {
         "Cold Shower", "Contrast Therapy", "Dry Sauna", "Foam Rolling", "Guided Breathing - Increase Alertness", "Guided Breathing - Increase Relaxation",
         "Hot Tub", "Ice Bath", "Infrared Sauna", "Knitting", "Massage Therapy", "Meditation", "Non-sleep, deep rest", "Other - Recovery",
         "Percussive Massage", "Percussive Massage (Hypervolt)", "Playing with Child", "QiGong", "Red Light Therapy", "Restorative Yoga", "Sound healing",
-        "Steam Room", "Stretching", "Tai Chi", "Warm Bath",
+        "Steam Room", "Stretching", "Tai Chi", "Warm Bath", "Physical Therapy",
     ]
     /// Rest, the Rest tab. A pick here is added as a nap or a night of sleep, not as a workout.
     static let restNames = ["Nap", "Sleep"]
