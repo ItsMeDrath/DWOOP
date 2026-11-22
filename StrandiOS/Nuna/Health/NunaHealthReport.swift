@@ -109,18 +109,13 @@ enum NunaHealthReportRenderer {
         let x = DateFormatter(); x.locale = AppLanguage.activeLocale; x.dateFormat = f; return x.string(from: d)
     }
 
-    /// Draw the supplied wordmark as a black alpha mask so white source artwork remains visible on the white PDF page.
+    /// Draw the WHOOP wordmark in black as a vector path (the same supplied artwork as the Today screen). The asset-catalog SVG can't be used here:
+    /// an SVG-backed UIImage has no cgImage, so it can't be used as a mask and nothing was drawn.
     private static func drawWordmark(_ g: CGContext, in rect: CGRect) {
-        guard let cg = UIImage(named: "WHOOPWordmark")?.cgImage else {
-            draw("WHOOP", at: CGPoint(x: rect.minX, y: rect.minY), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
-            return
-        }
         g.saveGState()
-        g.translateBy(x: 0, y: rect.minY * 2 + rect.height)
-        g.scaleBy(x: 1, y: -1)
-        g.clip(to: rect, mask: cg)
+        g.addPath(WhoopWordmark.drawingPath(in: rect).cgPath)
         ink.setFill()
-        g.fill(rect)
+        g.fillPath(using: .evenOdd)
         g.restoreGState()
     }
 
