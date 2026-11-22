@@ -46,6 +46,16 @@ enum NunaSleepNeedCalculation {
     /// DailyMetric.strain is stored as internal 0–100 Effort; sleep need uses WHOOP's 0–21 Strain.
     static let whoopStrainPerEffortPoint = 21.0 / 100.0
 
+    /// Forecast the next sleep need from today's WHOOP-scale Strain and the debt carried forward
+    /// after the latest completed night. DailyMetric.strain is stored as internal 0–100 Effort.
+    static func forecastNeed(strainEffort: Double, carriedDebtMin: Double) -> Double {
+        let whoopStrain = max(strainEffort.isFinite ? strainEffort : 0, 0) * whoopStrainPerEffortPoint
+        let strainMin = min(whoopStrain * 3.0, 600.0 - healthyMin)
+        let debtRoom = max(600.0 - healthyMin - strainMin, 0)
+        let debt = carriedDebtMin >= minimumDebtMin ? min(carriedDebtMin, debtRoom) : 0
+        return min(600.0, healthyMin + strainMin + debt)
+    }
+
     static func calculate(sleep: [(day: String, mainMin: Double, napMin: Double)],
                           strainByDay: [String: Double]) -> [String: Result] {
         let formatter = DateFormatter()
@@ -236,6 +246,25 @@ final class NunaSleepModel: ObservableObject {
 
     func need(_ n: NunaNight) -> Double { needByDay[n.dayKey] ?? Self.healthyMin }
     func strain(_ n: NunaNight) -> Double { strainByDay[n.dayKey] ?? 0 }
+
+    /// Tonight's forecast: 7h30 healthy baseline + 3 minutes per WHOOP Strain point today
+    /// + 70% of the sleep deficit left after the latest completed night.
+    var tonightNeedMin: Double {
+        let latest = nights.first
+        let mainSleep = latest.map { $0.daily?.totalSleepMin ?? $0.asleepMin } ?? 0
+        let napSleep = latest?.naps.reduce(0) { $0 + $1.asleepMin } ?? 0
+        let carriedDebt: Double
+        if let latest {
+            let credited = SleepDebt.creditedSleepMin(mainSleepMin: mainSleep, napSleepMin: napSleep) ?? mainSleep
+            let remaining = NunaSleepNeedCalculation.debtCarry * max(0, need(latest) - credited)
+            carriedDebt = remaining < NunaSleepNeedCalculation.minimumDebtMin ? 0 : remaining
+        } else {
+            carriedDebt = 0
+        }
+        let todayKey = Repository.localDayKey(Date())
+        let todayEffort = series["strain"]?[todayKey] ?? 0
+        return NunaSleepNeedCalculation.forecastNeed(strainEffort: todayEffort, carriedDebtMin: carriedDebt)
+    }
 
     private(set) var needByDay: [String: Double] = [:]
     private(set) var strainByDay: [String: Double] = [:]
