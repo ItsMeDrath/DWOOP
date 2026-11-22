@@ -255,10 +255,14 @@ struct NunaLiftSessionView: View {
                 // value here can mask every newer BLE reading and leave the chip frozen at session start.
                 let bpm = model.live.heartRate ?? model.bpm
                 if let bpm {
+                    // Use the profile's effective zone set so manual HR-max and custom BPM boundaries
+                    // colour this chip exactly like the rest of the app.
+                    let zone = model.profile.hrZoneSet.zoneNumber(forBPM: Double(bpm))
+                    let zoneColor = NunaHeartBeat.zoneColors[min(max(zone, 1), 5) - 1]
                     HStack(spacing: 5) {
                         Image(systemName: "heart.fill")
                             .font(.nuna(size: 11, weight: .bold))
-                            .foregroundStyle(isLive ? NunaPalette.alert : NunaPalette.textMuted)
+                            .foregroundStyle(zoneColor)
                         Text(verbatim: "\(bpm)")
                             .font(.nuna(size: 14, weight: .bold, design: NunaType.design))
                             .monospacedDigit()
