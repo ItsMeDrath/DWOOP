@@ -57,8 +57,8 @@ struct NunaSmartAlarmView: View {
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var model: AppModel
     @EnvironmentObject private var behavior: BehaviorStore
+    @ObservedObject private var sleepModel = NunaSleepModel.shared
     @AppStorage("alarm.rejectStreak") private var rejectStreak = 0
-    @AppStorage(NunaGoals.sleepMinutes) private var sleepGoal = 0
     /// Wrist alerts, the master switch of every strap buzz: the alarm buzzes only while it is on.
     @AppStorage(AppModel.wristAlertsMasterKey) private var wristAlerts = false
     @State private var overrides = WindDownNudge.perDayWakeOverrides
@@ -81,7 +81,7 @@ struct NunaSmartAlarmView: View {
     private var goalPercent: Int { previewing ? draftGoal : behavior.smartAlarmGoal }
     private var wakeMinutes: Int { previewing ? NunaAlarmFormat.minutes(draftWake) : behavior.smartAlarmMinutes }
     private var plan: NunaSleepPlan {
-        NunaSleepPlan(wakeMinutes: wakeMinutes, needMinutes: NunaSleepPlan.needMinutes(goal: sleepGoal), goalPercent: mode == .exact ? 100 : goalPercent)
+        NunaSleepPlan(wakeMinutes: wakeMinutes, needMinutes: Int(sleepModel.tonightNeedMin.rounded()), goalPercent: mode == .exact ? 100 : goalPercent)
     }
     private var accent: Color { mode == .exact ? .white : (mode == .green ? Self.green : Self.mint) }
     private var willArm: Bool { !(model.whoop5Detected && !PuffinExperiment.isEnabled) }
@@ -107,6 +107,11 @@ struct NunaSmartAlarmView: View {
         .onChange(of: behavior.smartAlarmWeekdays) { _, _ in model.applySmartAlarm() }
         .onChange(of: wristAlerts) { _, _ in model.applySmartAlarm() }
         .onAppear { overrides = WindDownNudge.perDayWakeOverrides }
+        .task {
+            if !sleepModel.loaded {
+                await sleepModel.load(repo: model.repo, includeMotion: false)
+            }
+        }
         .sheet(isPresented: $showHelp) { helpSheet }
         .sheet(isPresented: $showRepeat) { repeatSheet }
     }
