@@ -144,7 +144,7 @@ private struct TriRingsView: View {
     var body: some View {
         VStack(spacing: 0) {
             ZStack {
-                PHMNWordmark(height: 9.4, color: Color(red: 0.62, green: 0.64, blue: 0.66))
+                Text("WHOOP").font(.system(size: 9.4, weight: .black)).tracking(1.1).foregroundStyle(Color(red: 0.62, green: 0.64, blue: 0.66))
                 HStack { GlanceStreak(days: d.s.dayStreak); Spacer(); GlanceBattery(pct: d.s.batteryPct) }
                     .padding(.leading, 20).padding(.trailing, 15.5)
             }
