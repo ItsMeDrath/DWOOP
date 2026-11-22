@@ -17,7 +17,7 @@ enum NunaAppVersion {
 // MARK: - About
 
 /// Settings > About: four rows, as the reference has them. What each opens is a document the project already keeps and the app ships: the licences
-/// of what PHMN is built on (`Tools/build-open-source-licenses.py` and the list below), the disclaimer, the privacy and security notes, and the terms.
+/// of the open-source project this app is built on (`Tools/build-open-source-licenses.py` and the list below), the disclaimer, the privacy and security notes, and the terms.
 /// The reference's "Patents" row has no counterpart here; the disclaimer takes its place.
 struct NunaAboutView: View {
     var body: some View {
@@ -30,7 +30,7 @@ struct NunaAboutView: View {
             }
             .padding(.top, 10)
             VStack(spacing: 12) {
-                Text("PHMN is an internal fork of NOOP by ryanbr, with an iOS layer, Apple Health integration and on-device Anya. The Nes 2011 (HUNT) non-exercise model is used for fitness age.")
+                Text("This iOS app is an independent fork of NOOP by ryanbr, with an iOS layer, Apple Health integration and on-device Anya. The Nes 2011 (HUNT) non-exercise model is used for fitness age.")
                 Text("Not a medical device. It does not diagnose or detect disease and does not replace a professional. Not affiliated with WHOOP, Inc.")
             }
             .font(.nuna(size: 12.5, weight: .semibold)).tracking(0).foregroundStyle(NunaPalette.textMuted).multilineTextAlignment(.center).textCase(nil)
@@ -104,15 +104,15 @@ struct NunaOpenSource: Identifiable, Decodable {
         }
         list += [
             NunaOpenSource(id: "noop", name: "NOOP", author: "ryanbr and contributors", license: "PolyForm Noncommercial 1.0.0", version: nil,
-                           url: "https://github.com/ryanbr/noop", used: "PHMN is a fork of NOOP and keeps its licence. The protocol facts come from community reverse-engineering research, see the notes in the project.",
+                           url: "https://github.com/ryanbr/noop", used: "This app is a fork of NOOP and keeps its licence. The protocol facts come from community reverse-engineering research, see the notes in the project.",
                            text: NunaLegalText.load("LICENSE", ext: nil) ?? "PolyForm Noncommercial License 1.0.0. The text is at https://polyformproject.org/licenses/noncommercial/1.0.0/"),
             NunaOpenSource(id: "fed", name: "free-exercise-db", author: "yuhonas", license: "The Unlicense (public domain)", version: nil,
                            url: "https://github.com/yuhonas/free-exercise-db", used: "The exercise library: names, muscles, instructions and the two photos of each exercise.",
                            text: "This is free and unencumbered software released into the public domain. Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software, either in source code form or as a compiled binary, for any purpose, commercial or non-commercial, and by any means. For more information, see https://unlicense.org"),
             NunaOpenSource(id: "opengym", name: "openGym", author: "Duarte Santos", license: "GNU AGPL-3.0", version: nil,
                            url: "https://github.com/DuarteSantos8/openGym",
-                           used: "The idea of a body map showing which muscles are trained and which are still tired. No openGym code, data, photos or animations are in PHMN: the muscle readings and the library here are written from scratch or come from the projects above.",
-                           text: "openGym is licensed under the GNU Affero General Public License v3.0. Its text is at https://www.gnu.org/licenses/agpl-3.0.html. Because none of its code is included, PHMN is not a derivative work of openGym and keeps NOOP's PolyForm Noncommercial licence."),
+                           used: "The idea of a body map showing which muscles are trained and which are still tired. No openGym code, data, photos or animations are in this app: the muscle readings and the library here are written from scratch or come from the projects above.",
+                           text: "openGym is licensed under the GNU Affero General Public License v3.0. Its text is at https://www.gnu.org/licenses/agpl-3.0.html. Because none of its code is included, This app is not a derivative work of openGym and keeps NOOP's PolyForm Noncommercial licence."),
             NunaOpenSource(id: "fonts", name: "D-DIN-PRO, Montserrat, Fraunces and Plus Jakarta Sans",
                            author: "Datto; The Montserrat Project Authors; The Fraunces Project Authors; The Plus Jakarta Sans Project Authors",
                            license: "SIL Open Font License 1.1", version: nil, url: "https://openfontlicense.org",
@@ -128,7 +128,7 @@ struct NunaOpenSource: Identifiable, Decodable {
 struct NunaLicensesView: View {
     var body: some View {
         NunaDetailScreen("Open source licenses", centersTitle: true) {
-            Text("PHMN is a fork of NOOP (PolyForm Noncommercial 1.0.0). It also uses the projects below, under their own licences.")
+            Text("This app is a fork of NOOP (PolyForm Noncommercial 1.0.0). It also uses the projects below, under their own licences.")
                 .font(.nuna(size: 13.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
             NunaSettingsGroup {
                 ForEach(Array(NunaOpenSource.all.enumerated()), id: \.element.id) { i, n in
