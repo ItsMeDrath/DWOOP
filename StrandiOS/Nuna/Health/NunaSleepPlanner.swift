@@ -171,7 +171,7 @@ struct NunaSmartAlarmView: View {
     /// The mark in a ring and what the strap will do, centred under the header.
     private func message(width w: CGFloat) -> some View {
         VStack(spacing: 14) {
-            AnyaMark(size: 23).frame(width: 36, height: 36).overlay(Circle().strokeBorder(Color.white, lineWidth: 1.8))
+            AnyaMark(size: 36).frame(width: 36, height: 36)
             Text(verbatim: messageText).font(.nuna(size: 18, weight: .regular)).foregroundStyle(Color.white).textCase(nil)
                 .multilineTextAlignment(.center).lineSpacing(5.5).fixedSize(horizontal: false, vertical: true).padding(.horizontal, 50)
             if behavior.smartAlarmEnabled && willArm && !wristAlerts {
