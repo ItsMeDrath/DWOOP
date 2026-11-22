@@ -45,9 +45,11 @@ final class WorkoutCatalogTests: XCTestCase {
     }
 
     func testStrengthTrainingAliasResolvesToSingleStrengthPreset() {
-        XCTAssertEqual(WorkoutCatalog.sport(named: "Strength Training")?.name, "Strength")
-        XCTAssertEqual(WorkoutCatalog.sport(named: "strengthtrainer")?.name, "Strength")
-        XCTAssertEqual(WorkoutCatalog.matching("Strength Training").map(\.name), ["Strength"])
+        XCTAssertEqual(WorkoutCatalog.sport(named: "Strength")?.name, "Strength Training")
+        XCTAssertEqual(WorkoutCatalog.sport(named: "Strength Training")?.name, "Strength Training")
+        XCTAssertEqual(WorkoutCatalog.sport(named: "strengthtrainer")?.name, "Strength Training")
+        XCTAssertEqual(WorkoutCatalog.matching("Strength").map(\.name), ["Strength Training"])
+        XCTAssertEqual(WorkoutCatalog.matching("Strength Training").map(\.name), ["Strength Training"])
     }
 
     /// #768: the newly requested presets exist and are spelled byte-for-byte the way Android persists
