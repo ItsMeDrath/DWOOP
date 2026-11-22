@@ -37,7 +37,7 @@ struct NunaHealthReportData {
             d.napHours[item.dayKey, default: 0] += item.nap.asleepMin / 60
         }
         let cutoff = Int(from.timeIntervalSince1970)
-        var counts: [String: (name: String, n: Int)] = [:]
+        var counts: [String: (name: String, sport: String, n: Int)] = [:]
         for w in await repo.workoutRows(days: 190) where w.startTs >= cutoff {
             let key = Repository.localDayKey(Date(timeIntervalSince1970: TimeInterval(w.startTs)))
             let minutes = (w.durationS ?? Double(w.endTs - w.startTs)) / 60
@@ -45,10 +45,13 @@ struct NunaHealthReportData {
                 d.moderateMin[key, default: 0] += (z[0] + z[1] + z[2]) / 100 * minutes
                 d.vigorousMin[key, default: 0] += (z[3] + z[4]) / 100 * minutes
             }
-            let shown = WorkoutSource.displaySport(w.sport)
-            counts[w.sport, default: (shown, 0)].n += 1
+            let normalized = String(w.sport.lowercased().filter { $0.isLetter || $0.isNumber })
+            // "Strength" and "Strength Training" are the same activity in the report.
+            let group = (normalized == "strength" || normalized == "strengthtraining") ? "strength" : w.sport
+            let shown = group == "strength" ? "Strength" : WorkoutSource.displaySport(w.sport)
+            counts[group, default: (shown, group, 0)].n += 1
         }
-        d.topActivities = counts.sorted { $0.value.n > $1.value.n }.prefix(4).map { (name: $0.value.name, sport: $0.key, count: $0.value.n) }
+        d.topActivities = counts.sorted { $0.value.n > $1.value.n }.prefix(4).map { (name: $0.value.name, sport: $0.value.sport, count: $0.value.n) }
         return d
     }
 }
@@ -75,7 +78,7 @@ enum NunaHealthReportRenderer {
     static func pdf(_ data: NunaHealthReportData, now: Date = Date()) -> Data {
         let renderer = UIGraphicsPDFRenderer(bounds: page, format: {
             let f = UIGraphicsPDFRendererFormat()
-            f.documentInfo = [kCGPDFContextTitle as String: "Health report", kCGPDFContextCreator as String: "PHMN"]
+            f.documentInfo = [kCGPDFContextTitle as String: "Health report", kCGPDFContextCreator as String: "WHOOP"]
             return f
         }())
         return renderer.pdfData { ctx in
@@ -168,8 +171,8 @@ enum NunaHealthReportRenderer {
         }
 
         // Footer: the mark and the usual caution.
-        draw("PHMN", at: CGPoint(x: margin, y: 745), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
-        draw(String(localized: "The products and services of PHMN are not medical devices, are not intended to diagnose any disease, and should not be used as a substitute for professional medical advice, diagnosis or treatment. This report is made on this phone from your own data, for general informational purposes only."),
+        draw("WHOOP", at: CGPoint(x: margin, y: 745), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
+        draw(String(localized: "The products and services of WHOOP are not medical devices, are not intended to diagnose any disease, and should not be used as a substitute for professional medical advice, diagnosis or treatment. This report is made on this phone from your own data, for general informational purposes only."),
              at: CGPoint(x: margin, y: 767), font: body(6.8), color: grey, width: page.width - margin * 2)
     }
 
@@ -377,7 +380,7 @@ struct NunaHealthReportSheet: View {
         defer { working = false }
         let data = await NunaHealthReportData.gather(repo: repo, profile: profile, name: name.trimmingCharacters(in: .whitespaces))
         let pdf = NunaHealthReportRenderer.pdf(data)
-        let url = FileManager.default.temporaryDirectory.appendingPathComponent("PHMN Health Report.pdf")
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("WHOOP Health Report.pdf")
         try? pdf.write(to: url, options: .atomic)
         fileURL = url
         if let doc = CGPDFDocument(CGDataProvider(data: pdf as CFData)!), let pg = doc.page(at: 1) {
