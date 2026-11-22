@@ -235,7 +235,11 @@ private struct NOOPBannerWhoopWordmark: View {
     var color: Color = .white
     var body: some View {
         GeometryReader { geometry in
-            Self.drawingPath(in: CGRect(origin: .zero, size: geometry.size)).fill(color, style: FillStyle(eoFill: true))
+            let inset = CGRect(origin: .zero, size: geometry.size).insetBy(
+                dx: geometry.size.width * 0.04,
+                dy: geometry.size.height * 0.04
+            )
+            Self.drawingPath(in: inset).fill(color, style: FillStyle(eoFill: true))
         }.accessibilityLabel("WHOOP")
     }
     nonisolated static func drawingPath(in rect: CGRect) -> Path {
