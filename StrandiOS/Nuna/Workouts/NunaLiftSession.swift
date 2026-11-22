@@ -17,6 +17,8 @@ struct NunaLiftSessionView: View {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     /// Whether this screen is holding the strap's live heart-rate stream open, so it is asked for once and given back once.
     @State private var liveHeartRateOn = false
+    /// Keep the last valid BPM visible even after the live stream disconnects.
+    @State private var lastDisplayedBPM: Int?
 
     @State private var showingFinish = false
     @State private var confirmingDiscard = false
@@ -119,9 +121,14 @@ struct NunaLiftSessionView: View {
         .task { await loadLastTime() }
         // The chip shows the live heart rate only while this screen is showing and the app is in front: the strap is asked for the
         // stream then, and let go of when the screen closes or the app goes to the background.
-        .onAppear { setLiveHeartRate(scenePhase == .active) }
+        .onAppear {
+            lastDisplayedBPM = model.bpm ?? model.live.heartRate
+            setLiveHeartRate(scenePhase == .active)
+        }
         .onDisappear { setLiveHeartRate(false) }
         .onChange(of: scenePhase) { _, phase in setLiveHeartRate(phase == .active) }
+        .onChange(of: model.bpm) { _, value in if let value { lastDisplayedBPM = value } }
+        .onChange(of: model.live.heartRate) { _, value in if let value { lastDisplayedBPM = value } }
         .onChange(of: keepScreenOn) { _, _ in session.refreshScreenHold() }
         // A screen with no session behind it has nothing to show: it closes itself, in case the presenter's own dismissal was ignored
         // (UIKit drops a dismissal asked for while another one is still running).
@@ -230,13 +237,23 @@ struct NunaLiftSessionView: View {
             Text(session.programName == nil ? "Strength Trainer" : "Program strength trainer")
                 .font(.nuna(size: 24, weight: .heavy, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.8)
             Spacer(minLength: 8)
-            if let bpm = model.bpm {
-                HStack(spacing: 5) {
-                    Image(systemName: "heart.fill").font(.nuna(size: 11, weight: .bold)).foregroundStyle(NunaPalette.alert)
-                    Text(verbatim: "\(bpm)").font(.nuna(size: 14, weight: .bold, design: NunaType.design)).monospacedDigit()
+            TimelineView(.periodic(from: .now, by: 1)) { timeline in
+                let fresh = model.live.lastHeartRateAt.map { timeline.date.timeIntervalSince($0) <= 5 } ?? false
+                let isLive = liveHeartRateOn && scenePhase == .active && fresh
+                let bpm = lastDisplayedBPM ?? model.bpm ?? model.live.heartRate
+                if let bpm {
+                    HStack(spacing: 5) {
+                        Image(systemName: "heart.fill")
+                            .font(.nuna(size: 11, weight: .bold))
+                            .foregroundStyle(isLive ? NunaPalette.alert : NunaPalette.textMuted)
+                        Text(verbatim: "\(bpm)")
+                            .font(.nuna(size: 14, weight: .bold, design: NunaType.design))
+                            .monospacedDigit()
+                    }
+                    .foregroundStyle(NunaPalette.textPrimary).padding(.horizontal, 10).frame(height: 36)
+                    .background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
+                    .accessibilityLabel(Text(isLive ? "Live heart rate, \(bpm) beats per minute" : "Last heart rate, \(bpm) beats per minute"))
                 }
-                .foregroundStyle(NunaPalette.textPrimary).padding(.horizontal, 10).frame(height: 36)
-                .background(NunaPalette.glassStrong, in: RoundedRectangle(cornerRadius: NunaRadius.pill, style: .continuous))
             }
             Button { showingSettings = true } label: { NunaBareIcon("gearshape", target: 40) }
                 .buttonStyle(.plain).accessibilityLabel(Text("Settings"))
