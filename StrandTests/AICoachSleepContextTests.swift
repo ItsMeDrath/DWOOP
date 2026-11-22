@@ -25,12 +25,19 @@ final class AICoachSleepContextTests: XCTestCase {
         XCTAssertTrue(line.contains("deep 1.4h"), line)
         XCTAssertTrue(line.contains("REM 1.9h"), line)
         XCTAssertTrue(line.contains("light 4.2h"), line)
-        XCTAssertTrue(line.contains("eff 94%"), line)\n        XCTAssertTrue(line.contains("WHOOP Day Strain (0-21) 2.6"), line)
+        XCTAssertTrue(line.contains("eff 94%"), line)
+        XCTAssertTrue(line.contains("WHOOP Day Strain (0-21) 2.6"), line)
     }
 
     /// A night with no staging says so rather than the field vanishing, so the model cannot read a
     /// missing stage as a zero.
-    func testStoredEffortConvertsToWHOOPStrainScale() {\n        XCTAssertEqual(AICoachEngine.strain21(30), "6.3")\n        XCTAssertEqual(AICoachEngine.strain21(45), "9.5")\n        XCTAssertEqual(AICoachEngine.strain21(100), "21.0")\n    }\n\n    func testUnstagedNightReportsDashesNotSilence() {
+    func testStoredEffortConvertsToWHOOPStrainScale() {
+        XCTAssertEqual(AICoachEngine.strain21(30), "6.3")
+        XCTAssertEqual(AICoachEngine.strain21(45), "9.5")
+        XCTAssertEqual(AICoachEngine.strain21(100), "21.0")
+    }
+
+    func testUnstagedNightReportsDashesNotSilence() {
         let line = engine().dayLine(day())
         XCTAssertTrue(line.contains("deep —"), line)
         XCTAssertTrue(line.contains("REM —"), line)
