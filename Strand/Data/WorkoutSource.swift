@@ -44,11 +44,11 @@ enum WorkoutSource: Equatable {
 
     /// One user-facing activity identity for labels that represent the same workout.
     /// WHOOP/import sources use both "Strength" and "Strength Training" for lifting sessions;
-    /// keep the stored source row untouched, but present and group both as "Strength".
+    /// keep the stored source row untouched, but present and group both as "Strength Training".
     static func canonicalSport(_ sport: String) -> String {
         let token = sport.lowercased().filter { $0.isLetter || $0.isNumber }
         if token == "strength" || token == "strengthtraining" || token == "strengthtrainer" {
-            return "Strength"
+            return "Strength Training"
         }
         return sport
     }
