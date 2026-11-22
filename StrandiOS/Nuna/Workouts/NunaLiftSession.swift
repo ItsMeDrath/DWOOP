@@ -113,6 +113,12 @@ struct NunaLiftSessionView: View {
                 Text("No session running").font(.nuna(size: 16, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
             }
         }
+        .simultaneousGesture(DragGesture(minimumDistance: 28).onEnded { value in
+            guard value.translation.height > 100,
+                  abs(value.translation.height) > abs(value.translation.width) * 1.25,
+                  session.engine != nil, summaryId == nil else { return }
+            session.isPresented = false
+        })
         .preferredColorScheme(NunaTheme.colorScheme)
         .toolbar { ToolbarItemGroup(placement: .keyboard) {
             Spacer()
