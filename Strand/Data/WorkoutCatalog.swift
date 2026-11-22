@@ -39,7 +39,7 @@ enum WorkoutCatalog {
         Sport(name: "Pool swim", isDistanceSport: false),
         Sport(name: "Row machine", isDistanceSport: false),
         Sport(name: "Elliptical", isDistanceSport: false),
-        Sport(name: "Strength", isDistanceSport: false),
+        Sport(name: "Strength Training", isDistanceSport: false),
         // Bodybuilding (#714). A strength-style session with no route, so GPS off.
         Sport(name: "Bodybuilding", isDistanceSport: false),
         Sport(name: "Weightlifting", isDistanceSport: false),
@@ -236,16 +236,16 @@ enum WorkoutCatalog {
     /// an off-catalogue sport , which is still valid, just not in the suggestion set.
     static func sport(named name: String) -> Sport? {
         let q = name.trimmingCharacters(in: .whitespaces)
-        if WorkoutSource.canonicalSport(q) == "Strength" { return all.first { $0.name == "Strength" } }
+        if WorkoutSource.canonicalSport(q) == "Strength Training" { return all.first { $0.name == "Strength Training" } }
         return all.first { $0.name.caseInsensitiveCompare(q) == .orderedSame }
     }
 
     /// Catalogue filtered by a search query (empty → the whole list). Names only, case-insensitive.
-    /// Searching an alternate strength label still returns the single canonical Strength activity.
+    /// Searching an alternate strength label still returns the single canonical Strength Training activity.
     static func matching(_ query: String) -> [Sport] {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return all }
-        if WorkoutSource.canonicalSport(q) == "Strength" { return all.filter { $0.name == "Strength" } }
+        if WorkoutSource.canonicalSport(q) == "Strength Training" { return all.filter { $0.name == "Strength Training" } }
         return all.filter { $0.name.range(of: q, options: .caseInsensitive) != nil }
     }
 
