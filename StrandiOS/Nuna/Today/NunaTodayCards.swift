@@ -165,8 +165,9 @@ struct NunaScoreRings: View {
         switch kind {
         case .charge:
             let pct = charge.pct
+            // Display at most 99, while retaining the actual score for the ring fill.
+            let displayedPct = pct.map { Int(UnitFormatter.recoveryDisplayValue($0).rounded()) }.map(Double.init)
             // Classify the score using the same rounded percentage shown in the ring.
-            let displayedPct = pct.map { Double(Int($0.rounded())) }
             let state: LocalizedStringKey = displayedPct.map { $0 >= 67 ? "Ready" : ($0 >= 34 ? "Moderate" : "Low") } ?? "No data"
             return RingValues(fraction: (pct ?? 0) / 100, color: displayedPct.map(nunaChargeColor) ?? NunaPalette.scoreHigh, textColor: displayedPct.map(nunaChargeTextColor) ?? NunaPalette.scoreHigh,
                               number: displayedPct.map { "\(Int($0))" } ?? "–", unit: "%",
