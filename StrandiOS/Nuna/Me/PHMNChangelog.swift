@@ -178,7 +178,7 @@ enum PHMNChangelog {
                 "**A program has its own page**: the whole name, the exercises and what they add up to, **Start** at the bottom and a menu to edit or delete. The session reads *Program gym*, or *Gym* when it has no program.",
                 "**Audio coach** in the workout settings: spoken cues for heart-rate zones and distance, with a test button that says what the phone did.",
                 "**Hevy, read only.** Import your workouts and routines with your own API key. Nothing is ever written to Hevy; the Hevy API is part of Hevy Pro.",
-                "**Gym on Strava.** A gym session you log in PHMN can go to Strava (by hand, or automatically). Sessions that came from Hevy or Apple Health never do. Bring your own Strava key; it needs a Strava premium account.",
+                "**Gym on Strava.** A gym session you log in WHOOP can go to Strava (by hand, or automatically). Sessions that came from Hevy or Apple Health never do. Bring your own Strava key; it needs a Strava premium account.",
                 "**Today lists the day.** One card with the night's sleep and every workout in the order they happened, each opening its own detail. WHOOP stays on Today after a workout instead of disappearing for an hour. Key Metrics and Your cards keep their title and buttons inside the card, and *Detailed tiles* now draws the trend lines.",
                 "**Health › Body has a Training section** with the last seven days, the load balance and a way into Workouts. Mood check-in is left to Today and the journal.",
                 "**Water, in the same look as Steps**: a W / M / 6M trend with the goal as a dashed line. The amount the water button adds is set in Customize quick actions.",
@@ -226,7 +226,7 @@ enum PHMNChangelog {
         Expectation(
             icon: "person",
             title: "A personal project",
-            body: "PHMN is built around how I read my own day. It may not fit yours, and nothing here is a promise."),
+            body: "WHOOP is built around how I read my own day. It may not fit yours, and nothing here is a promise."),
         Expectation(
             icon: "checkmark.seal",
             title: "On NOOP's engine",
@@ -234,7 +234,7 @@ enum PHMNChangelog {
         Expectation(
             icon: "hourglass",
             title: "Scores build over a few nights",
-            body: "Live heart rate is instant. Recovery, Strain and Sleep sharpen as PHMN learns your baseline over your first nights of wear."),
+            body: "Live heart rate is instant. Recovery, Strain and Sleep sharpen as WHOOP learns your baseline over your first nights of wear."),
         Expectation(
             icon: "lock.shield",
             title: "Everything stays on this iPhone",
