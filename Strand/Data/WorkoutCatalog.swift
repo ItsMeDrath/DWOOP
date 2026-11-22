@@ -236,13 +236,16 @@ enum WorkoutCatalog {
     /// an off-catalogue sport , which is still valid, just not in the suggestion set.
     static func sport(named name: String) -> Sport? {
         let q = name.trimmingCharacters(in: .whitespaces)
+        if WorkoutSource.canonicalSport(q) == "Strength" { return all.first { $0.name == "Strength" } }
         return all.first { $0.name.caseInsensitiveCompare(q) == .orderedSame }
     }
 
     /// Catalogue filtered by a search query (empty → the whole list). Names only, case-insensitive.
+    /// Searching an alternate strength label still returns the single canonical Strength activity.
     static func matching(_ query: String) -> [Sport] {
         let q = query.trimmingCharacters(in: .whitespaces)
         guard !q.isEmpty else { return all }
+        if WorkoutSource.canonicalSport(q) == "Strength" { return all.filter { $0.name == "Strength" } }
         return all.filter { $0.name.range(of: q, options: .caseInsensitive) != nil }
     }
 
