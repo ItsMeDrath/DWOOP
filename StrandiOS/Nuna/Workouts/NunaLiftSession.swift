@@ -131,14 +131,22 @@ struct NunaLiftSessionView: View {
             lastDisplayedBPM = model.bpm ?? model.live.heartRate
             setLiveHeartRate(scenePhase == .active)
         }
-        .onDisappear { setLiveHeartRate(false) }
+        .onDisappear {
+            // Hiding the session screen is not ending the workout: keep its live HR stream for the minimized session.
+            if session.engine == nil { setLiveHeartRate(false) }
+        }
         .onChange(of: scenePhase) { _, phase in setLiveHeartRate(phase == .active) }
         .onChange(of: model.bpm) { _, value in if let value { lastDisplayedBPM = value } }
         .onChange(of: model.live.heartRate) { _, value in if let value { lastDisplayedBPM = value } }
         .onChange(of: keepScreenOn) { _, _ in session.refreshScreenHold() }
         // A screen with no session behind it has nothing to show: it closes itself, in case the presenter's own dismissal was ignored
         // (UIKit drops a dismissal asked for while another one is still running).
-        .onChange(of: session.engine == nil) { _, gone in if gone, !showingSummary { dismiss() } }
+        .onChange(of: session.engine == nil) { _, gone in
+            if gone {
+                setLiveHeartRate(false)
+                if !showingSummary { dismiss() }
+            }
+        }
         .onChange(of: focused) { now in draft = draft.filter { $0.key == now } }
         .sheet(isPresented: $showingFinish) { finishSheet }
         .sheet(item: $demo) { e in
