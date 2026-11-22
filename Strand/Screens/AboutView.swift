@@ -14,12 +14,12 @@ struct AboutView: View {
     }
 
     var body: some View {
-        ScreenScaffold(title: "About", subtitle: "PHMN for WHOOP, computed on your device.",
+        ScreenScaffold(title: "About", subtitle: "WHOOP companion, computed on your device.",
                        topBackground: liquidScaffoldSky()) {
             VStack(alignment: .leading, spacing: NoopMetrics.sectionSpacing) {
                 NoopCard(tint: StrandPalette.accent) {
                     VStack(alignment: .leading, spacing: NoopMetrics.space2) {
-                        Text("PHMN").font(StrandFont.title2).foregroundStyle(StrandPalette.textPrimary)
+                        Text("WHOOP").font(StrandFont.title2).foregroundStyle(StrandPalette.textPrimary)
                         Text("v\(version) · build \(build)")
                             .font(StrandFont.captionNumber)
                             .foregroundStyle(StrandPalette.textTertiary)
@@ -30,7 +30,7 @@ struct AboutView: View {
                     }
                 }
 
-                aboutLink("How PHMN works", "How sleep, local storage, and device sync fit together.", "questionmark.circle") {
+                aboutLink("How the app works", "How sleep, local storage, and device sync fit together.", "questionmark.circle") {
                     HowNoopWorksView(onClose: {})
                 }
                 aboutLink("How your scores work", "How Recovery, Strain, and Sleep are calculated.", "chart.bar.doc.horizontal") {

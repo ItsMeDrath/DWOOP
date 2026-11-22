@@ -173,7 +173,7 @@ struct NunaNotificationsView: View {
                     if status == .denied { Button("Open") { openIOSSettings() }.font(.nuna(size: 14, weight: .bold)).foregroundStyle(NunaPalette.textPrimary) }
                 }
             }
-            Text("Choose which alerts PHMN sends. If the iOS permission is off, none of them arrive.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
+            Text("Choose which alerts WHOOP sends. If the iOS permission is off, none of them arrive.").font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).fixedSize(horizontal: false, vertical: true).textCase(nil)
             NunaSettingsSection("Reminders") {
                 NunaSettingsCard {
                     NavigationLink(value: NunaAnyaRoute.brief) { NunaListRow("Morning brief", subtitle: LocalizedStringKey(brief ? String(localized: "Every day at \(NunaAnyaSettingsView.clock(CoachBriefScheduler.timeMinutes))") : String(localized: "Off")), systemImage: "sunrise", showsChevron: true) }.buttonStyle(.plain)
@@ -220,7 +220,7 @@ struct NunaPrivacyView: View {
     var body: some View {
         NunaDetailScreen("Privacy", centersTitle: true) {
             info
-            section("Phone permissions", "What PHMN may use on this iPhone. Tap one to change it in iOS Settings.") {
+            section("Phone permissions", "What the app may use on this iPhone. Tap one to change it in iOS Settings.") {
                 permission("Bluetooth", bluetooth)
                 permission("Notifications", notifications)
                 permission("Location", location)
@@ -244,7 +244,7 @@ struct NunaPrivacyView: View {
                 PrivacyRowLabel(title: "Other apps", value: String(localized: "None"))
             }
             rule
-            section("Your data", "Remove what PHMN imported. Strap data is not touched.") {
+            section("Your data", "Remove what the app imported. Strap data is not touched.") {
                 NavigationLink(value: NunaMeRoute.imports) {
                     PrivacyRowLabel(title: "Delete Apple Health data", value: String(localized: "Manage"))
                 }.buttonStyle(.plain)
@@ -263,7 +263,7 @@ struct NunaPrivacyView: View {
             Image(systemName: "info").font(.nuna(size: 17, weight: .heavy)).foregroundStyle(NunaPalette.insightBlue).frame(width: 22).padding(.top, 2)
             VStack(alignment: .leading, spacing: 8) {
                 Text("Configure what leaves your iPhone").font(.nuna(size: 15, weight: .bold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
-                Text("There is no account and no server. Scores are computed on the iPhone from the strap and Apple Health. Below is what PHMN may use, and the few things that can leave only when you ask.")
+                Text("There is no account and no server. Scores are computed on the iPhone from the strap and Apple Health. Below is what the app may use, and the few things that can leave only when you ask.")
                     .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.insightBlue).textCase(nil).fixedSize(horizontal: false, vertical: true)
             }
             Spacer(minLength: 0)
@@ -297,7 +297,7 @@ struct NunaPrivacyView: View {
                 Image(systemName: "eye").font(.nuna(size: 16, weight: .regular)).foregroundStyle(NunaPalette.textPrimary)
             }
             .frame(maxWidth: .infinity).padding(.top, 18).padding(.bottom, 26)
-            Text("PHMN has no account and no server, and it never sells your data. These are never sent to an AI provider:")
+            Text("The app has no account and no server, and it never sells your data. These are never sent to an AI provider:")
                 .font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).fixedSize(horizontal: false, vertical: true)
             VStack(alignment: .leading, spacing: 16) {
                 ForEach(["Raw heartbeat intervals (R-R)", "PPG signal", "Motion data"], id: \.self) { item in
