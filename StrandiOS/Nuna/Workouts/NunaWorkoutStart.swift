@@ -96,7 +96,11 @@ struct NunaWorkoutStartView: View {
     @StateObject private var locationPreview = NunaWorkoutLocationPreview()
 
     private var isDistance: Bool { WorkoutCatalog.sport(named: chosen)?.isDistanceSport ?? false }
-    private var isStrength: Bool { ["Strength", "Weightlifting", "Powerlifting", "Bodybuilding"].contains(chosen) }
+    /// Lifting activities, which offer the Strength Trainer shortcut. "Strength" and "Strength Training" are one activity (the catalogue
+    /// name is "Strength Training"), so a stored or picked old name is matched through the canonical sport too.
+    private var isStrength: Bool {
+        WorkoutSource.canonicalSport(chosen) == "Strength Training" || ["Weightlifting", "Powerlifting", "Bodybuilding"].contains(chosen)
+    }
     /// The Sleep tab's own need and debt, so the target sheet judges the session against the same sleep the rest of the app shows.
     private var sleepDebtMin: Double? {
         let need = SleepModel.debtNeedMin(days: repo.days)
