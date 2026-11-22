@@ -238,7 +238,7 @@ enum PHMNChangelog {
         Expectation(
             icon: "lock.shield",
             title: "Everything stays on this iPhone",
-            body: "No account, no cloud. Everything shown is an estimate, not medical advice, and PHMN is not affiliated with WHOOP."),
+            body: "No account, no cloud. Everything shown is an estimate, not medical advice, and This app is not affiliated with WHOOP."),
     ]
 }
 #endif
