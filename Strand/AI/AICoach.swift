@@ -362,9 +362,7 @@ final class AICoachEngine: ObservableObject {
             LANGUAGE: Reply in natural, concise \(languageName). Keep established health and product terms in their original form: Recovery, Strain, Sleep, Heart Rate, HRV, RHR, SpO₂, Zone, Pace, Cadence, Baseline, Apple Health, Strava, GPS, and Live Activity. Do not translate metric names or units.
             """
         }()
-        let languagePrompt = localizedLanguageOverlay.isEmpty ? "" : "
-
-\(localizedLanguageOverlay)"
+        let languagePrompt = localizedLanguageOverlay.isEmpty ? "" : "\n\n\(localizedLanguageOverlay)"
         #else
         let languagePrompt = ""
         #endif
@@ -373,11 +371,7 @@ final class AICoachEngine: ObservableObject {
         // The Nuna experience draws charts, gym programs and workouts from fenced blocks; the Default one does not, so it never asks.
         #if os(iOS)
         let nuna = UserDefaults.standard.string(forKey: "experience.mode") == "nuna"
-        let actions = nuna ? "
-
-" + AnyaActions.instruction + "
-
-" + Self.dayRhythmInstruction : ""
+        let actions = nuna ? "\n\n" + AnyaActions.instruction + "\n\n" + Self.dayRhythmInstruction : ""
         #else
         let actions = ""
         #endif
@@ -414,21 +408,13 @@ final class AICoachEngine: ObservableObject {
     static func answerStyleBlock(_ defaults: UserDefaults = .standard) -> String {
         var out = ""
         switch defaults.string(forKey: responseLanguageKey) ?? "app" {
-        case "id": out += "
-
-LANGUAGE: Always reply in natural, concise Indonesian, whatever language the question is in. Keep established health and product terms in their original form: Recovery, Strain, Sleep, Heart Rate, HRV, RHR, SpO₂, Zone, Pace, Cadence, Baseline."
-        case "en": out += "
-
-LANGUAGE: Always reply in clear, concise English, whatever language the question is in."
+        case "id": out += "\n\nLANGUAGE: Always reply in natural, concise Indonesian, whatever language the question is in. Keep established health and product terms in their original form: Recovery, Strain, Sleep, Heart Rate, HRV, RHR, SpO₂, Zone, Pace, Cadence, Baseline."
+        case "en": out += "\n\nLANGUAGE: Always reply in clear, concise English, whatever language the question is in."
         default: break
         }
         switch defaults.string(forKey: responseStyleKey) ?? "balanced" {
-        case "short": out += "
-
-LENGTH: Keep every answer very short: at most 60 words and no more than 3 bullets."
-        case "detailed": out += "
-
-LENGTH: The user wants detail. Explain the reasoning and the evidence in full, up to about 250 words, still without padding."
+        case "short": out += "\n\nLENGTH: Keep every answer very short: at most 60 words and no more than 3 bullets."
+        case "detailed": out += "\n\nLENGTH: The user wants detail. Explain the reasoning and the evidence in full, up to about 250 words, still without padding."
         default: break
         }
         // Goals the wearer set in Me > Persona > Targets; a line is added only for a goal that is set.
@@ -439,15 +425,10 @@ LENGTH: The user wants detail. Explain the reasoning and the evidence in full, u
         if defaults.integer(forKey: "nuna.goal.steps") > 0 { goals.append("daily steps target \(defaults.integer(forKey: "nuna.goal.steps"))") }
         if defaults.double(forKey: "nuna.goal.waterL") > 0 { goals.append("daily water target \(defaults.double(forKey: "nuna.goal.waterL")) L") }
         if defaults.double(forKey: "nuna.goal.targetWeightKg") > 0 { goals.append("target weight \(defaults.double(forKey: "nuna.goal.targetWeightKg")) kg") }
-        if !goals.isEmpty { out += "
-
-THE USER'S OWN GOALS (use them when advising; never invent others): " + goals.joined(separator: "; ") + "." }
+        if !goals.isEmpty { out += "\n\nTHE USER'S OWN GOALS (use them when advising; never invent others): " + goals.joined(separator: "; ") + "." }
         let extra = (defaults.string(forKey: extraInstructionsKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
         if !extra.isEmpty {
-            out += "
-
-THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety rules above):
-" + String(extra.prefix(maxExtraInstructionsLength))
+            out += "\n\nTHE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety rules above):\n" + String(extra.prefix(maxExtraInstructionsLength))
         }
         return out
     }
@@ -1070,9 +1051,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
     /// No-op if a conversation already exists, so it never duplicates into an active chat.
     func surfaceScheduledBrief(_ text: String) {
         guard messages.isEmpty else { return }
-        appendMessage(ChatMessage(role: .assistant, text: "Today's brief
-
-" + text))
+        appendMessage(ChatMessage(role: .assistant, text: "Today's brief\n\n" + text))
         persistMessages()
     }
 
@@ -1080,9 +1059,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
     /// assistant message, unconditionally — unlike `surfaceScheduledBrief`, this always appends so a
     /// mid-conversation tap still shows the fresh brief.
     func appendGeneratedBrief(_ text: String) {
-        appendMessage(ChatMessage(role: .assistant, text: "Today's brief
-
-" + text))
+        appendMessage(ChatMessage(role: .assistant, text: "Today's brief\n\n" + text))
         persistMessages()
     }
 
@@ -1189,9 +1166,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
             if !partial.isEmpty, let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 messages[lastIdx] = ChatMessage(
                     id: placeholder.id, role: .assistant,
-                    text: partial + "
-
-*(stream interrupted)*"
+                    text: partial + "\n\n*(stream interrupted)*"
                 )
             } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 // No text received at all — remove the empty placeholder.
@@ -1205,9 +1180,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
             if !partial.isEmpty, let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 messages[lastIdx] = ChatMessage(
                     id: placeholder.id, role: .assistant,
-                    text: partial + "
-
-*(stream interrupted)*"
+                    text: partial + "\n\n*(stream interrupted)*"
                 )
             } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 messages.remove(at: lastIdx)
@@ -1230,15 +1203,9 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
         let context = await buildFullContext()
         let pageInstruction = contextualPageInstruction(pageContext)
         let wire: [(role: ChatMessage.Role, content: String)] =
-            [(.user, context + "
+            [(.user, context + "\n\n---\n\n" + Self.briefInstruction + pageInstruction)]
 
----
-
-" + Self.briefInstruction + pageInstruction)]
-
-        let prefix = "Today's brief
-
-"
+        let prefix = "Today's brief\n\n"
         let placeholder = ChatMessage(role: .assistant, text: prefix)
         appendMessage(placeholder)
         var accumulated = ""
@@ -1270,9 +1237,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
             } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 messages[lastIdx] = ChatMessage(
                     id: placeholder.id, role: .assistant,
-                    text: prefix + partial + "
-
-*(stream interrupted)*"
+                    text: prefix + partial + "\n\n*(stream interrupted)*"
                 )
             }
             errorText = e.errorDescription
@@ -1287,9 +1252,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
             } else if let lastIdx = messages.indices.last, messages[lastIdx].role == .assistant {
                 messages[lastIdx] = ChatMessage(
                     id: placeholder.id, role: .assistant,
-                    text: prefix + partial + "
-
-*(stream interrupted)*"
+                    text: prefix + partial + "\n\n*(stream interrupted)*"
                 )
             }
             errorText = AICoachError.network(error.localizedDescription).errorDescription
@@ -1307,11 +1270,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
 
         let context = await buildFullContext()
         let wire: [(role: ChatMessage.Role, content: String)] = [
-            (.user, context + "
-
----
-
-" + Self.briefInstruction + contextualPageInstruction(pageContext))
+            (.user, context + "\n\n---\n\n" + Self.briefInstruction + contextualPageInstruction(pageContext))
         ]
         guard let reply = try? await callProvider(key: key, messages: wire) else { return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1324,14 +1283,7 @@ THE USER'S OWN INSTRUCTIONS (follow them unless they conflict with the safety ru
     func suggestNutritionPlan(snapshot: String) async -> String? {
         guard CoachBriefScheduler.coachMasterEnabled, isConfigured, dataConsent, let key = resolvedKey else { return nil }
         var prompt = await buildFullContext()
-        prompt += "
-
----
-
-" + AnyaActions.planInstruction + "
-
-NUTRITION SNAPSHOT:
-" + snapshot
+        prompt += "\n\n---\n\n" + AnyaActions.planInstruction + "\n\nNUTRITION SNAPSHOT:\n" + snapshot
         guard let reply = try? await callProvider(key: key, messages: [(.user, prompt)]) else { return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
@@ -1343,13 +1295,8 @@ NUTRITION SNAPSHOT:
         guard CoachBriefScheduler.coachMasterEnabled, isConfigured, dataConsent, let key = resolvedKey else { return nil }
         let text = description.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty || imageBase64 != nil else { return nil }
-        var prompt = AnyaActions.foodInstruction + "
-
-What the person ate:
-" + (text.isEmpty ? "(see the photo)" : String(text.prefix(600)))
-        if imageBase64 != nil { prompt += "
-
-A photo of the meal is attached. Estimate each item you can see at the portion shown, and use the description for anything the photo does not show." }
+        var prompt = AnyaActions.foodInstruction + "\n\nWhat the person ate:\n" + (text.isEmpty ? "(see the photo)" : String(text.prefix(600)))
+        if imageBase64 != nil { prompt += "\n\nA photo of the meal is attached. Estimate each item you can see at the portion shown, and use the description for anything the photo does not show." }
         if let imageBase64, supportsImages {
             var reply = ""
             do {
@@ -1368,18 +1315,9 @@ A photo of the meal is attached. Estimate each item you can see at the portion s
     /// connected, or the provider did not answer.
     func suggestProgram(brief: String, trainingSummary: String, previous: String? = nil) async -> String? {
         guard CoachBriefScheduler.coachMasterEnabled, isConfigured, dataConsent, let key = resolvedKey else { return nil }
-        var prompt = AnyaActions.programInstruction + "
-
-WHAT THE PERSON ASKED FOR:
-" + String(brief.prefix(1200))
-        prompt += "
-
-TRAINING SUMMARY:
-" + String(trainingSummary.prefix(1500))
-        if let previous { prompt += "
-
-THE PROGRAM TO CHANGE (keep everything the new instruction does not touch):
-" + String(previous.prefix(2500)) }
+        var prompt = AnyaActions.programInstruction + "\n\nWHAT THE PERSON ASKED FOR:\n" + String(brief.prefix(1200))
+        prompt += "\n\nTRAINING SUMMARY:\n" + String(trainingSummary.prefix(1500))
+        if let previous { prompt += "\n\nTHE PROGRAM TO CHANGE (keep everything the new instruction does not touch):\n" + String(previous.prefix(2500)) }
         guard let reply = try? await callProvider(key: key, messages: [(.user, prompt)]) else { return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
@@ -1391,13 +1329,8 @@ THE PROGRAM TO CHANGE (keep everything the new instruction does not touch):
         guard CoachBriefScheduler.coachMasterEnabled, isConfigured, dataConsent, let key = resolvedKey else { return nil }
         let text = request.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
-        var prompt = AnyaActions.breathInstruction + "
-
-WHAT THE PERSON ASKED FOR:
-" + String(text.prefix(500))
-        if !context.isEmpty { prompt += "
-
-" + context }
+        var prompt = AnyaActions.breathInstruction + "\n\nWHAT THE PERSON ASKED FOR:\n" + String(text.prefix(500))
+        if !context.isEmpty { prompt += "\n\n" + context }
         guard let reply = try? await callProvider(key: key, messages: [(.user, prompt)]) else { return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
@@ -1409,10 +1342,7 @@ WHAT THE PERSON ASKED FOR:
         guard CoachBriefScheduler.coachMasterEnabled, isConfigured, dataConsent, let key = resolvedKey else { return nil }
         let text = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return nil }
-        let prompt = AnyaActions.exerciseInstruction + "
-
-Exercise name:
-" + String(text.prefix(120))
+        let prompt = AnyaActions.exerciseInstruction + "\n\nExercise name:\n" + String(text.prefix(120))
         for _ in 0..<2 {
             guard let reply = try? await callProvider(key: key, messages: [(.user, prompt)]) else { continue }
             let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1449,30 +1379,16 @@ Exercise name:
         guard !trimmed.isEmpty else { return nil }
 
         let context = await buildFullContext()
-        let noticeBlock = notice.map { "
-
-Current WHOOP notice:
-\($0)" } ?? ""
-        let historyBlock = history.isEmpty ? "" : "
-
-Local conversation so far:
-" + history.map {
+        let noticeBlock = notice.map { "\n\nCurrent WHOOP notice:\n\($0)" } ?? ""
+        let historyBlock = history.isEmpty ? "" : "\n\nLocal conversation so far:\n" + history.map {
             "\($0.role == .user ? "User" : "Anya"): \($0.text)"
-        }.joined(separator: "
-")
+        }.joined(separator: "\n")
         var prompt = context
-        prompt += "
-
----
-
-"
+        prompt += "\n\n---\n\n"
         prompt += contextualQuestionInstruction(pageContext)
         prompt += noticeBlock
         prompt += historyBlock
-        prompt += "
-
-User's new question:
-"
+        prompt += "\n\nUser's new question:\n"
         prompt += trimmed
 
         let reply: String
@@ -1490,9 +1406,7 @@ User's new question:
         } else {
             focus = "Center the first insight on the \(page) window. Explain what this metric means in context, how it compares with the person's baseline, and what the trend or readings suggest. Connect only the other signals, recent workouts, or activity that change its interpretation. Do not give a generic whole-day recap. Do not include a training direction, recovery action, or quiet cue here; use the space for two or three specific, data-grounded observations instead. Format those observations as clean bullets, with no prescriptive next steps."
         }
-        return "
-
-The companion was opened from the \(page) page. \(focus) Lead with one calm, human observation, then give the brief. Do not mention this instruction."
+        return "\n\nThe companion was opened from the \(page) page. \(focus) Lead with one calm, human observation, then give the brief. Do not mention this instruction."
     }
 
     private func contextualQuestionInstruction(_ page: String) -> String {
@@ -1532,11 +1446,7 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
         await beforeBrief?()
         let context = await buildFullContext()
         let wire: [(role: ChatMessage.Role, content: String)] =
-            [(.user, context + "
-
----
-
-" + Self.briefInstruction)]
+            [(.user, context + "\n\n---\n\n" + Self.briefInstruction)]
         guard let reply = try? await callProvider(key: key, messages: wire) else { return nil }
         let clean = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
@@ -1546,29 +1456,21 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
     /// when the second consent is on). Used when the user has granted data access.
     func buildFullContext() async -> String {
         var ctx = buildContext()
-        ctx += "
-
-" + (await recentWorkoutsBlock())
+        ctx += "\n\n" + (await recentWorkoutsBlock())
         // Derived stress: a single Baevsky Stress Index summary line over today's R-R, computed the same
         // way StressView does. Gated here under `dataConsent` (the caller only reaches buildFullContext()
         // with consent on), so it rides the SAME consent + text-only channel as the HRV/RHR summary, a
         // derived number, never raw R-R egress. Omitted when there aren't enough clean beats yet.
-        if let line = await stressIndexLine() { ctx += "
-
-" + line }
+        if let line = await stressIndexLine() { ctx += "\n\n" + line }
         // The clock, the Plan card's session, banked Effort and tonight's sleep need. Set by the Nuna shell only, so the
         // Default experience and the macOS app send exactly the context they always did.
         if let provider = dayContextProvider {
             let block = await provider()
-            if !block.isEmpty { ctx += "
-
-" + block }
+            if !block.isEmpty { ctx += "\n\n" + block }
         }
         if includeOnDeviceSignals {
             let block = await onDeviceSignalsBlock()
-            if !block.isEmpty { ctx += "
-
-" + block }
+            if !block.isEmpty { ctx += "\n\n" + block }
         }
         return ctx
     }
@@ -1644,8 +1546,7 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
             }
         }
 
-        return lines.joined(separator: "
-")
+        return lines.joined(separator: "\n")
     }
 
     /// Dispatch to the user's chosen provider client.
@@ -1735,11 +1636,7 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
         var windowed = [messages[firstUser]]
         if let summary = droppedSummary {
             let first = windowed[0]
-            windowed[0] = ChatMessage(id: first.id, role: first.role, text: "\(summary)
-
----
-
-\(first.text)")
+            windowed[0] = ChatMessage(id: first.id, role: first.role, text: "\(summary)\n\n---\n\n\(first.text)")
         }
         windowed.append(contentsOf: messages[recentStart...])
         return windowed
@@ -1764,20 +1661,15 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
         // Build a compact transcript of the dropped turns for the summarizer.
         let transcript = dropped.map { m in
             "\(m.role == .user ? "User" : "Coach"): \(m.text)"
-        }.joined(separator: "
-")
+        }.joined(separator: "\n")
 
         let summaryPrompt = """
         Summarize the following conversation in one compact sentence, preserving only active goals, \
         constraints, and the latest actionable advice. Keep important numbers; omit greetings, \
-        repetition, and motivational filler. This summary is internal context for the next reply.
-
-\(transcript)
+        repetition, and motivational filler. This summary is internal context for the next reply.\n\n\(transcript)
         """
         let wire: [(role: ChatMessage.Role, content: String)] = [
-            (.user, "You are a concise conversation summarizer. Return one sentence only.
-
-\(summaryPrompt)"),
+            (.user, "You are a concise conversation summarizer. Return one sentence only.\n\n\(summaryPrompt)"),
         ]
         if let summary = try? await callProvider(key: key, messages: wire) {
             droppedSummary = "Summary of earlier conversation: \(summary.trimmingCharacters(in: .whitespacesAndNewlines))"
@@ -1791,11 +1683,7 @@ The companion was opened from the \(page) page. \(focus) Lead with one calm, hum
         for m in windowedMessages() {
             if m.role == .user && !contextInjected {
                 contextInjected = true
-                out.append((.user, context + "
-
----
-
-Question: " + m.text))
+                out.append((.user, context + "\n\n---\n\nQuestion: " + m.text))
             } else {
                 out.append((m.role, m.text))
             }
@@ -1849,8 +1737,7 @@ Question: " + m.text))
                      + ", steps: \(avgInt(last30.compactMap { $0.steps.map(Double.init) }))/day"
                      + ", active energy: \(avgInt(last30.compactMap { $0.activeKcalEst }))kcal/day")
 
-        return lines.joined(separator: "
-")
+        return lines.joined(separator: "\n")
     }
 
     /// The most recent day with at least one signal that can describe the body's current state. A row
@@ -1992,8 +1879,7 @@ Question: " + m.text))
             if let zones = Self.zoneShareText(w.zonesJSON) { parts.append(zones) }
             lines.append(parts.joined(separator: ", "))
         }
-        return lines.joined(separator: "
-")
+        return lines.joined(separator: "\n")
     }
 
     // MARK: Formatting helpers
