@@ -65,6 +65,8 @@ enum NunaAnyaDayContext {
             weekEffort: week > 0 ? week : nil,
             weeklyEffortGoal: goal > 0 ? goal : nil,
             sleepNeedMin: latestNight.map { sleepModel.need($0) },
+            sleepBaselineMin: NunaSleepNeedCalculation.healthyMin,
+            sleepStrainAdjustmentMin: latestNight.map { sleepModel.strain($0) },
             sleepDebtMin: latestNight.map { sleepModel.debt($0) },
             habitualMidsleepSec: midsleep,
             sessionFeelings: feelings,
