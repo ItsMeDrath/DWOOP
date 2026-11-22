@@ -153,7 +153,7 @@ private struct NunaOnboardingWelcome: View {
             Spacer(minLength: 0)
             PHMNMark(.puck, size: 84, color: NunaPalette.textPrimary).padding(.bottom, 10)
             nunaOnboardingTitle("Your data stays on your iPhone")
-            nunaOnboardingBody("PHMN reads your Recovery, sleep and Strain straight from your strap. No account, no server.")
+            nunaOnboardingBody("WHOOP reads your Recovery, sleep and Strain straight from your strap. No account, no server.")
             Spacer(minLength: 0)
             NunaOnboardingPrimaryButton(title: "Get started", action: next).padding(.bottom, 14)
         }
@@ -177,7 +177,7 @@ private struct NunaOnboardingConnect: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     nunaOnboardingTitle(live.bonded ? "Your strap is connected" : "Connect your strap").padding(.top, 14)
-                    nunaOnboardingBody(live.bonded ? "PHMN is reading it now." : "Wear it, keep it close, and tap Scan. iOS will ask for Bluetooth: choose Allow.")
+                    nunaOnboardingBody(live.bonded ? "WHOOP is reading it now." : "Wear it, keep it close, and tap Scan. iOS will ask for Bluetooth: choose Allow.")
                     status
                     if !live.bonded {
                         NunaSegmented(WhoopModel.allCases.map { (value: $0.rawValue, title: LocalizedStringKey($0.displayName)) },
@@ -234,7 +234,7 @@ private struct NunaOnboardingConnect: View {
 
     private var help: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("A WHOOP strap does not show in iOS Bluetooth settings. Only an app like PHMN can find it, so there is nothing to pair there.")
+            Text("A WHOOP strap does not show in iOS Bluetooth settings. Only an app like WHOOP can find it, so there is nothing to pair there.")
             Text("Check that it is charged and worn, that the WHOOP app is closed (a strap talks to one app at a time), and that it is within a metre of the phone.")
             Text("No strap yet? Continue and connect later from Today.")
         }
@@ -326,7 +326,7 @@ private struct NunaOnboardingDone: View {
                 ? "Your strap is connected. Recovery needs a few nights of wear to learn your normal."
                 : "Connect your strap any time in Settings, under Device Settings. Until then you can log activities by hand.")
             Spacer(minLength: 0)
-            NunaOnboardingPrimaryButton(title: "Open PHMN", action: finish).padding(.bottom, 14)
+            NunaOnboardingPrimaryButton(title: "Open WHOOP", action: finish).padding(.bottom, 14)
         }
         .padding(.horizontal, NunaSpacing.screenH)
     }
