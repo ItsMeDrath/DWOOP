@@ -319,16 +319,13 @@ struct NunaAnyaCard: View {
         else if let buttonTitle, let onButton { stacked(buttonTitle, onButton) } else { inline(compact: false) }
     }
 
-    /// One slim row on a card: Anya's mark in a thin ring, her line (two lines at most) and a chevron. The detail and the buttons are in the sheet it opens.
+    /// One slim row on a card: Anya's mark, her line (two lines at most) and a chevron. The detail and the buttons are in the sheet it opens.
     private var slimRow: some View {
         Button(action: tapped) {
             NunaCard(small: true, padding: EdgeInsets(top: 12, leading: 14, bottom: 12, trailing: 16)) {
                 HStack(spacing: 12) {
-                    ZStack {
-                        Circle().strokeBorder(LinearGradient(colors: Self.wing, startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.5)
-                        AnyaMark(size: 19)
-                    }
-                    .frame(width: 34, height: 34).accessibilityHidden(true)
+                    // The coach logo already carries its own ring, so it is shown at full size with no second ring drawn around it.
+                    AnyaMark(size: 34).frame(width: 34, height: 34).accessibilityHidden(true)
                     title.font(.nuna(size: 15, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                         .multilineTextAlignment(.leading).lineLimit(2).minimumScaleFactor(0.9)
                     Spacer(minLength: 4)
