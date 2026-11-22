@@ -42,9 +42,14 @@ struct NunaGymSessionView: View {
     fileprivate enum Tab: Hashable { case exercises, heartRate }
 
     private var system: UnitSystem { UnitSystem(rawValue: unitSystemRaw) ?? .metric }
+    private var isRetrospective: Bool { session.map(NunaRetrospectiveLiftSession.isRetrospective) ?? false }
+    private var detailTitle: LocalizedStringKey {
+        guard let session, isRetrospective else { return "Strength Trainer session" }
+        return LocalizedStringKey(WorkoutSource.displaySport(session.sport))
+    }
 
     var body: some View {
-        NunaDetailScreen("Strength Trainer session", titleSymbol: session.map { ActivitySport.symbol(for: $0.sport) } ?? "dumbbell", subtitle: session.map { NunaWorkoutFormat.span($0.startTs, $0.endTs ?? $0.startTs) }, trailing: session == nil ? nil : AnyView(actionsMenu)) {
+        NunaDetailScreen(detailTitle, titleSymbol: session.map { ActivitySport.symbol(for: $0.sport) } ?? "dumbbell", subtitle: session.map { NunaWorkoutFormat.span($0.startTs, $0.endTs ?? $0.startTs) }, trailing: session == nil ? nil : AnyView(actionsMenu)) {
             if let session { VStack(spacing: 14) { content(session) } }
             else if loaded { NunaCard { Text("This session is no longer saved.").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).frame(maxWidth: .infinity, alignment: .leading) } }
         }
@@ -70,10 +75,14 @@ struct NunaGymSessionView: View {
         .alert(stravaMessage ?? "", isPresented: Binding(get: { stravaMessage != nil }, set: { if !$0 { stravaMessage = nil } })) {
             Button("OK", role: .cancel) {}
         }
-        .nunaDialog("Delete this workout?", isPresented: $confirmDelete) {
-            NunaDialogButton("Delete", role: .destructive) { Task { await deleteSession() } }
+        .nunaDialog(isRetrospective ? "Remove exercise log?" : "Delete this workout?", isPresented: $confirmDelete) {
+            NunaDialogButton(isRetrospective ? "Remove exercise log" : "Delete", role: .destructive) { Task { await deleteSession() } }
             NunaDialogButton("Cancel", role: .cancel) {}
-        } message: { Text("\(sets.count) recorded sets will be removed, and so will the workout this session created. This cannot be undone.") }
+        } message: {
+            Text(isRetrospective
+                 ? "The original workout, heart-rate recording and Strain will be kept. Only its exercise and set log will be removed."
+                 : "\(sets.count) recorded sets will be removed, and so will the workout this session created. This cannot be undone.")
+        }
     }
 
     // MARK: Derived
@@ -103,7 +112,7 @@ struct NunaGymSessionView: View {
         // The same sheet: every exercise has an Add set button, and Add exercise asks which exercise first.
         items.append(NunaActionItem(title: "Add set", symbol: "plus.circle") { editing = true })
         items.append(NunaActionItem(title: "Add exercise", symbol: "plus.square.on.square") { pickingExercise = true })
-        items.append(NunaActionItem(title: "Delete", symbol: "trash", destructive: true) { confirmDelete = true })
+        items.append(NunaActionItem(title: isRetrospective ? "Remove exercise log" : "Delete", symbol: "trash", destructive: true) { confirmDelete = true })
         return NunaActionsButton(items: items)
     }
 
@@ -514,8 +523,10 @@ struct NunaGymSessionView: View {
     private func deleteSession() async {
         guard let session, let store = await repo.storeHandle() else { return }
         _ = try? await store.deleteLiftSession(id: session.id)
-        NunaWorkoutReviewStore.remove(startTs: session.startTs, sport: session.sport)
-        if let workout { await repo.deleteWorkout(workout) }
+        if !isRetrospective {
+            NunaWorkoutReviewStore.remove(startTs: session.startTs, sport: session.sport)
+            if let workout { await repo.deleteWorkout(workout) }
+        }
         await repo.refresh()
         dismiss()
     }

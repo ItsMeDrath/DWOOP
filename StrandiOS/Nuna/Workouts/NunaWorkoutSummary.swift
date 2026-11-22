@@ -43,7 +43,7 @@ struct NunaWorkoutSummaryView: View {
 
     var body: some View {
         Group {
-            if let ls = m.liftSessions.first(where: { $0.startTs == key.startTs }), m.row(key).map(NunaWorkoutKind.isStrength) ?? false {
+            if let ls = m.liftSessions.first(where: { $0.startTs == key.startTs && $0.sport == key.sport }), m.row(key).map(NunaWorkoutKind.isStrength) ?? false {
                 NunaGymSessionView(sessionId: ls.id)
             } else if let r = m.row(key) ?? (m.loaded && !justSaved ? nil : initialRow) {
                 NunaDetailScreen(LocalizedStringKey(WorkoutSource.displaySport(r.sport)), titleSymbol: ActivitySport.symbol(for: r.sport), subtitle: NunaWorkoutFormat.span(r.startTs, r.endTs), titleActivity: r.sport, trailing: AnyView(actionsMenu(r))) { content(r) }
@@ -221,8 +221,44 @@ struct NunaWorkoutSummaryView: View {
         } else if Self.canEditTime(r) {
             items.append(NunaActionItem(title: "Edit time", symbol: "clock") { showEdit = true })
         }
+        if NunaWorkoutKind.isStrengthName(r.sport),
+           !m.liftSessions.contains(where: { $0.startTs == r.startTs && $0.sport == r.sport }) {
+            items.append(NunaActionItem(title: "Add exercises & sets", symbol: "dumbbell") {
+                Task { await addLiftingLog(for: r) }
+            })
+        }
         items.append(NunaActionItem(title: "Delete", symbol: "trash", destructive: true) { confirmDelete = true })
         return NunaActionsButton(items: items)
+    }
+
+    /// Attach the existing lifting log to this workout without changing its original activity row.
+    /// The row keeps its recorded heart rate, duration, calories and measured Strain; only a companion
+    /// LiftSession is created so the existing exercise editor and muscular analytics can read it.
+    private func addLiftingLog(for row: WorkoutRow) async {
+        guard let store = await repo.storeHandle() else { return }
+        let existing = (try? await store.liftSessions(deviceId: repo.deviceId,
+                                                      fromTs: row.startTs, toTs: row.startTs)) ?? []
+        if existing.contains(where: { $0.sport == row.sport }) {
+            await m.load(repo: repo)
+            return
+        }
+        let session = LiftSessionRow(
+            id: UUID().uuidString,
+            deviceId: repo.deviceId,
+            startTs: row.startTs,
+            endTs: row.endTs,
+            sport: row.sport,
+            programId: nil,
+            programName: nil,
+            sessionRpe: nil,
+            note: NunaRetrospectiveLiftSession.noteMarker
+        )
+        do {
+            _ = try await store.upsertLiftSessions([session])
+            await m.load(repo: repo)
+        } catch {
+            // Leave the original workout untouched if the companion log could not be created.
+        }
     }
 
     /// Only a session this app owns can be moved in time: a strap or manual one, never an Apple Health, imported file or Hevy session.

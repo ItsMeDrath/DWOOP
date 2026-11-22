@@ -35,6 +35,16 @@ enum NunaWorkoutRoute: Hashable {
     case exploreEdit(String)
 }
 
+enum NunaRetrospectiveLiftSession {
+    /// Marks an exercise log attached to an already-recorded activity. Deleting this log must never
+    /// delete the original workout or its heart-rate / Strain record.
+    static let noteMarker = "nuna-retrospective-lift-log"
+
+    static func isRetrospective(_ session: LiftSessionRow) -> Bool {
+        session.note == noteMarker
+    }
+}
+
 enum NunaWorkoutKind {
     /// Strength work: lifting sessions and anything the catalogue names as strength training.
     static func isStrengthName(_ sport: String) -> Bool {
@@ -60,7 +70,10 @@ final class NunaWorkoutsModel: ObservableObject {
     func load(repo: Repository) async {
         rows = (await repo.workoutRows()).sorted { $0.startTs > $1.startTs }
         if let store = await repo.storeHandle() {
-            let from = Int(Date().addingTimeInterval(-120 * 86_400).timeIntervalSince1970)
+            let recentFrom = Int(Date().addingTimeInterval(-120 * 86_400).timeIntervalSince1970)
+            // Keep the 120-day comparison window, but include older workouts when the user has
+            // attached an exercise log to one of them so the new historical session can be opened.
+            let from = min(recentFrom, rows.map(\.startTs).min() ?? recentFrom)
             let to = Int(Date().timeIntervalSince1970) + 86_400
             let sessions = (try? await store.liftSessions(deviceId: repo.deviceId, fromTs: from, toTs: to)) ?? []
             var sets: [String: [LiftSetRow]] = [:]
