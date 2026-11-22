@@ -67,7 +67,7 @@ struct NunaSportPicker: View {
         allowsCustom && !trimmed.isEmpty && WorkoutCatalog.sport(named: trimmed) == nil && !NunaActivityKind.isCharge(trimmed) && !NunaActivityKind.isRest(trimmed)
     }
 
-    private func pick(_ name: String) { selection = name; onClose() }
+    private func pick(_ name: String) { selection = WorkoutSource.canonicalSport(name); onClose() }
 
     private func row(_ name: String, route: Bool) -> some View {
         let on = name.caseInsensitiveCompare(selection) == .orderedSame
