@@ -13,7 +13,10 @@ struct NunaLiftSessionView: View {
     @EnvironmentObject private var session: LiftSessionController
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
+    /// Whether this screen is holding the strap's live heart-rate stream open, so it is asked for once and given back once.
+    @State private var liveHeartRateOn = false
 
     @State private var showingFinish = false
     @State private var confirmingDiscard = false
@@ -114,6 +117,11 @@ struct NunaLiftSessionView: View {
             Button("Done") { focused = nil }
         } }
         .task { await loadLastTime() }
+        // The chip shows the live heart rate only while this screen is showing and the app is in front: the strap is asked for the
+        // stream then, and let go of when the screen closes or the app goes to the background.
+        .onAppear { setLiveHeartRate(scenePhase == .active) }
+        .onDisappear { setLiveHeartRate(false) }
+        .onChange(of: scenePhase) { _, phase in setLiveHeartRate(phase == .active) }
         .onChange(of: keepScreenOn) { _, _ in session.refreshScreenHold() }
         // A screen with no session behind it has nothing to show: it closes itself, in case the presenter's own dismissal was ignored
         // (UIKit drops a dismissal asked for while another one is still running).
@@ -130,6 +138,12 @@ struct NunaLiftSessionView: View {
         .sheet(isPresented: $showingSettings) { settingsSheet }
         .sheet(item: $replacing) { target in replacePicker(target) }
         .sheet(item: Binding(get: { video.map { NunaVideoTarget(name: $0) } }, set: { video = $0?.name })) { t in NunaExerciseVideoSheet(name: t.name) }
+    }
+
+    private func setLiveHeartRate(_ wanted: Bool) {
+        guard wanted != liveHeartRateOn else { return }
+        liveHeartRateOn = wanted
+        if wanted { model.startRealtimeHR() } else { model.stopRealtimeHR() }
     }
 
     /// Exercises added in the gym go to the end of the session, three sets each, and open so the first set can be typed.

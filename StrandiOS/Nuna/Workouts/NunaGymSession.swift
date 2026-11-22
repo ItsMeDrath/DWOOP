@@ -23,6 +23,9 @@ struct NunaGymSessionView: View {
     @State private var loaded = false
     @State private var saveProgram = false
     @State private var editing = false
+    /// "Add exercise": the exercise picker, then the edit sheet opens with one blank set for each pick.
+    @State private var pickingExercise = false
+    @State private var startingSets: [LiftSessionEditSheet.NewSetSeed] = []
     @State private var confirmDelete = false
     @State private var showCoach = false
     @State private var tab = Tab.exercises
@@ -50,8 +53,15 @@ struct NunaGymSessionView: View {
         }
         .task(id: repo.refreshSeq) { await load(); await history.load(repo: repo) }
         .sheet(isPresented: $saveProgram) { if let session { NunaSaveProgramView(session: session, sets: sets) } }
-        .sheet(isPresented: $editing) {
-            if let session { LiftSessionEditSheet(session: session, sets: sets) { await load() } }
+        .sheet(isPresented: $editing, onDismiss: { startingSets = [] }) {
+            if let session { LiftSessionEditSheet(session: session, sets: sets, startingSets: startingSets) { await load() } }
+        }
+        // The edit sheet opens once the picker has gone, since a second sheet asked for while the first is still closing is dropped.
+        .sheet(isPresented: $pickingExercise, onDismiss: { if !startingSets.isEmpty { editing = true } }) {
+            NunaExercisePicker(confirm: { $0 == 1 ? String(localized: "Add 1 exercise") : String(localized: "Add \($0) exercises") }, title: "Add exercise") { picked in
+                startingSets = picked.map { LiftSessionEditSheet.NewSetSeed(exercise: $0.name, primaryMuscle: $0.primary, secondaryMuscles: $0.secondary) }
+                Task { await NunaCustomExercises.remember(picked, repo: repo, coach: nil) }
+            }
         }
         .sheet(isPresented: $showCoach) { NunaAnyaSheet(context: "workouts") }
         .environment(\.nunaAnyaCardContext, "workouts")
@@ -90,6 +100,9 @@ struct NunaGymSessionView: View {
         }
         items.append(NunaActionItem(title: "Save as program", symbol: "square.and.arrow.down") { saveProgram = true })
         items.append(NunaActionItem(title: "Edit sets", symbol: "pencil") { editing = true })
+        // The same sheet: every exercise has an Add set button, and Add exercise asks which exercise first.
+        items.append(NunaActionItem(title: "Add set", symbol: "plus.circle") { editing = true })
+        items.append(NunaActionItem(title: "Add exercise", symbol: "plus.square.on.square") { pickingExercise = true })
         items.append(NunaActionItem(title: "Delete", symbol: "trash", destructive: true) { confirmDelete = true })
         return NunaActionsButton(items: items)
     }
