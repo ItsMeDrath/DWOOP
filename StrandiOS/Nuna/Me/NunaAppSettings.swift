@@ -13,7 +13,6 @@ struct NunaAppSettingsView: View {
                 NunaSettingsLink(route: .anya, icon: NunaIcons.ai, title: "AI Settings")
                 NunaSettingsLink(route: .appearance, icon: NunaIcons.appearance, title: "Appearance")
                 NunaSettingsLink(route: .data, icon: NunaIcons.data, title: "Data & Integrations")
-                NunaSettingsLink(route: .features, icon: NunaIcons.features, title: "Optional features")
                 NunaSettingsLink(route: .notifications, icon: NunaIcons.notifications, title: "Notifications")
                 NunaSettingsLink(route: .automations, icon: "applewatch.radiowaves.left.and.right", title: "Strap automations")
                 NunaSettingsLink(route: .language, icon: "globe", title: "Language Preferences")
