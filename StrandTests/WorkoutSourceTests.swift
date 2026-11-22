@@ -42,11 +42,13 @@ final class WorkoutSourceTests: XCTestCase {
     }
 
     func testStrengthAndStrengthTrainingShareOneActivityIdentity() {
-        XCTAssertEqual(WorkoutSource.canonicalSport("Strength"), "Strength")
-        XCTAssertEqual(WorkoutSource.canonicalSport("Strength Training"), "Strength")
-        XCTAssertEqual(WorkoutSource.canonicalSport("StrengthTrainer"), "Strength")
-        XCTAssertEqual(WorkoutSource.displaySport("Strength Training"), "Strength")
-        XCTAssertEqual(WorkoutSource.editableSport("Strength Training"), "Strength")
+        XCTAssertEqual(WorkoutSource.canonicalSport("Strength"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.canonicalSport("Strength Training"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.canonicalSport("StrengthTrainer"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.displaySport("Strength"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.displaySport("Strength Training"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.editableSport("Strength"), "Strength Training")
+        XCTAssertEqual(WorkoutSource.editableSport("Strength Training"), "Strength Training")
         XCTAssertEqual(WorkoutSource.sportKey("Strength Training"), WorkoutSource.sportKey("Strength"))
     }
 
