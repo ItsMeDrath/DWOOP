@@ -41,6 +41,21 @@ final class WorkoutSourceTests: XCTestCase {
         XCTAssertEqual(WorkoutSource.displaySport("Running"), "Running")
     }
 
+    func testStrengthAndStrengthTrainingShareOneActivityIdentity() {
+        XCTAssertEqual(WorkoutSource.canonicalSport("Strength"), "Strength")
+        XCTAssertEqual(WorkoutSource.canonicalSport("Strength Training"), "Strength")
+        XCTAssertEqual(WorkoutSource.canonicalSport("StrengthTrainer"), "Strength")
+        XCTAssertEqual(WorkoutSource.displaySport("Strength Training"), "Strength")
+        XCTAssertEqual(WorkoutSource.editableSport("Strength Training"), "Strength")
+        XCTAssertEqual(WorkoutSource.sportKey("Strength Training"), WorkoutSource.sportKey("Strength"))
+    }
+
+    func testStrengthAliasesMatchForCrossSourceDeduplication() {
+        let strength = row(start: 1_000, end: 4_600, sport: "Strength", source: "manual")
+        let training = row(start: 1_000, end: 4_600, sport: "Strength Training", source: "whoop")
+        XCTAssertTrue(WorkoutSource.sameActivity(strength, training))
+    }
+
     // MARK: - dismissed spans (durable #107 filter)
 
     func testParseDismissedSpansDropsMalformed() {
