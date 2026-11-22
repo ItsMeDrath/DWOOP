@@ -172,7 +172,7 @@ enum NunaHealthReportRenderer {
 
         // Footer: the mark and the usual caution.
         draw("WHOOP", at: CGPoint(x: margin, y: 745), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
-        draw(String(localized: "The products and services of WHOOP are not medical devices, are not intended to diagnose any disease, and should not be used as a substitute for professional medical advice, diagnosis or treatment. This report is made on this phone from your own data, for general informational purposes only."),
+        draw(String(localized: "WHOOP is not affiliated with this report. This report is made on this phone from your own data for general informational purposes only, and is not medical advice, diagnosis or treatment."),
              at: CGPoint(x: margin, y: 767), font: body(6.8), color: grey, width: page.width - margin * 2)
     }
 
