@@ -42,14 +42,23 @@ enum WorkoutSource: Equatable {
         return s == appleHealthSource || s == legacyAppleHealthSource
     }
 
+    /// One user-facing activity identity for labels that represent the same workout.
+    /// WHOOP/import sources use both "Strength" and "Strength Training" for lifting sessions;
+    /// keep the stored source row untouched, but present and group both as "Strength".
+    static func canonicalSport(_ sport: String) -> String {
+        let token = sport.lowercased().filter { $0.isLetter || $0.isNumber }
+        if token == "strength" || token == "strengthtraining" || token == "strengthtrainer" {
+            return "Strength"
+        }
+        return sport
+    }
+
     /// Sport-cell text. The detector stores the machine token "detected"; show it as a neutral
     /// "Activity" (we don't claim a sport we didn't actually classify). WHOOP sport names arrive as
-    /// concatenated camelCase (e.g. "TraditionalStrengthTraining"), which reads as one long
-    /// unbreakable word and truncates badly — split it into words on the lower→Upper boundary so it
-    /// renders "Traditional Strength Training". Already-spaced labels (manual/edited) pass through. (#175)
+    /// concatenated camelCase; split them for readable labels after applying the shared activity identity.
     static func displaySport(_ sport: String) -> String {
         if sport == "detected" { return String(localized: "Activity") }
-        return splitCamelCase(sport)
+        return splitCamelCase(canonicalSport(sport))
     }
 
     /// The camelCase splitter shared by the display and KEY paths. Deliberately NOT localized: the
@@ -69,7 +78,7 @@ enum WorkoutSource: Equatable {
     /// The locale-stable editable form: what an edit field should SEED so a save round-trips a stable
     /// token ("Activity", never a translated word that would split cross-source dedup per language).
     static func editableSport(_ sport: String) -> String {
-        sport == "detected" ? "Activity" : splitCamelCase(sport)
+        sport == "detected" ? "Activity" : splitCamelCase(canonicalSport(sport))
     }
 
     // MARK: - Dismissed legacy detected bouts
@@ -120,7 +129,7 @@ enum WorkoutSource: Equatable {
     /// LOCALE-STABLE by construction: computed from the raw token, never the localized display (a
     /// localized word here would vary the dedup key and the trace allowlist per user language).
     static func sportKey(_ sport: String) -> String {
-        editableSport(sport).lowercased().filter { !$0.isWhitespace }
+        canonicalSport(editableSport(sport)).lowercased().filter { !$0.isWhitespace }
     }
 
     /// The set of `sportKey`s for the named catalogue (Running, Cycling, … Padel, Other), computed once.
