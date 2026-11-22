@@ -35,7 +35,8 @@ struct NunaWorkoutHistoryView: View {
     private var rangeDays: Int { max(1, (cal.dateComponents([.day], from: startDate, to: cal.startOfDay(for: Date())).day ?? 0) + 1) }
 
     private var topSports: [String] {
-        Dictionary(grouping: m.rows, by: \.sport).sorted { $0.value.count > $1.value.count }.prefix(3).map(\.key)
+        Dictionary(grouping: m.rows, by: { WorkoutSource.displaySport($0.sport) })
+            .sorted { $0.value.count > $1.value.count }.prefix(3).map(\.key)
     }
 
     private func matchesFilter(_ r: WorkoutRow) -> Bool {
@@ -43,7 +44,7 @@ struct NunaWorkoutHistoryView: View {
         case "all": return true
         case "cardio": return !NunaWorkoutKind.isStrength(r)
         case "strength": return NunaWorkoutKind.isStrength(r)
-        default: return r.sport == filter
+        default: return WorkoutSource.displaySport(r.sport) == filter
         }
     }
 
