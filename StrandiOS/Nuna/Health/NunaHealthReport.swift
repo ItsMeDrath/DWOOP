@@ -109,6 +109,21 @@ enum NunaHealthReportRenderer {
         let x = DateFormatter(); x.locale = AppLanguage.activeLocale; x.dateFormat = f; return x.string(from: d)
     }
 
+    /// Draw the supplied wordmark as a black alpha mask so white source artwork remains visible on the white PDF page.
+    private static func drawWordmark(_ g: CGContext, in rect: CGRect) {
+        guard let cg = UIImage(named: "WHOOPWordmark")?.cgImage else {
+            draw("WHOOP", at: CGPoint(x: rect.minX, y: rect.minY), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
+            return
+        }
+        g.saveGState()
+        g.translateBy(x: 0, y: rect.minY * 2 + rect.height)
+        g.scaleBy(x: 1, y: -1)
+        g.clip(to: rect, mask: cg)
+        ink.setFill()
+        g.fill(rect)
+        g.restoreGState()
+    }
+
     // MARK: Page
 
     private static func drawPage(_ g: CGContext, data: NunaHealthReportData, days: Int, now: Date) {
@@ -170,8 +185,8 @@ enum NunaHealthReportRenderer {
             }
         }
 
-        // Footer: the mark and the usual caution.
-        draw("WHOOP", at: CGPoint(x: margin, y: 745), font: font(["ProximaNova-Regular"], 17, .light), kern: 4)
+        // Footer: the black WHOOP wordmark and the usual caution.
+        drawWordmark(g, in: CGRect(x: margin, y: 745, width: 72, height: 13))
         draw(String(localized: "The products and services of WHOOP are not medical devices, are not intended to diagnose any disease, and should not be used as a substitute for professional medical advice, diagnosis or treatment. This report is made on this phone from your own data, for general informational purposes only."),
              at: CGPoint(x: margin, y: 767), font: body(6.8), color: grey, width: page.width - margin * 2)
     }
