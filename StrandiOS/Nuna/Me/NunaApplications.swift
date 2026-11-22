@@ -43,7 +43,7 @@ struct NunaApplicationsView: View {
     }
 
     private func app(_ route: NunaTodayRoute, _ title: LocalizedStringKey, _ subtitle: LocalizedStringKey, _ icon: String) -> some View {
-        NavigationLink(value: route) { NunaListRow(title, subtitle, systemImage: icon, showsChevron: true) }.buttonStyle(.plain)
+        NavigationLink(value: route) { NunaListRow(title, subtitle: subtitle, systemImage: icon, showsChevron: true) }.buttonStyle(.plain)
     }
 }
 #endif
