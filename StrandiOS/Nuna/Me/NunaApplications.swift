@@ -14,11 +14,6 @@ struct NunaApplicationsView: View {
         NunaDetailScreen("Application") {
             NunaCard(small: true) {
                 VStack(spacing: 0) {
-                    // Strength Trainer opens straight to its own page; Trends opens over this one (it has no back button of its own).
-                    NavigationLink { NunaMoreStrengthTrainerNavigationView() } label: {
-                        NunaListRow("Strength Trainer", subtitle: "Programs, progress and sessions", systemImage: "act:strength-trainer", showsChevron: true)
-                    }.buttonStyle(.plain)
-                    NunaDivider()
                     // The page with every workout opens over this one, like Trends. This is the only way in to it.
                     Button { router.requestedDestination = .workouts } label: {
                         NunaListRow("Workouts", subtitle: "Every session, its history and training load", systemImage: "figure.run", showsChevron: true)
@@ -48,24 +43,7 @@ struct NunaApplicationsView: View {
     }
 
     private func app(_ route: NunaTodayRoute, _ title: LocalizedStringKey, _ subtitle: LocalizedStringKey, _ icon: String) -> some View {
-        NavigationLink(value: route) { NunaListRow(title, subtitle: subtitle, systemImage: icon, showsChevron: true) }.buttonStyle(.plain)
-    }
-}
-/// A private navigation stack for Strength Trainer when it is opened from More → Application.
-/// The Gym page is presented as a view-based destination from the Settings stack. Its workout
-/// routes must stay in this child stack; otherwise a program route can be appended to the
-/// Settings stack underneath the Gym page, making the Gym page appear to snap back over it.
-private struct NunaMoreStrengthTrainerNavigationView: View {
-    @State private var path = NavigationPath()
-
-    var body: some View {
-        NavigationStack(path: $path) {
-            NunaGymPage()
-                .nunaWorkoutDestinations()
-        }
-        // Keep Build, Edit and other program pushes in this same local stack as saved-program taps.
-        .environment(\.nunaPushWorkout) { path.append($0) }
-        .preferredColorScheme(NunaTheme.colorScheme)
+        NavigationLink(value: route) { NunaListRow(title, subtitle, systemImage: icon, showsChevron: true) }.buttonStyle(.plain)
     }
 }
 #endif
