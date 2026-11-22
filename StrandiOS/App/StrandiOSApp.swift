@@ -37,6 +37,9 @@ struct StrandiOSApp: App {
     /// session is open this is the banner that matters (it carries the heart rate too), so the HR
     /// activity is suppressed rather than stacked beside it.
     @State private var liftActivity = LiftLiveActivityController()
+    /// Whether the running gym session is holding the strap's live heart-rate stream open. The session, not its screen, owns this:
+    /// minimizing the session closes the screen, and a WHOOP 5/MG only streams heart rate while the stream is armed.
+    @State private var liftHoldsRealtimeHR = false
     /// The live gym session. Owned HERE, at the app root, rather than by the screen that shows it:
     /// swiping the workout sheet away must not stop the clock, silence the strap or drop the
     /// double-tap handler. See `LiftSessionController`.
@@ -306,7 +309,12 @@ struct StrandiOSApp: App {
                 .onReceive(liftSession.$now) { _ in pushLiftActivity() }
                 // `$engine` publishes before the new value is stored, so the push reads it one turn later. Read at once, an ended session still
                 // looked running: the Live Activity was updated instead of ended and stayed on the Lock Screen and in the Dynamic Island.
-                .onReceive(liftSession.$engine) { _ in DispatchQueue.main.async { pushLiftActivity() } }
+                .onReceive(liftSession.$engine) { _ in
+                    DispatchQueue.main.async {
+                        pushLiftActivity()
+                        syncLiftRealtimeHold()
+                    }
+                }
                 // Which gym sessions were logged in PHMN (the only ones that may go to Strava), read at launch and after each saved session.
                 .task { await StravaOwnGym.refresh(repo: model.repo) }
                 .task { NunaCustomBreath.registerAll() }
@@ -633,6 +641,18 @@ struct StrandiOSApp: App {
         let speed = UnitFormatter.speedFromKilometersPerHour(model.live.sensorSpeedKmh,
                                                               system: distanceSystem)
         return (zone, distance, pace, speed)
+    }
+
+    /// Hold the live heart-rate stream for as long as a gym session exists (started, restored after a relaunch, or minimized), and let
+    /// it go once the session is finished or discarded. The strength screen still asks for the stream while it is showing; this hold is
+    /// what keeps it armed when that screen is minimized, so the Lock Screen banner and the chip on reopening stay live. Ref-counted in
+    /// `AppModel`, so exactly one start is balanced by one stop here.
+    @MainActor
+    private func syncLiftRealtimeHold() {
+        let wanted = liftSession.engine != nil
+        guard wanted != liftHoldsRealtimeHR else { return }
+        liftHoldsRealtimeHR = wanted
+        if wanted { model.startRealtimeHR() } else { model.stopRealtimeHR() }
     }
 
     @MainActor
