@@ -1212,12 +1212,13 @@ struct NunaLiveWorkoutView: View {
             // Back from the summary of a session that has ended leaves the live screen too: there is nothing left on it.
             .onChange(of: savedActivity == nil) { _, gone in if gone, autoOpened || model.activeWorkout == nil, model.lastWorkout != nil { onClose() } }
         }
-        .simultaneousGesture(DragGesture(minimumDistance: 28).onEnded { value in
-            guard value.translation.height > 100,
-                  abs(value.translation.height) > abs(value.translation.width) * 1.25,
-                  model.activeWorkout != nil else { return }
-            onClose()
-        })
+        .background {
+            TwoFingerWorkoutMinimizeSwipe {
+                guard model.activeWorkout != nil else { return }
+                onClose()
+            }
+            .frame(width: 1, height: 1)
+        }
         .task {
             let info = ActivityAuthorizationInfo()
             liveActivitiesOn = info.areActivitiesEnabled
@@ -1884,6 +1885,61 @@ private struct NunaHatch: View {
         }
     }
 }
+
+/// Installs a two-finger downward pan on the hosting view so ordinary one-finger scrolling
+/// and horizontal gestures never minimize an active session.
+private struct TwoFingerWorkoutMinimizeSwipe: UIViewRepresentable {
+    let onMinimize: () -> Void
+    func makeCoordinator() -> Coordinator { Coordinator(onMinimize: onMinimize) }
+    func makeUIView(context: Context) -> UIView {
+        let anchor = UIView(frame: .zero)
+        anchor.backgroundColor = .clear
+        DispatchQueue.main.async { context.coordinator.install(from: anchor) }
+        return anchor
+    }
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onMinimize = onMinimize
+        DispatchQueue.main.async { context.coordinator.install(from: uiView) }
+    }
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) { coordinator.uninstall() }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onMinimize: () -> Void
+        private weak var installedView: UIView?
+        private lazy var pan: UIPanGestureRecognizer = {
+            let gesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+            gesture.minimumNumberOfTouches = 2
+            gesture.maximumNumberOfTouches = 2
+            gesture.cancelsTouchesInView = false
+            gesture.delegate = self
+            return gesture
+        }()
+        init(onMinimize: @escaping () -> Void) { self.onMinimize = onMinimize }
+        func install(from anchor: UIView) {
+            guard anchor.window != nil else { return }
+            var target = anchor
+            while let parent = target.superview, !(parent is UIWindow) { target = parent }
+            guard installedView !== target else { return }
+            uninstall()
+            target.addGestureRecognizer(pan)
+            installedView = target
+        }
+        func uninstall() {
+            if let installedView { installedView.removeGestureRecognizer(pan) }
+            installedView = nil
+        }
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                               shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }
+        @objc private func handlePan(_ gesture: UIPanGestureRecognizer) {
+            guard gesture.state == .ended else { return }
+            let translation = gesture.translation(in: gesture.view)
+            let velocity = gesture.velocity(in: gesture.view)
+            guard translation.y > 100, translation.y > abs(translation.x) * 1.25, velocity.y > 0 else { return }
+            onMinimize()
+        }
+    }
+}
+
 #endif
 
 private extension Double {
