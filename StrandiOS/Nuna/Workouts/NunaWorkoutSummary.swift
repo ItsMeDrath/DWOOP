@@ -54,7 +54,7 @@ struct NunaWorkoutSummaryView: View {
             }
         }
         .task(id: repo.refreshSeq) {
-            await m.load(repo: repo)
+            await m.load(repo: repo, includingSessionFrom: key.startTs)
             if let r = m.row(key) {
                 await data.load(startTs: r.startTs, endTs: r.endTs, sport: r.sport, source: r.source, knownSteps: r.steps, repo: repo, zoneSet: profile.hrZoneSet, ticksPerStep: profile.stepTicksPerStep)
                 stravaState = NunaStravaCheck.state(r)
@@ -255,7 +255,7 @@ struct NunaWorkoutSummaryView: View {
         )
         do {
             _ = try await store.upsertLiftSessions([session])
-            await m.load(repo: repo)
+            await m.load(repo: repo, includingSessionFrom: row.startTs)
         } catch {
             // Leave the original workout untouched if the companion log could not be created.
         }

@@ -56,7 +56,7 @@ struct NunaGymSessionView: View {
         .navigationDestination(isPresented: $showAll) {
             NunaDetailScreen("Exercises") { allExercises }
         }
-        .task(id: repo.refreshSeq) { await load(); await history.load(repo: repo) }
+        .task(id: repo.refreshSeq) { await load(); await history.load(repo: repo, includingSessionFrom: session?.startTs) }
         .sheet(isPresented: $saveProgram) { if let session { NunaSaveProgramView(session: session, sets: sets) } }
         .sheet(isPresented: $editing, onDismiss: { startingSets = [] }) {
             if let session { LiftSessionEditSheet(session: session, sets: sets, startingSets: startingSets) { await load() } }

@@ -67,13 +67,14 @@ final class NunaWorkoutsModel: ObservableObject {
     let todayKey = Repository.localDayKey(Date())
     private let cal = Calendar.current
 
-    func load(repo: Repository) async {
+    func load(repo: Repository, includingSessionFrom historicalStartTs: Int? = nil) async {
         rows = (await repo.workoutRows()).sorted { $0.startTs > $1.startTs }
         if let store = await repo.storeHandle() {
             let recentFrom = Int(Date().addingTimeInterval(-120 * 86_400).timeIntervalSince1970)
-            // Keep the 120-day comparison window, but include older workouts when the user has
-            // attached an exercise log to one of them so the new historical session can be opened.
-            let from = min(recentFrom, rows.map(\.startTs).min() ?? recentFrom)
+            // Keep the usual 120-day window. When a historical workout is open, shift that same
+            // comparison window back to its date rather than loading every lifting session ever logged.
+            let historicalFrom = historicalStartTs.map { $0 - 120 * 86_400 } ?? recentFrom
+            let from = min(recentFrom, historicalFrom)
             let to = Int(Date().timeIntervalSince1970) + 86_400
             let sessions = (try? await store.liftSessions(deviceId: repo.deviceId, fromTs: from, toTs: to)) ?? []
             var sets: [String: [LiftSetRow]] = [:]
