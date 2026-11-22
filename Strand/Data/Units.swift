@@ -338,14 +338,22 @@ enum UnitFormatter {
     /// and to the Android `UnitFormatter.EFFORT_SCALE_FACTOR`. A wrong factor is pinned by the formatter tests.
     static let effortScaleFactor = 21.0 / 100.0
 
-    /// The stored 0–100 Effort value mapped onto the selected display scale (the raw number, no unit).
+    /// Recovery is stored on 0–100, but the displayed WHOOP-style score tops out at 99.
+    /// This is display-only; the underlying score and ring fill remain unchanged.
+    static func recoveryDisplayValue(_ value: Double) -> Double {
+        min(max(value, 0), 99)
+    }
+
+    /// The stored 0–100 Effort value mapped onto the selected display scale.
+    /// Display is capped below the scale ceiling: 99 on the native axis, 20.8 on WHOOP's 0–21 axis.
+    /// The stored value is unchanged; only the read-out is capped.
     static func effortValue(_ value: Double, scale: EffortScale) -> Double {
-        scale == .whoop ? value * effortScaleFactor : value
+        let bounded = min(max(value, 0), 99)
+        return scale == .whoop ? min(bounded * effortScaleFactor, 20.8) : bounded
     }
 
     /// Format a stored 0–100 Effort value for display on the selected scale, to one decimal — the single
-    /// helper every Effort read-out (Today tile, Intelligence, Live, Trends, Workouts) routes through so
-    /// the toggle reaches all of them at once. The stored value is unchanged; only the display converts.
+    /// helper every Effort read-out (Today tile, Intelligence, Live, Trends, Workouts) routes through.
     static func effortDisplay(_ value: Double, scale: EffortScale) -> String {
         oneDecimal(effortValue(value, scale: scale))
     }
