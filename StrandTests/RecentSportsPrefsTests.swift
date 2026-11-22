@@ -14,6 +14,12 @@ final class RecentSportsPrefsTests: XCTestCase {
         XCTAssertEqual(RecentSportsPrefs.maxCount, 5)
     }
 
+    /// "Strength" and "Strength Training" are one activity: an old pick under either name reads back as the one name, once.
+    func testStrengthNamesCollapseToStrengthTraining() {
+        XCTAssertEqual(RecentSportsPrefs.decode("Strength,Running,Strength Training"), ["Strength Training", "Running"])
+        XCTAssertEqual(RecentSportsPrefs.recording("Strength", into: ["Yoga", "Strength Training"]), ["Strength Training", "Yoga"])
+    }
+
     func testEncodeDecodeRoundTrips() {
         for list in [[String](), ["Running"], ["Running", "Yoga"], ["Running", "Yoga", "Padel"]] {
             XCTAssertEqual(RecentSportsPrefs.decode(RecentSportsPrefs.encode(list)), list)

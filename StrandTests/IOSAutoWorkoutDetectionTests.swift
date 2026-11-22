@@ -161,7 +161,7 @@ final class IOSAutoWorkoutDetectionTests: XCTestCase {
         let s = steps(45 * 60, activityClass: 0)
 
         let plain = IOSAutoWorkoutDetector.detect(hr: saw, gravity: g, steps: s, restingBpm: 60, savedSpans: [])
-        XCTAssertEqual(plain.first?.sport, "Strength")
+        XCTAssertEqual(plain.first?.sport, "Strength Training")
 
         let own = IOSAutoWorkoutDetector.detect(hr: saw, gravity: g, steps: s, restingBpm: 60,
                                                 userSports: ["Weightlifting": 8], savedSpans: [])
@@ -175,7 +175,7 @@ final class IOSAutoWorkoutDetectionTests: XCTestCase {
             hr: hiit, gravity: gravity(25 * 60, delta: 0.2), steps: steps(25 * 60, activityClass: 0),
             restingBpm: 60, savedSpans: [])
 
-        XCTAssertNotEqual(suggestions.first?.sport, "Strength")
+        XCTAssertNotEqual(suggestions.first?.sport, "Strength Training")
     }
 
     /// The deepest REM stretch of a night lifts the heart rate a little: asleep and still is never a workout.

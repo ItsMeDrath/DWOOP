@@ -266,9 +266,11 @@ enum IOSAutoWorkoutDetector {
 
     /// The group's member the person saves most, or `fallback` when they have none.
     private static func favourite(_ sports: [String: Int], group: Set<String>, fallback: String) -> String {
-        group.filter { sports[$0, default: 0] > 0 }
+        let name = group.filter { sports[$0, default: 0] > 0 }
             .sorted { (sports[$0, default: 0], $1) > (sports[$1, default: 0], $0) }
             .first ?? fallback
+        // The same lifting activity saved as "Strength" or "Strength Training" is offered as "Strength Training".
+        return WorkoutSource.canonicalSport(name)
     }
 
     private static func peakHRRPct(_ f: WorkoutClassFeatures, resting: Int, maxHR: Double) -> Double {

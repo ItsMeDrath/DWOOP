@@ -28,8 +28,13 @@ enum RecentSportsPrefs {
 
     /// Decode the stored string back to the ordered name list. Blank tokens are dropped; an
     /// empty/unset string yields no recents (the section simply doesn't render).
+    /// "Strength", "Strength Training" and "Strength Trainer" are one activity, shown as "Strength Training": an older pick saved under
+    /// another of those names reads back as it, and the list never carries both.
     static func decode(_ raw: String) -> [String] {
-        raw.split(separator: ",").map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        var seen = Set<String>()
+        return raw.split(separator: ",")
+            .map { WorkoutSource.canonicalSport($0.trimmingCharacters(in: .whitespaces)) }
+            .filter { !$0.isEmpty && seen.insert($0.lowercased()).inserted }
     }
 
     /// Pure fold of one selection into the list: front-inserted, deduplicated case-insensitively
@@ -37,7 +42,7 @@ enum RecentSportsPrefs {
     /// A blank name is a no-op; so is a name containing a comma — it can't ride the comma-joined
     /// encoding, and skipping the record beats corrupting the whole list for a theoretical edge case.
     static func recording(_ name: String, into current: [String]) -> [String] {
-        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        let trimmed = WorkoutSource.canonicalSport(name.trimmingCharacters(in: .whitespaces))
         guard !trimmed.isEmpty, !trimmed.contains(",") else { return current }
         var list = current.filter { $0.caseInsensitiveCompare(trimmed) != .orderedSame }
         list.insert(trimmed, at: 0)
