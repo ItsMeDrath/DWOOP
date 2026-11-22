@@ -63,8 +63,9 @@ final class AnyaDayContextTests: XCTestCase {
         XCTAssertTrue(out.contains("last 7 days 48 of the weekly target 70"))
         XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +12-17 Effort"))
         XCTAssertTrue(out.contains("Charge of 72"))
-        XCTAssertTrue(out.contains("need about 7h 45m"))
-        XCTAssertTrue(out.contains("debt of about 1h 20m"))
+        XCTAssertTrue(out.contains("healthy baseline 7h 30m"))
+        XCTAssertTrue(out.contains("total target tonight 7h 45m"))
+        XCTAssertTrue(out.contains("carried sleep debt 1h 20m"))
         XCTAssertTrue(out.contains("asleep by about 23:07"), out)   // 03:00 − 3 h 52.5 m → 23:07:30 → 23:07
     }
 
@@ -72,7 +73,8 @@ final class AnyaDayContextTests: XCTestCase {
         var i = AnyaDayContext.Input(now: date(2026, 10, 13, 9, 0), calendar: cal)
         i.sleepNeedMin = 480
         i.sleepDebtMin = 0
-        XCTAssertTrue(AnyaDayContext.block(i).contains("no meaningful debt"))
+        XCTAssertTrue(AnyaDayContext.block(i).contains("current carried sleep debt is ZERO"))
+        XCTAssertFalse(AnyaDayContext.block(i).contains("recent debt"))
     }
 
     func testNoEffortBankedYetIsStatedNotZeroed() {
