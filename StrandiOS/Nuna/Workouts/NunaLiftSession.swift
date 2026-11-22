@@ -14,7 +14,6 @@ struct NunaLiftSessionView: View {
     @EnvironmentObject private var session: LiftSessionController
     @EnvironmentObject private var model: AppModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.scenePhase) private var scenePhase
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     @State private var showingFinish = false
     @State private var confirmingDiscard = false
