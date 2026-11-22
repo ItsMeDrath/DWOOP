@@ -18,8 +18,6 @@ struct NunaLiftSessionView: View {
     @AppStorage(UnitPrefs.systemKey) private var unitSystemRaw = UnitSystem.metric.rawValue
     /// Whether this screen is holding the strap's live heart-rate stream open, so it is asked for once and given back once.
     @State private var liveHeartRateOn = false
-    /// Keep the last valid BPM visible even after the live stream disconnects.
-    @State private var lastDisplayedBPM: Int?
 
     @State private var showingFinish = false
     @State private var confirmingDiscard = false
@@ -130,7 +128,6 @@ struct NunaLiftSessionView: View {
         // The chip shows the live heart rate only while this screen is showing and the app is in front: the strap is asked for the
         // stream then, and let go of when the screen closes or the app goes to the background.
         .onAppear {
-            lastDisplayedBPM = model.bpm ?? model.live.heartRate
             setLiveHeartRate(scenePhase == .active)
         }
         .onDisappear {
@@ -138,8 +135,6 @@ struct NunaLiftSessionView: View {
             if session.engine == nil { setLiveHeartRate(false) }
         }
         .onChange(of: scenePhase) { _, phase in setLiveHeartRate(phase == .active) }
-        .onChange(of: model.bpm) { _, value in if let value { lastDisplayedBPM = value } }
-        .onChange(of: model.live.heartRate) { _, value in if let value { lastDisplayedBPM = value } }
         .onChange(of: keepScreenOn) { _, _ in session.refreshScreenHold() }
         // A screen with no session behind it has nothing to show: it closes itself, in case the presenter's own dismissal was ignored
         // (UIKit drops a dismissal asked for while another one is still running).
@@ -256,7 +251,9 @@ struct NunaLiftSessionView: View {
             TimelineView(.periodic(from: .now, by: 1)) { timeline in
                 let fresh = model.live.lastHeartRateAt.map { timeline.date.timeIntervalSince($0) <= 5 } ?? false
                 let isLive = liveHeartRateOn && scenePhase == .active && fresh
-                let bpm = lastDisplayedBPM ?? model.bpm ?? model.live.heartRate
+                // Read the observable live sample directly on each TimelineView tick. A cached @State
+                // value here can mask every newer BLE reading and leave the chip frozen at session start.
+                let bpm = model.live.heartRate ?? model.bpm
                 if let bpm {
                     HStack(spacing: 5) {
                         Image(systemName: "heart.fill")
