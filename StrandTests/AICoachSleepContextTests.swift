@@ -26,7 +26,7 @@ final class AICoachSleepContextTests: XCTestCase {
         XCTAssertTrue(line.contains("REM 1.9h"), line)
         XCTAssertTrue(line.contains("light 4.2h"), line)
         XCTAssertTrue(line.contains("eff 94%"), line)
-        XCTAssertTrue(line.contains("WHOOP Day Strain (0-21) 2.6"), line)
+        XCTAssertTrue(line.contains("Strain (/21) 2.6"), line)
     }
 
     /// A night with no staging says so rather than the field vanishing, so the model cannot read a

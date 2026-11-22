@@ -287,7 +287,7 @@ final class AICoachEngine: ObservableObject {
     static let defaultSystemPrompt = """
     You are WHOOP, a perceptive daily companion for recovery and performance. Talk like a warm human coach: \
     calm, attentive, direct, and conversational. Make the user feel accompanied, never assessed or lectured. \
-    Use the user's wearable summary when provided: Recovery 0-100 is readiness, Strain is always expressed on WHOOP's 0-21 Day Strain scale, and Sleep 0-100 is sleep quality. Never describe a 0-100 internal Effort value as Strain. Sleep \
+    Use the user's wearable summary when provided: Recovery 0-100 is readiness, Strain is expressed on a 0-21 scale. When reporting today's value, say naturally, for example, 'Strain is 6.3/21 today.' Include the '/21' denominator; do not call it 'WHOOP Day Strain' or report the internal 0-100 Effort value as Strain. Sleep 0-100 is sleep quality. Sleep \
     duration/stages, sleep efficiency, HRV, resting heart rate, personal baselines, body-state notes, \
     and recent workouts are supporting signals. A dash means NOT MEASURED — never treat it as zero.
     First form a body-state read from the pattern, not from one number: compare today's signals with the \
@@ -1715,7 +1715,7 @@ final class AICoachEngine: ObservableObject {
             lines.append(Self.bodyStateSummary(current: current, history: days))
         }
         lines.append("")
-        lines.append("Recent days (newest first) — Recovery(0-100), WHOOP Day Strain(0-21), sleep(h), "
+        lines.append("Recent days (newest first) — Recovery(0-100), Strain(0-21), sleep(h), "
                      + "deep/REM/light(h), eff(%), HRV(ms), RHR(bpm). A dash means NOT MEASURED, not zero:")
         for d in recent {
             lines.append("  " + dayLine(d))
@@ -1726,7 +1726,7 @@ final class AICoachEngine: ObservableObject {
         lines.append("")
         lines.append("30-day averages:")
         lines.append("  recovery: \(avgInt(last30.compactMap { $0.recovery }))"
-                     + ", WHOOP Day Strain: \(avgStrain21(last30.compactMap { $0.strain }))"
+                     + ", average Strain: \(avgStrain21(last30.compactMap { $0.strain }))/21"
                      + ", sleep: \(avgSleepHours(last30))h"
                      + ", HRV: \(avgInt(last30.compactMap { $0.avgHrv })) ms"
                      + ", RHR: \(avgInt(last30.compactMap { $0.restingHr.map(Double.init) })) bpm")
@@ -1817,10 +1817,10 @@ final class AICoachEngine: ObservableObject {
             evidence.append("RHR \(rhr)bpm\(comparison)")
         }
         if let recentEffort {
-            let comparison = effortBaseline.map { " vs \(Self.strain21($0)) average daily WHOOP Day Strain" } ?? ""
-            evidence.append("recent WHOOP Day Strain \(Self.strain21(recentEffort))\(comparison)")
+            let comparison = effortBaseline.map { " vs \(Self.strain21($0)) average daily Strain (/21)" } ?? ""
+            evidence.append("recent Strain \(Self.strain21(recentEffort))/21\(comparison)")
         } else if let effort {
-            evidence.append("WHOOP Day Strain \(Self.strain21(effort))")
+            evidence.append("Strain \(Self.strain21(effort))/21")
         }
 
         // Effort describes load, not recovery. It can support the recommendation, but by itself it
@@ -1867,7 +1867,7 @@ final class AICoachEngine: ObservableObject {
         for w in rows.prefix(limit) {
             var parts = ["  \(dateString(w.startTs)) \(w.sport)"]
             if let dur = w.durationS { parts.append("\(Int((dur / 60).rounded())) min") }
-            if let s = w.strain { parts.append("WHOOP Day Strain \(Self.strain21(s))") }
+            if let s = w.strain { parts.append("Strain \(Self.strain21(s))/21") }
             if let hr = w.avgHr { parts.append("avg HR \(hr)") }
             if let mx = w.maxHr { parts.append("max HR \(mx)") }
             if let kcal = w.energyKcal { parts.append("\(Int(kcal.rounded())) kcal") }
@@ -1902,7 +1902,7 @@ final class AICoachEngine: ObservableObject {
     func dayLine(_ d: DailyMetric) -> String {
         var parts: [String] = [d.day + ":"]
         parts.append("recovery " + (d.recovery.map { "\(Int($0.rounded()))" } ?? "—"))
-        parts.append("WHOOP Day Strain (0-21) " + (d.strain.map { Self.strain21($0) } ?? "—"))
+        parts.append("Strain (/21) " + (d.strain.map { Self.strain21($0) } ?? "—"))
         parts.append("sleep " + (d.totalSleepMin.map { String(format: "%.1fh", $0 / 60) } ?? "—"))
         // The stage breakdown and efficiency, which the coach could not see at all: a user asked why it
         // said it had no access to sleep stages, and it was answering honestly — `rest 7.8h` was every
