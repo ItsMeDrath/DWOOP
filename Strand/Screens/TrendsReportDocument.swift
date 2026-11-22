@@ -211,9 +211,10 @@ struct TrendsReportDocument {
             HStack(alignment: .firstTextBaseline) {
                 Image("WHOOPWordmark")
                     .resizable()
+                    .renderingMode(.template)
                     .scaledToFit()
                     .frame(width: 72, height: 13)
-                    .colorInvert()
+                    .foregroundStyle(.black)
                     .accessibilityLabel("WHOOP")
                 Spacer()
                 Text(verbatim: String(localized: "Generated \(generatedOn)")).font(.system(size: 9)).foregroundColor(Ink.tertiary)
