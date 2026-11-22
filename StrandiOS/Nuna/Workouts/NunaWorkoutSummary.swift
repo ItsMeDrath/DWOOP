@@ -43,7 +43,7 @@ struct NunaWorkoutSummaryView: View {
 
     var body: some View {
         Group {
-            if let ls = m.liftSessions.first(where: { $0.startTs == key.startTs && $0.sport == key.sport }), m.row(key).map(NunaWorkoutKind.isStrength) ?? false {
+            if let ls = m.liftSessions.first(where: { $0.startTs == key.startTs && $0.sport == key.sport }), m.row(key).map({ NunaWorkoutKind.isStrengthName($0.sport) }) ?? false {
                 NunaGymSessionView(sessionId: ls.id)
             } else if let r = m.row(key) ?? (m.loaded && !justSaved ? nil : initialRow) {
                 NunaDetailScreen(LocalizedStringKey(WorkoutSource.displaySport(r.sport)), titleSymbol: ActivitySport.symbol(for: r.sport), subtitle: NunaWorkoutFormat.span(r.startTs, r.endTs), titleActivity: r.sport, trailing: AnyView(actionsMenu(r))) { content(r) }
