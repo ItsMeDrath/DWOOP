@@ -23,12 +23,12 @@ enum NunaAnyaDayContext {
         let week = days.suffix(7).compactMap(\.strain).reduce(0, +)
         let goal = UserDefaults.standard.double(forKey: "nuna.goal.weeklyEffort")
 
-        // Use the exact same loaded ledger as the Sleep screen. It credits naps and
-        // follows the same day grouping, so Anya cannot report debt the Sleep screen has cleared.
-        let need = SleepModel.debtNeedMin(days: days)
+        // Use the same per-night calculation as the Sleep screen's Need and debt card.
+        // That card uses NunaSleepNeedCalculation (including nap sleep and daily Strain),
+        // not the separate historical SleepDebt ledger.
         let sleepModel = NunaSleepModel.shared
         await sleepModel.load(repo: repo, historyDays: 60, includeMotion: false)
-        let ledger = sleepModel.ledger
+        let latestNight = sleepModel.nights.first
         let midsleep = await repo.habitualMidsleepSec()
 
         // The wearer's own rating of the last sessions, from the same store the review screen writes.
@@ -64,8 +64,8 @@ enum NunaAnyaDayContext {
             usualEffort: usual,
             weekEffort: week > 0 ? week : nil,
             weeklyEffortGoal: goal > 0 ? goal : nil,
-            sleepNeedMin: (ledger?.nightCount ?? 0) > 0 ? need : nil,
-            sleepDebtMin: ledger.map { $0.nightCount > 0 ? $0.magnitudeMin : 0 },
+            sleepNeedMin: latestNight.map { sleepModel.need($0) },
+            sleepDebtMin: latestNight.map { sleepModel.debt($0) },
             habitualMidsleepSec: midsleep,
             sessionFeelings: feelings,
             outdoorLine: outdoor?.line,
