@@ -209,12 +209,10 @@ struct TrendsReportDocument {
     private var masthead: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .firstTextBaseline) {
-                Image("WHOOPWordmark")
-                    .resizable()
-                    .renderingMode(.template)
-                    .scaledToFit()
-                    .frame(width: 72, height: 13)
-                    .foregroundStyle(.black)
+                // A vector path, not the SVG asset: the asset renders blank in the exported PDF.
+                ReportWordmarkShape()
+                    .fill(Color.black, style: FillStyle(eoFill: true))
+                    .frame(width: 72, height: 72 * 40 / 236)
                     .accessibilityLabel("WHOOP")
                 Spacer()
                 Text(verbatim: String(localized: "Generated \(generatedOn)")).font(.system(size: 9)).foregroundColor(Ink.tertiary)
