@@ -1212,6 +1212,12 @@ struct NunaLiveWorkoutView: View {
             // Back from the summary of a session that has ended leaves the live screen too: there is nothing left on it.
             .onChange(of: savedActivity == nil) { _, gone in if gone, autoOpened || model.activeWorkout == nil, model.lastWorkout != nil { onClose() } }
         }
+        .simultaneousGesture(DragGesture(minimumDistance: 28).onEnded { value in
+            guard value.translation.height > 100,
+                  abs(value.translation.height) > abs(value.translation.width) * 1.25,
+                  model.activeWorkout != nil else { return }
+            onClose()
+        })
         .task {
             let info = ActivityAuthorizationInfo()
             liveActivitiesOn = info.areActivitiesEnabled
@@ -1226,13 +1232,20 @@ struct NunaLiveWorkoutView: View {
                 if goal.distanceOn, model.gpsRecorder.distanceM >= goal.km * 1000 { distanceHit = true }
             }
         }
-        .onDisappear { model.stopRealtimeHR(); ScreenIdle.keepAwake(false) }
+        .onDisappear {
+            // Minimising the screen must not stop HR sampling for the still-running workout.
+            if model.activeWorkout == nil { model.stopRealtimeHR() }
+            ScreenIdle.keepAwake(false)
+        }
         // iOS can drop the "keep awake" flag while the app is away (lock screen, another app, a sync that finished), so it is asked for
         // again every time the app comes back to the front.
         .onChange(of: scenePhase) { _, phase in if phase == .active { holdScreenAwake() } }
         .onChange(of: keepScreenOn) { _, _ in holdScreenAwake() }
         .onChange(of: model.activeWorkout == nil) { _, ended in
-            if ended { ScreenIdle.keepAwake(false) }
+            if ended {
+                model.stopRealtimeHR()
+                ScreenIdle.keepAwake(false)
+            }
         }
         .nunaEndFlow(isPresented: $confirmEnd, subject: .workout, save: { finishAndOpenActivity() }, discard: { model.discardWorkout(); onClose() })
     }
