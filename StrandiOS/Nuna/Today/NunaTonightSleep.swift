@@ -12,13 +12,13 @@ struct NunaTonightSleep: View {
     @EnvironmentObject private var model: AppModel
     /// A 5/MG strap is sent the alarm only while this is on, so the card does not say "Alarm on" for one that was never armed.
     @AppStorage(PuffinExperiment.defaultsKey) private var strapAlarm5 = false
-    @AppStorage(NunaGoals.sleepMinutes) private var sleepGoal = 0
+    @ObservedObject private var sleepModel = NunaSleepModel.shared
     /// The strap buzzes only while wrist alerts are on, so the card says "Alarm on" only then.
     @AppStorage(AppModel.wristAlertsMasterKey) private var wristAlerts = false
 
     /// The same bedtime the Sleep planner names, worked out in one place.
     private var bedtimeMinutes: Int {
-        NunaSleepPlan(wakeMinutes: behavior.smartAlarmMinutes, needMinutes: NunaSleepPlan.needMinutes(goal: sleepGoal),
+        NunaSleepPlan(wakeMinutes: behavior.smartAlarmMinutes, needMinutes: Int(sleepModel.tonightNeedMin.rounded()),
                       goalPercent: behavior.smartAlarmMode == "exact" ? 100 : behavior.smartAlarmGoal).bedtimeMinutes
     }
 
@@ -70,6 +70,11 @@ struct NunaTonightSleep: View {
                     .background(buttonFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
                 .buttonStyle(.plain).padding(.top, 14)
+            }
+        }
+        .task {
+            if !sleepModel.loaded {
+                await sleepModel.load(repo: model.repo, includeMotion: false)
             }
         }
     }
