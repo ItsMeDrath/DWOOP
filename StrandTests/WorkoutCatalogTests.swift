@@ -44,6 +44,12 @@ final class WorkoutCatalogTests: XCTestCase {
         XCTAssertEqual(WorkoutCatalog.sport(named: "  bodybuilding  ")?.name, "Bodybuilding")
     }
 
+    func testStrengthTrainingAliasResolvesToSingleStrengthPreset() {
+        XCTAssertEqual(WorkoutCatalog.sport(named: "Strength Training")?.name, "Strength")
+        XCTAssertEqual(WorkoutCatalog.sport(named: "strengthtrainer")?.name, "Strength")
+        XCTAssertEqual(WorkoutCatalog.matching("Strength Training").map(\.name), ["Strength"])
+    }
+
     /// #768: the newly requested presets exist and are spelled byte-for-byte the way Android persists
     /// them (the stored sport label round-trips cross-platform via CSV / export). Racket + court sports
     /// have no route so GPS defaults off; snow sports cover ground so GPS defaults on.
