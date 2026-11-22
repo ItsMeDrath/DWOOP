@@ -1,7 +1,7 @@
 # NOOP — Terms of Use & Acknowledgment
 
-> **About the name.** The iOS app is called **PHMN** and is an internal fork of the NOOP project. In these terms,
-> "NOOP" means PHMN and the NOOP project it is based on, together with their contributors.
+> **About the name.** The iOS app is an independent fork of the NOOP project. In these terms,
+> "NOOP" means this iOS app and the NOOP project it is based on, together with their contributors.
 
 **Version 1.1**
 
