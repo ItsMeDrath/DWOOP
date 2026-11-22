@@ -34,8 +34,13 @@ enum AnyaDayContext {
         /// Effort summed over the last seven days including today.
         var weekEffort: Double?
         var weeklyEffortGoal: Double?
-        /// Personal sleep need and the recency-weighted debt, minutes.
+        /// Total sleep target tonight, minutes (baseline + Strain adjustment + carried debt).
         var sleepNeedMin: Double?
+        /// Fixed healthy minimum, normally 450 minutes (7h 30m).
+        var sleepBaselineMin: Double?
+        /// Additional sleep need from Strain, minutes (3 minutes per WHOOP Strain point).
+        var sleepStrainAdjustmentMin: Double?
+        /// Current carried sleep debt entering tonight, minutes.
         var sleepDebtMin: Double?
         /// Habitual midsleep as local seconds since midnight.
         var habitualMidsleepSec: Int?
@@ -134,15 +139,19 @@ enum AnyaDayContext {
             lines.append("HOW RECENT SESSIONS FELT (the person's own rating, newest first): " + i.sessionFeelings.prefix(3).joined(separator: "; ") + ".")
         }
 
-        // Tonight: need, debt, and the bedtime that follows.
+        // Tonight: keep the fixed healthy baseline, Strain adjustment and carried debt distinct.
+        // These values are authoritative; never infer debt from an older chat message or a historical average.
         if let need = i.sleepNeedMin, need > 0 {
-            var s = "SLEEP TONIGHT: personal need about \(hours(need))"
-            if let d = i.sleepDebtMin, d >= 10 { s += ", with a recent debt of about \(hours(d))" }
-            else if i.sleepDebtMin != nil { s += ", no meaningful debt" }
-            if let mid = i.habitualMidsleepSec {
-                s += "; centred on the usual midsleep \(clock(seconds: mid)), being asleep by about \(clock(seconds: asleepBySec(midsleepSec: mid, needMin: need)))"
+            var s = "SLEEP TONIGHT: healthy baseline \(hours(i.sleepBaselineMin ?? 450)) (fixed 7h 30m); Strain adds \(hours(i.sleepStrainAdjustmentMin ?? max(0, need - (i.sleepBaselineMin ?? 450) - (i.sleepDebtMin ?? 0)))) at 3 minutes per WHOOP Strain point"
+            if let d = i.sleepDebtMin {
+                if d >= 10 { s += "; current carried sleep debt \(hours(d))" }
+                else { s += "; current carried sleep debt is ZERO (\(Int(d.rounded())) minutes). Do not claim or carry forward any old debt amount." }
             }
-            s += ". Debt is repaid over several nights: never ask for more than about 45 minutes of extra sleep in one night."
+            s += "; total target tonight \(hours(need))"
+            if let mid = i.habitualMidsleepSec {
+                s += "; centred on the usual midsleep \(clock(seconds: mid)), be asleep by about \(clock(seconds: asleepBySec(midsleepSec: mid, needMin: need)))"
+            }
+            s += ". Do not describe the total target as the baseline. Do not recommend extra sleep to repay debt when current carried debt is zero."
             lines.append(s)
         }
         // The weather and air, read a moment ago: a reason to shorten, move or shift a session, never a forecast for later in the week.
