@@ -71,18 +71,22 @@ final class HRZonesTests: XCTestCase {
 
     func testWhoopHRRZonesUseFortySixtySeventyEightyNinetyAndHundredPercent() {
         let zs = HRZones.whoopBands(maxHR: 200, restingHR: 60)
-        XCTAssertEqual(zs.zones.map(\.lower), [116, 144, 158, 172, 186])
-        XCTAssertEqual(zs.zones.map(\.upper), [144, 158, 172, 186, 200])
+        XCTAssertEqual(zs.zones.map(\.lower), [116, 145, 159, 173, 187])
+        XCTAssertEqual(zs.zones.map(\.upper), [145, 159, 173, 187, 200])
         XCTAssertEqual(zs.zoneNumber(forBPM: 115), 0)
         XCTAssertEqual(zs.zoneNumber(forBPM: 116), 1)
-        XCTAssertEqual(zs.zoneNumber(forBPM: 144), 2)
-        XCTAssertEqual(zs.zoneNumber(forBPM: 158), 3)
-        XCTAssertEqual(zs.zoneNumber(forBPM: 172), 4)
-        XCTAssertEqual(zs.zoneNumber(forBPM: 186), 5)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 144), 1)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 145), 2)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 158), 2)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 159), 3)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 172), 3)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 173), 4)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 186), 4)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 187), 5)
     }
 
     func testWhoopDefaultLowerBoundsRoundUp() {
-        XCTAssertEqual(HRZones.whoopDefaultLowerBounds(maxHR: 191, restingHR: 59), [112, 139, 152, 165, 178])
+        XCTAssertEqual(HRZones.whoopDefaultLowerBounds(maxHR: 191, restingHR: 59), [112, 139, 152, 166, 179])
     }
 
     func testTimeInZoneAccountsForAllTime() {
