@@ -104,10 +104,16 @@ public enum HRZones {
         let reserve = max(maxHR - restingHR, 1)
         let edges: [Double] = [0.40, 0.60, 0.70, 0.80, 0.90, 1.00]
         let custom = customLowerBounds.flatMap(validCustomLowerBounds)
+        // WHOOP rounds each percentage boundary to the nearest BPM; the next zone starts
+        // one BPM above that rounded upper edge. This preserves contiguous integer ranges.
+        let automaticStarts = (0..<5).map { i -> Double in
+            let boundary = (restingHR + reserve * edges[i]).rounded()
+            return boundary + (i == 0 ? 0 : 1)
+        }
         let zones = (0..<5).map { i -> HRZone in
-            let lower = custom?[i] ?? (restingHR + reserve * edges[i])
+            let lower = custom?[i] ?? automaticStarts[i]
             let upper = custom.map { i < 4 ? $0[i + 1] : max(maxHR, $0[i]) }
-                ?? (restingHR + reserve * edges[i + 1])
+                ?? (i < 4 ? automaticStarts[i + 1] : maxHR)
             return HRZone(number: i + 1, lower: lower, upper: upper,
                           lowerPct: edges[i], upperPct: edges[i + 1])
         }
@@ -117,7 +123,9 @@ public enum HRZones {
     /// WHOOP-style integer editor starts, rounded up so integer BPM classification matches the boundaries.
     public static func whoopDefaultLowerBounds(maxHR: Double, restingHR: Double) -> [Int] {
         let reserve = max(maxHR - restingHR, 1)
-        return [0.40, 0.60, 0.70, 0.80, 0.90].map { Int(ceil(restingHR + reserve * $0)) }
+        return [0.40, 0.60, 0.70, 0.80, 0.90].enumerated().map { i, pct in
+            Int((restingHR + reserve * pct).rounded()) + (i == 0 ? 0 : 1)
+        }
     }
 
     /// %HRmax band edges for zones 1...5: [0.50, 0.60, 0.70, 0.80, 0.90, 1.00].
