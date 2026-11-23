@@ -2,6 +2,7 @@ import Foundation
 import Combine
 import SwiftUI
 import StrandAnalytics
+import WhoopProtocol
 
 /// User profile (age/sex/body metrics/HR-max) persisted in UserDefaults.
 /// Powers HR zones, calories and recovery baselines.
@@ -208,17 +209,30 @@ final class ProfileStore: ObservableObject {
         return hrZoneThresholds.map(Double.init)
     }
 
+    /// Rolling 30-day mean RHR used by WHOOP-style HRR display zones.
+    @Published private(set) var zoneRestingHR: Double = 60
+
+    func updateZoneRestingHR(from days: [DailyMetric]) {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -29, to: Date()) ?? Date()
+        let cutoffKey = Repository.localDayKey(cutoff)
+        let values = days.filter { $0.day >= cutoffKey }.compactMap { $0.restingHr.map(Double.init) }
+        guard !values.isEmpty else { return }
+        zoneRestingHR = values.reduce(0, +) / Double(values.count)
+    }
+
     /// The single display-zone model used by live HR, workout splits, and haptic coaching.
     var hrZoneSet: HRZoneSet {
-        HRZones.zones(maxHR: Double(hrMax), customLowerBounds: customHRZoneLowerBounds)
+        HRZones.whoopBands(maxHR: Double(hrMax), restingHR: zoneRestingHR,
+                           customLowerBounds: customHRZoneLowerBounds)
     }
 
     var hasCustomHRZones: Bool { customHRZoneLowerBounds != nil }
 
-    /// Enable by seeding the editor with boundaries that classify integer BPM exactly like today's
-    /// conventional percentages; disabling removes the override and immediately restores defaults.
+    /// Enable by seeding the editor with current WHOOP-style HRR boundaries.
     func setCustomHRZonesEnabled(_ enabled: Bool) {
-        hrZoneThresholds = enabled ? HRZones.defaultLowerBounds(maxHR: Double(hrMax)) : []
+        hrZoneThresholds = enabled
+            ? HRZones.whoopDefaultLowerBounds(maxHR: Double(hrMax), restingHR: zoneRestingHR)
+            : []
     }
 
     /// Move one boundary while preserving strict ordering. Neighbour-aware clamps make it impossible
