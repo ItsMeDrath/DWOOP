@@ -6,11 +6,9 @@ import StrandDesign
 // MARK: - The version, shown at the bottom of Settings
 
 enum NunaAppVersion {
-    /// "App version: 2.0.0 (build 416)".
+    /// "App version: 2.0.0". The build number is left out: it only repeats the version.
     static var text: String {
-        let version = UpdateWatch.installedVersion
-        let build = (Bundle.main.infoDictionary?["CFBundleVersion"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "–"
-        return String(localized: "App version: \(version) (build \(build))")
+        String(localized: "App version: \(UpdateWatch.installedVersion)")
     }
 }
 

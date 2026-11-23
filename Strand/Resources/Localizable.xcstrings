@@ -8127,7 +8127,7 @@
  "App Settings": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Pengaturan Aplikasi"}}}},
  "Privacy Settings": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Pengaturan Privasi"}}}},
  "How your scores are worked out": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Cara skormu dihitung"}}}},
- "App version: %@ (build %@)": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Versi aplikasi: %1$@ (build %2$@)"}}}},
+ "App version: %@": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Versi aplikasi: %@"}}}},
  "Activity Settings": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Pengaturan Aktivitas"}}}},
  "AI Settings": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Pengaturan AI"}}}},
  "Data Export": {"localizations": {"id": {"stringUnit": {"state": "translated", "value": "Ekspor Data"}}}},
