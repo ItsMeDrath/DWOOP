@@ -1839,7 +1839,7 @@ final class AICoachEngine: ObservableObject {
             evidence.append("RHR \(rhr)bpm\(comparison)")
         }
         if let recentEffort {
-            let comparison = effortBaseline.map { " vs \(Self.strain21($0)) average daily Strain (/21)" } ?? ""
+            let comparison = effortBaseline.map { " vs \(Self.strain21($0)) average daily Strain" } ?? ""
             evidence.append("recent Strain \(Self.strain21(recentEffort))\(comparison)")
         } else if let effort {
             evidence.append("Strain \(Self.strain21(effort))")
