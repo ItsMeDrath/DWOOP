@@ -1,5 +1,8 @@
 import XCTest
 @testable import Strand
+#if os(iOS)
+import StrandAnalytics
+#endif
 
 final class AnyaDayContextTests: XCTestCase {
 
@@ -58,10 +61,11 @@ final class AnyaDayContextTests: XCTestCase {
         i.sleepDebtMin = 80
         i.habitualMidsleepSec = 3 * 3600
         let out = AnyaDayContext.block(i)
-        XCTAssertTrue(out.contains("Effort so far today 6.2"), out)   // %.1f of 6.25 rounds to even → 6.2
-        XCTAssertTrue(out.contains("usual day is about 10.0"))
-        XCTAssertTrue(out.contains("last 7 days 48 of the weekly target 70"))
-        XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +12-17 Effort"))
+        XCTAssertTrue(out.contains("Strain so far today 1.3"), out)
+        XCTAssertTrue(out.contains("usual day is about 2.1"))
+        XCTAssertTrue(out.contains("last 7 days 10.2 of the weekly target 14.7"))
+        XCTAssertTrue(out.contains("STRAIN (WHOOP 0-21 daily scale; weekly total is cumulative)"))
+        XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +2.4-3.7 Strain"))
         XCTAssertTrue(out.contains("Charge of 72"))
         XCTAssertTrue(out.contains("healthy baseline 7h 30m"))
         XCTAssertTrue(out.contains("total target tonight 7h 45m"))
@@ -201,3 +205,53 @@ final class AnyaNextStepTests: XCTestCase {
         XCTAssertFalse(s.contains("quality session"), s)
     }
 }
+
+#if os(iOS)
+final class NunaWhoopAgeCoachContextTests: XCTestCase {
+    func testCoachGetsTheSameWHOOPAgeAndAllNineSignedFactors() throws {
+        let inputs = VitalityEngine.Inputs(
+            chronoAge: 24,
+            restingHR: 55,
+            vo2max: 50,
+            expectedVO2max: 45,
+            sleepHours: 8,
+            sleepConsistency: 0.8,
+            steps: 8_000,
+            zonesLowMin: 100,
+            zonesHighMin: 20,
+            strengthMin: 60,
+            leanMassPct: 80
+        )
+        let contributions = VitalityEngine.contributions(inputs)
+        let age = try XCTUnwrap(VitalityEngine.compute(inputs)?.bodyAge)
+        let result = NunaHealthspanResult(inputs: inputs, contributions: contributions, bodyAge: age)
+        let context = NunaAnyaDayContext.whoopAgeContext(result)
+
+        XCTAssertTrue(context.contains("WHOOP AGE (same seven-day value shown in the Health tab)"), context)
+        XCTAssertTrue(context.contains(String(format: "WHOOP Age %.1f years", age)), context)
+        XCTAssertTrue(context.contains("9 of 9 factors"), context)
+        XCTAssertTrue(context.contains("Sleep consistency: 80%"), context)
+        XCTAssertTrue(context.contains("Average sleep: 8h 0m"), context)
+        XCTAssertTrue(context.contains("HR zones 1–3 per week: 1h 40m"), context)
+        XCTAssertTrue(context.contains("HR zones 4–5 per week: 0h 20m"), context)
+        XCTAssertTrue(context.contains("Strength activity per week: 1h 0m"), context)
+        XCTAssertTrue(context.contains("Daily steps average: 8,000"), context)
+        XCTAssertTrue(context.contains("VO₂ max: 50.0 ml/kg/min"), context)
+        XCTAssertTrue(context.contains("Resting heart rate: 55.0 bpm"), context)
+        XCTAssertTrue(context.contains("Lean body mass: 80.0%"), context)
+        XCTAssertTrue(context.contains("positive years add to WHOOP Age; negative years reduce it"), context)
+        XCTAssertTrue(context.contains("not a biological age or medical assessment"), context)
+    }
+
+    func testWHOOPAgeDoesNotInventNumberWhenFewerThanThreeFactorsExist() {
+        let inputs = VitalityEngine.Inputs(chronoAge: 24, restingHR: 60, sleepHours: 7.5)
+        let contributions = VitalityEngine.contributions(inputs)
+        let result = NunaHealthspanResult(inputs: inputs, contributions: contributions, bodyAge: nil)
+        let context = NunaAnyaDayContext.whoopAgeContext(result)
+
+        XCTAssertTrue(context.contains("WHOOP Age is not available yet"), context)
+        XCTAssertTrue(context.contains("2 of 9 factors"), context)
+        XCTAssertTrue(context.contains("VO₂ max: unavailable (not counted)"), context)
+    }
+}
+#endif
