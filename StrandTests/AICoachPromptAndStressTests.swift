@@ -91,7 +91,7 @@ final class AICoachPromptAndStressTests: XCTestCase {
 
         let summary = AICoachEngine.bodyStateSummary(current: days[2], history: days)
 
-        XCTAssertTrue(summary.contains("under-recovered despite the Charge score"), summary)
+        XCTAssertTrue(summary.contains("under-recovered despite the Recovery score"), summary)
         XCTAssertTrue(summary.contains("sleep 5.5h"), summary)
         XCTAssertTrue(summary.contains("HRV 48ms"), summary)
         XCTAssertTrue(summary.contains("RHR 57bpm"), summary)
@@ -104,7 +104,8 @@ final class AICoachPromptAndStressTests: XCTestCase {
 
         XCTAssertTrue(summary.contains("steady but not a clear green light"), summary)
         XCTAssertTrue(summary.contains("Confidence limited"), summary)
-        XCTAssertTrue(summary.contains("recent effort 4.0"), summary)
+        XCTAssertTrue(summary.contains("Strain 0.8"), summary)
+        XCTAssertFalse(summary.contains("4.0"), summary)
     }
 
     private func metric(day: String, sleep: Double?, hrv: Double?, rhr: Int?, charge: Double?, effort: Double?) -> DailyMetric {
@@ -113,27 +114,45 @@ final class AICoachPromptAndStressTests: XCTestCase {
                     recovery: charge, strain: effort, exerciseCount: nil)
     }
 
-    // MARK: - Feature 2: derived stress line
+    // MARK: - WHOOP Stress Monitor (same model and 0–3 score as StressView)
 
-    func testStressIndexSummaryFormatsOneRoundedNumber() {
-        // The line carries exactly the rounded SI plus the labelled proxy note — a derived summary.
-        let line = AICoachEngine.stressIndexSummary(si: 223.82920110192836)
-        XCTAssertTrue(line.hasPrefix("Stress (SI): 224 "), "rounds and labels the SI: \(line)")
-        XCTAssertTrue(line.contains("Baevsky Stress Index"))
-        // No raw R-R reading leaks into the summary — it's a single derived number only.
-        XCTAssertFalse(line.contains("700"))
-        XCTAssertFalse(line.contains("ms"), "no raw R-R values in the summary line")
+    func testStressContextUsesTheStoredStressScreenScoreNotBaevskyIndex() throws {
+        let day = metric(day: "2026-11-23", sleep: nil, hrv: nil, rhr: nil, charge: nil, effort: nil)
+        let model = try XCTUnwrap(StressModel(days: [day], stored: [(day: day.day, value: 0.6)]))
+        let line = AICoachEngine.stressMonitorSummary(model)
+
+        XCTAssertTrue(line.contains("Stress Monitor (0–3; same score as the Stress screen): 0.6"), line)
+        XCTAssertTrue(line.contains("recorded daily Stress score"), line)
+        XCTAssertFalse(line.contains("Baevsky"), line)
+        XCTAssertFalse(line.contains("Stress (SI)"), line)
     }
 
-    func testSummaryNumberMatchesStressViewComputation() {
-        // The SAME 22-beat golden series StressIndexTests pins (SI ≈ 223.83 → rounds to 224). The coach
-        // line must report the value `StressIndex.stressIndex(rr:)` produces — the exact StressView path.
-        let raw: [Double] = [700, 720, 740, 760, 780, 800, 820, 840, 860, 800, 800,
-                             800, 800, 820, 780, 800, 810, 790, 800, 800, 805, 795]
-        let rr = raw.enumerated().map { RRInterval(ts: 1000 + $0.offset, rrMs: Int($0.element)) }
-        let si = StressIndex.stressIndex(rr: rr)
-        XCTAssertNotNil(si)
-        let expected = "Stress (SI): \(Int(si!.rounded())) "
-        XCTAssertTrue(AICoachEngine.stressIndexSummary(si: si!).hasPrefix(expected))
+    func testStressContextUsesTheStressScreensDerivedScoreWhenNoStoredValueExists() throws {
+        let days = [
+            metric(day: "2026-11-20", sleep: nil, hrv: 55, rhr: 58, charge: nil, effort: nil),
+            metric(day: "2026-11-21", sleep: nil, hrv: 52, rhr: 60, charge: nil, effort: nil),
+            metric(day: "2026-11-22", sleep: nil, hrv: 48, rhr: 64, charge: nil, effort: nil),
+        ]
+        let model = try XCTUnwrap(StressModel(days: days, stored: []))
+        let line = AICoachEngine.stressMonitorSummary(model)
+        let expected = String(format: "%.1f", model.score)
+
+        XCTAssertTrue(line.contains("Stress Monitor (0–3; same score as the Stress screen): \(expected)"), line)
+        XCTAssertTrue(line.contains("derived from resting HR and HRV"), line)
+        XCTAssertTrue(line.contains("resting HR"), line)
+        XCTAssertTrue(line.contains("HRV"), line)
+        XCTAssertFalse(line.contains("Baevsky"), line)
+    }
+
+    func testPromptDefinesWHOOPScalesAndKeepsStrainDenominatorOutOfReplies() {
+        let prompt = AICoachEngine.defaultSystemPrompt
+        XCTAssertTrue(prompt.contains("Recovery is 0-100"))
+        XCTAssertTrue(prompt.contains("Strain is 0-21"))
+        XCTAssertTrue(prompt.contains("Stress Monitor is 0-3"))
+        XCTAssertTrue(prompt.contains("Sleep Performance is 0-100"))
+        XCTAssertTrue(prompt.contains("Strain is 6.3 today"))
+        XCTAssertTrue(prompt.contains("WHOOP Age"))
+        XCTAssertFalse(prompt.contains("6.3/21"))
+        XCTAssertFalse(prompt.contains("Baevsky Stress Index"))
     }
 }
