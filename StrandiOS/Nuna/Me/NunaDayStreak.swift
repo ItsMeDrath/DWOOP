@@ -12,7 +12,7 @@ struct NunaStreak {
     let keys: Set<String>
     let todayHasReading: Bool
 
-    static let milestones = [3, 7, 10, 25, 50, 75, 100, 150, 200, 365, 500, 730, 1000]
+    static let milestones = [3, 7, 10, 25, 50, 75, 100, 150, 200, 365, 500, 730, 1000, 2000]
 
     static func compute(days: [DailyMetric], now: Date = Date()) -> NunaStreak {
         let cal = Calendar.current
@@ -257,7 +257,10 @@ struct NunaDayStreakView: View {
             VStack(spacing: 12) {
                 Text(verbatim: String(localized: "\(next - s.current) more days")).font(.nuna(size: 14.5, weight: .regular)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                 Capsule().fill(Color.white.opacity(0.14)).frame(height: 7).overlay(alignment: .leading) {
-                    GeometryReader { g in Capsule().fill(Color(red: 1, green: 0.42, blue: 0.14)).frame(width: max(8, g.size.width * CGFloat(min(max(fraction, 0), 1)))) }
+                    GeometryReader { g in
+                        Capsule().fill(LinearGradient(colors: NunaFlameTier.tier(forDays: s.current).outer, startPoint: .top, endPoint: .bottom))
+                            .frame(width: max(8, g.size.width * CGFloat(min(max(fraction, 0), 1))))
+                    }
                 }
                 Text("to unlock your next milestone.").font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).multilineTextAlignment(.center)
             }

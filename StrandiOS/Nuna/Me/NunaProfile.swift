@@ -416,13 +416,14 @@ struct NunaProfileView: View {
     // MARK: Streak and memory
 
     private var dayStreak: Int { NunaStreak.compute(days: allDays).current }
+    private var dayStreakFlame: NunaFlameTier { .tier(forDays: dayStreak) }
 
     private var streakRow: some View {
         NavigationLink(value: NunaMeRoute.dayStreak) {
             HStack(spacing: 12) {
                 Text("Day streak").font(.nuna(size: 13.5, weight: .heavy)).tracking(nunaTrackingLabel * 1.3).textCase(.uppercase).foregroundStyle(NunaPalette.textPrimary)
                 Spacer(minLength: 8)
-                NunaFlameIcon(height: 22)
+                NunaFlameIcon(height: 22, outer: dayStreakFlame.outer, inner: dayStreakFlame.core)
                 Text(verbatim: String(localized: "\(dayStreak) Days")).font(.nuna(size: 15, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
                 Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary)
             }

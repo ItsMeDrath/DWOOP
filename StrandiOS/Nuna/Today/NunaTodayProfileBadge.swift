@@ -42,7 +42,7 @@ struct NunaTodayProfileBadge: View {
         ZStack(alignment: .leading) {
             Button { pushMe(.dayStreak) } label: {
                 HStack(spacing: 10) {
-                    NunaFlameIcon(height: 20)
+                    NunaFlameIcon(height: 20, outer: NunaFlameTier.tier(forDays: streak).outer, inner: NunaFlameTier.tier(forDays: streak).core)
                     // DIN Medium at 13 pt: the number is a quiet label beside the flame, not a figure to read at a glance.
                     Text(verbatim: "\(streak)").font(.nuna(size: 13, weight: .medium, design: NunaType.design)).tracking(0).foregroundStyle(NunaPalette.textPrimary)
                 }
