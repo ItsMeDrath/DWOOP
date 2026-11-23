@@ -1,7 +1,6 @@
 # Release notes
 
-Each GitHub release of PHMN is written in one fixed shape, because the app reads it: **About › What's new** fetches the releases of this repository and shows any release the
-installed build does not carry, so a release appears in the app the moment it is published, with no new build.
+Each GitHub release of PHMN is written in one fixed shape, so the notes read the same from one release to the next. The app no longer shows or fetches them in-app: they live on the repository's Releases page.
 
 ```markdown
 ## PHMN <version>

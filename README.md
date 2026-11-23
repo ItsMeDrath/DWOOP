@@ -391,7 +391,7 @@ All off by default, all with your own keys, none sends anything until you ask.
 <tr>
 <td valign="top">
 
-The **More** tab is the settings hub, laid out after WHOOP's: **Account and settings** (My Account, Device Settings, App Settings, Privacy Settings), **Support** (How it works, What's new, Feedback, About), a search for the individual setting (type
+The **More** tab is the settings hub, laid out after WHOOP's: **Account and settings** (My Account, Device Settings, App Settings, Privacy Settings), **Support** (How it works, Feedback, About), a search for the individual setting (type
 "live activity" and it opens the right switch) and the app version at the bottom. Choices are drop-downs and every setting is one card.
 
 - **My Account** has your profile and levels, **Achievements**, your **persona** (age and sex; weight and height are read from Apple Health), your **targets** and your **heart-rate zones** with the maximum heart rate.
@@ -405,7 +405,7 @@ The **More** tab is the settings hub, laid out after WHOOP's: **Account and sett
   - *Application*: which of vital signs, stress, sleep, water, lab book, nutrition, nap, Strength Trainer and Trends are shown.
 - **Advanced and experiments**: the Strain method, continuous overnight HRV, power saving, **Experiments** (Rhythm, Live Sessions, sleep staging V2, an estimated SpO₂, wake refinement from motion, a personal stress baseline and the **WHOOP 5/MG wake alarm**), and a **Test Centre** for diagnostics.
 - **Data and Privacy**: **Data and integrations**, **Backup** and **Privacy**.
-- **Support**: **How it works**, **What's new**, **Feedback** (opens a GitHub issue, see below) and **About** with the open-source notices.
+- **Support**: **How it works**, **Feedback** (opens a GitHub issue, see below) and **About** with the open-source notices.
 
 </td>
 <td width="250" valign="top">
@@ -465,7 +465,7 @@ With a free Apple ID, **HealthKit is not available** to a sideloaded build. Buil
 
 Pairing a WHOOP 5.0 / MG needs the strap freed from the official WHOOP app first; see [docs/IOS.md](docs/IOS.md) and [NOOP's README](https://github.com/ryanbr/noop#readme).
 
-**What's new** in each release is in the app under **About › What's new**, which also reads new releases from here by itself, and on the [Releases](https://github.com/aansun/PHMNoop/releases) page, in two groups:
+**What's new** in each release is on the [Releases](https://github.com/aansun/PHMNoop/releases) page, in two groups:
 *New / Enhancement* and *Bug Fixing*. How releases are written is in [docs/phmn-releases](docs/phmn-releases).
 
 ## Build from source
