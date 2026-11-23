@@ -62,6 +62,12 @@ final class NunaTodayModel: ObservableObject {
     /// refreshes or the nap setting changes; reloading 60 days of sessions on every date change is what made the Sleep score lag behind
     /// Charge and Effort.
     private var sleepLoadKey: String?
+    /// The last Effort worked out for each day, live heart rate included. Scoring a day's heart rate is the slowest step in `load`, so the ring
+    /// starts from this (or the stored figure) and `load` replaces it. Effort never drops (`effectiveEffort` floors at what is earned), so a
+    /// remembered figure can only be at or below the new one.
+    private static var lastEffort: [String: Double] = [:]
+    /// The day the current `effort` was set for, so `applyDaily` seeds it once per day and never overwrites a figure `load` has already scored.
+    private var effortKey: String?
 
     var isToday: Bool { dayOffset == 0 }
 
@@ -163,6 +169,12 @@ final class NunaTodayModel: ObservableObject {
         spo2Delta = change(spo2, source: spo2Src) { $0.spo2Pct }
         // The strap's own count, when the day has one; `load` goes on to Apple Health and the estimate for a day without.
         if let counted = row?.steps { steps = Double(counted) }
+        // The ring's Effort: the last scored figure for this day, else the stored one. `load` scores the day's heart rate and replaces it.
+        if effortKey != key {
+            effort = Self.lastEffort[key].flatMap { StrainScorer.effectiveEffort(live: $0, stored: row?.strain) }
+                ?? StrainScorer.effectiveEffort(live: nil, stored: row?.strain)
+            effortKey = key
+        }
         return (key, today, row)
     }
 
@@ -183,6 +195,8 @@ final class NunaTodayModel: ObservableObject {
             live = StrainScorer.strain(hr, maxHR: maxHR, restingHR: restHR, method: PuffinExperiment.effortMethod, sex: profile.sex)
         }
         effort = StrainScorer.effectiveEffort(live: live, stored: row?.strain)
+        effortKey = key
+        if let effort { Self.lastEffort[key] = effort }
 
         async let stepsA = repo.exploreSeries(key: "steps_est", source: "my-whoop")
         async let appleA = repo.appleDailyRows()
