@@ -91,7 +91,7 @@ final class AICoachPromptAndStressTests: XCTestCase {
 
         let summary = AICoachEngine.bodyStateSummary(current: days[2], history: days)
 
-        XCTAssertTrue(summary.contains("under-recovered despite the Charge score"), summary)
+        XCTAssertTrue(summary.contains("under-recovered despite the Recovery score"), summary)
         XCTAssertTrue(summary.contains("sleep 5.5h"), summary)
         XCTAssertTrue(summary.contains("HRV 48ms"), summary)
         XCTAssertTrue(summary.contains("RHR 57bpm"), summary)
@@ -104,7 +104,7 @@ final class AICoachPromptAndStressTests: XCTestCase {
 
         XCTAssertTrue(summary.contains("steady but not a clear green light"), summary)
         XCTAssertTrue(summary.contains("Confidence limited"), summary)
-        XCTAssertTrue(summary.contains("recent effort 4.0"), summary)
+        XCTAssertTrue(summary.contains("recent strain 0.8"), summary)
     }
 
     private func metric(day: String, sleep: Double?, hrv: Double?, rhr: Int?, charge: Double?, effort: Double?) -> DailyMetric {
@@ -114,6 +114,13 @@ final class AICoachPromptAndStressTests: XCTestCase {
     }
 
     // MARK: - WHOOP-native scores
+
+    func testDailyContextLineMatchesWHOOPStrainDisplay() {
+        let engine = makeEngine()
+        let row = metric(day: "2026-09-04", sleep: 450, hrv: 65, rhr: 52, charge: 72, effort: 50)
+        XCTAssertTrue(engine.dayLine(row).contains("Strain 10.5"), engine.dayLine(row))
+        XCTAssertFalse(engine.dayLine(row).contains("Strain 50.0"), engine.dayLine(row))
+    }
 
     func testCoachUsesWHOOPStrainScaleRatherThanInternalHundredScale() {
         XCTAssertEqual(AICoachEngine.whoopStrain(100), 21, accuracy: 1e-9)
