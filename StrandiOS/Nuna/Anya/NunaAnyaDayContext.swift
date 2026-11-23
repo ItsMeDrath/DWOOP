@@ -96,9 +96,10 @@ enum NunaAnyaDayContext {
             // The orb displays WHOOP Age as a whole number (NunaFitnessOrbCenter, %.0f).
             let displayedAge = String(format: "%.0f", locale: AppLanguage.activeLocale, age)
             let difference = Int((inputs.chronoAge - age).rounded())
+            let yearWord = abs(difference) == 1 ? "year" : "years"
             let relation = difference == 0 ? "about the same as chronological age"
-                : difference > 0 ? "\(difference) years younger than chronological age"
-                : "\(abs(difference)) years older than chronological age"
+                : difference > 0 ? "\(difference) \(yearWord) younger than chronological age"
+                : "\(abs(difference)) \(yearWord) older than chronological age"
             ageLine = "WHOOP Age \(displayedAge) years; chronological age \(Int(inputs.chronoAge.rounded())); \(relation)"
         } else {
             ageLine = "WHOOP Age is not available yet; at least 3 of the 9 factors are needed"
