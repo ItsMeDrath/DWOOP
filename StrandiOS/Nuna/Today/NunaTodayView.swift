@@ -716,7 +716,7 @@ struct NunaTodayView: View {
         case .hero:
             HStack {
                 miniRing(model.charge.pct, "Recovery", NunaPalette.charge, "%")
-                miniRing(model.effort.map { Double(UnitFormatter.effortDisplay($0, scale: effortScale).replacingOccurrences(of: ",", with: ".")) ?? 0 }, "Strain", NunaPalette.effort, "", fraction: (model.effort ?? 0) / 100)
+                miniRing(model.effort.map { Double(UnitFormatter.effortDisplay($0, scale: effortScale).replacingOccurrences(of: ",", with: ".")) ?? 0 }, "Strain", NunaPalette.effort, "/21", fraction: (model.effort ?? 0) / 100)
                 miniRing(model.rest, "Sleep", NunaPalette.rest, "%")
             }
             .padding(.vertical, 12).frame(maxWidth: .infinity).background(inner)
