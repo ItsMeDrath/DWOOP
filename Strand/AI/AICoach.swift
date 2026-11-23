@@ -1464,8 +1464,8 @@ final class AICoachEngine: ObservableObject {
         #else
         if let line = await stressIndexLine() { ctx += "\n\n" + line }
         #endif
-        // The clock, the Plan card's session, banked Effort and tonight's sleep need. Set by the Nuna shell only, so the
-        // Default experience and the macOS app send exactly the context they always did.
+        // The clock, Plan session, WHOOP Age and sleep context are installed by both iOS shells.
+        // macOS keeps its existing context path.
         if let provider = dayContextProvider {
             let block = await provider()
             if !block.isEmpty { ctx += "\n\n" + block }
