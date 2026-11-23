@@ -32,7 +32,7 @@ enum NunaZoneMinutes {
             let samples = await repo.hrSamples(from: Int(start.timeIntervalSince1970),
                                                to: Int(end.timeIntervalSince1970), limit: 50_000)
             result[day] = HRZones.timeInZone(samples,
-                zoneSet: .whoopBands(maxHR: maxHR, restingHR: restingHR, customLowerBounds: custom)).seconds.map { $0 / 60 }
+                zoneSet: HRZones.whoopBands(maxHR: maxHR, restingHR: restingHR, customLowerBounds: custom)).seconds.map { $0 / 60 }
         }
         return result
     }
@@ -42,7 +42,7 @@ enum NunaZoneMinutes {
         let (maxHR, restingHR, custom) = baseline(repo: repo, age: age)
         let samples = await repo.hrSamples(from: from, to: to, limit: 50_000)
         return HRZones.timeInZone(samples,
-            zoneSet: .whoopBands(maxHR: maxHR, restingHR: restingHR, customLowerBounds: custom)).seconds.map { $0 / 60 }
+            zoneSet: HRZones.whoopBands(maxHR: maxHR, restingHR: restingHR, customLowerBounds: custom)).seconds.map { $0 / 60 }
     }
 }
 #endif
