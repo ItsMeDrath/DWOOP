@@ -287,7 +287,7 @@ final class AICoachEngine: ObservableObject {
     static let defaultSystemPrompt = """
     You are WHOOP, a perceptive daily companion for recovery and performance. Talk like a warm human coach: \
     calm, attentive, direct, and conversational. Make the user feel accompanied, never assessed or lectured. \
-    Use the user's wearable summary when provided: charge 0-100 \
+    Use the user's actual on-screen WHOOP scores: Recovery 0-100, Strain 0-21, Stress Monitor 0-3, and Sleep Performance 0-100. Never use or mention internal normalized 0-100 Strain values. charge 0-100 \
     is readiness, effort 0-100 is cardiovascular load, and rest 0-100 is sleep quality. Sleep \
     duration/stages, sleep efficiency, HRV, resting heart rate, personal baselines, body-state notes, \
     and recent workouts are supporting signals. A dash means NOT MEASURED — never treat it as zero.
@@ -296,8 +296,8 @@ final class AICoachEngine: ObservableObject {
     recent training load. The supplied BODY STATE READ is an evidence-based synthesis, not a diagnosis. \
     Trust it as a useful guide only when enough signals are present; explicitly name what is missing when \
     confidence is limited. Do not infer illness, injury, dehydration, mood, or motivation from wearable data.
-    Use autoregulation: charge 67-100 supports building or pushing; 34-66 supports maintenance and \
-    controlled quality; 0-33 means active recovery such as easy Zone 2, mobility, or extra sleep. \
+    Use autoregulation: Recovery 67-100 supports building or pushing; 34-66 supports maintenance and \
+    controlled quality; 0-33 means active recovery such as easy Zone 2, mobility, or extra sleep. Interpret Strain only on its 0-21 scale. \
     Respect progressive overload, polarized intensity, spacing of hard sessions, deloads, and sleep.
     Make the conversation feel alive. Acknowledge the person's situation before advising, even when they \
     did not ask a direct question. Look for a relationship between signals and explain the meaning in plain \
@@ -1458,11 +1458,12 @@ final class AICoachEngine: ObservableObject {
     func buildFullContext() async -> String {
         var ctx = buildContext()
         ctx += "\n\n" + (await recentWorkoutsBlock())
-        // Derived stress: a single Baevsky Stress Index summary line over today's R-R, computed the same
-        // way StressView does. Gated here under `dataConsent` (the caller only reaches buildFullContext()
-        // with consent on), so it rides the SAME consent + text-only channel as the HRV/RHR summary, a
-        // derived number, never raw R-R egress. Omitted when there aren't enough clean beats yet.
-        if let line = await stressIndexLine() { ctx += "\n\n" + line }
+        // The actual WHOOP-reference Stress Monitor reading shown by Today / Stress (0–3).
+        // Uses the same calibrated StressEngine path as the screen; nil while the 14-night baseline
+        // is still being learned. Only the single derived score is sent, never raw HR/R-R streams.
+        if let result = await StressDayCurve.whoopToday(repo: repo), let level = result.current {
+            ctx += "\n\n" + Self.whoopStressSummary(level: level)
+        }
         // The clock, the Plan card's session, banked Effort and tonight's sleep need. Set by the Nuna shell only, so the
         // Default experience and the macOS app send exactly the context they always did.
         if let provider = dayContextProvider {
@@ -1476,24 +1477,15 @@ final class AICoachEngine: ObservableObject {
         return ctx
     }
 
-    /// One derived stress line for the coach context: the Baevsky Stress Index over TODAY's R-R, read
-    /// via the same device-aware repository R-R union as `StressView`,
-    /// then summarised to a single number with `StressIndex.stressIndex(rr:)`. Returns nil when the
-    /// store is unavailable or there are too few clean beats (the histogram needs >= 20), so the line is
-    /// simply absent, never a fabricated value. Summary-only: the raw R-R never leaves the device.
-    func stressIndexLine() async -> String? {
-        let cal = Calendar.current
-        let from = Int(cal.startOfDay(for: Date()).timeIntervalSince1970)
-        let to = Int(Date().timeIntervalSince1970)
-        let rr = await repo.rrIntervals(from: from, to: to, limit: 200_000)
-        guard let si = StressIndex.stressIndex(rr: rr) else { return nil }
-        return Self.stressIndexSummary(si: si)
+    /// Pure formatter for the same WHOOP Stress Monitor value shown on screen (0–3).
+    nonisolated static func whoopStressSummary(level: Double) -> String {
+        "WHOOP Stress Monitor (0–3): \(String(format: "%.1f", min(max(level, 0), 3)))"
     }
 
-    /// Pure formatter for the derived stress line, kept separate so it is unit-testable without a store.
-    /// One summary number, labelled, with a plain-English note that it's an autonomic-balance proxy.
-    static func stressIndexSummary(si: Double) -> String {
-        "Stress (SI): \(Int(si.rounded())) (Baevsky Stress Index over today's R-R; higher means more sympathetic / under load; an autonomic-balance proxy, not a clinical figure)."
+    /// Stored Strain is on the app's internal 0–100 axis. Coach context must match the
+    /// default WHOOP display (0–21), independent of the user's display-unit preference.
+    nonisolated static func whoopStrain(_ value: Double) -> Double {
+        min(max(value, 0), 100) * 21.0 / 100.0
     }
 
     /// A SUMMARY-ONLY block of the new on-device signals, the user's strongest n-of-1 correlations
@@ -1716,7 +1708,7 @@ final class AICoachEngine: ObservableObject {
             lines.append(Self.bodyStateSummary(current: current, history: days))
         }
         lines.append("")
-        lines.append("Recent days (newest first) — recovery(0-100), strain(0-100), sleep(h), "
+        lines.append("Recent days (newest first) — Recovery(0-100), Strain(0-21), sleep(h), "
                      + "deep/REM/light(h), eff(%), HRV(ms), RHR(bpm). A dash means NOT MEASURED, not zero:")
         for d in recent {
             lines.append("  " + dayLine(d))
@@ -1727,7 +1719,7 @@ final class AICoachEngine: ObservableObject {
         lines.append("")
         lines.append("30-day averages:")
         lines.append("  recovery: \(avgInt(last30.compactMap { $0.recovery }))"
-                     + ", strain: \(avgOne(last30.compactMap { $0.strain }))"
+                     + ", strain: \(avgOne(last30.compactMap { $0.strain }.map(Self.whoopStrain)))"
                      + ", sleep: \(avgSleepHours(last30))h"
                      + ", HRV: \(avgInt(last30.compactMap { $0.avgHrv })) ms"
                      + ", RHR: \(avgInt(last30.compactMap { $0.restingHr.map(Double.init) })) bpm")
@@ -1765,8 +1757,8 @@ final class AICoachEngine: ObservableObject {
         let sleepBaseline = average(prior.compactMap { $0.totalSleepMin })
         let hrvBaseline = average(prior.compactMap { $0.avgHrv })
         let rhrBaseline = average(prior.compactMap { $0.restingHr.map(Double.init) })
-        let effortBaseline = average(prior.compactMap { $0.strain })
-        let recentEffort = average(history.suffix(3).compactMap { $0.strain })
+        let effortBaseline = average(prior.compactMap { $0.strain }.map(whoopStrain))
+        let recentEffort = average(history.suffix(3).compactMap { $0.strain }.map(whoopStrain))
 
         let shortSleep = sleep.map { $0 < 360 } ?? false
         let sleepBelowBaseline = if let sleep, let baseline = sleepBaseline { sleep <= baseline - 45 } else { false }
@@ -1858,7 +1850,7 @@ final class AICoachEngine: ObservableObject {
         for w in rows.prefix(limit) {
             var parts = ["  \(dateString(w.startTs)) \(w.sport)"]
             if let dur = w.durationS { parts.append("\(Int((dur / 60).rounded())) min") }
-            if let s = w.strain { parts.append("strain \(String(format: "%.1f", s))") }
+            if let s = w.strain { parts.append("Strain \(String(format: "%.1f", Self.whoopStrain(s)))") }
             if let hr = w.avgHr { parts.append("avg HR \(hr)") }
             if let mx = w.maxHr { parts.append("max HR \(mx)") }
             if let kcal = w.energyKcal { parts.append("\(Int(kcal.rounded())) kcal") }
@@ -1893,7 +1885,7 @@ final class AICoachEngine: ObservableObject {
     func dayLine(_ d: DailyMetric) -> String {
         var parts: [String] = [d.day + ":"]
         parts.append("recovery " + (d.recovery.map { "\(Int($0.rounded()))" } ?? "—"))
-        parts.append("strain " + (d.strain.map { String(format: "%.1f", $0) } ?? "—"))
+        parts.append("Strain " + (d.strain.map { String(format: "%.1f", Self.whoopStrain($0)) } ?? "—"))
         parts.append("sleep " + (d.totalSleepMin.map { String(format: "%.1fh", $0 / 60) } ?? "—"))
         // The stage breakdown and efficiency, which the coach could not see at all: a user asked why it
         // said it had no access to sleep stages, and it was answering honestly — `rest 7.8h` was every
