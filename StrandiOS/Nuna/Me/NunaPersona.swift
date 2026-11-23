@@ -184,8 +184,8 @@ struct NunaPersonaView: View {
 
 // MARK: - Heart rate settings
 
-/// Heart rate zones: the maximum heart rate, the zones as a share of it (each with its percentage range) and, once "Manual" is on, where each
-/// one starts. Nothing is kept until SAVE; the cross and CANCEL leave things as they were. Zone n ends one beat below the start of zone n + 1,
+/// Heart rate zones: the maximum heart rate, automatic HRR boundaries and, once "Manual" is on, personalized BPM starts.
+/// Nothing is kept until SAVE; the cross and CANCEL leave things as they were. Zone n ends one beat below the start of zone n + 1,
 /// so editing a zone's end moves the next zone's start, and the end of zone 5 is the maximum itself.
 struct NunaZonesView: View {
     @EnvironmentObject private var profile: ProfileStore
@@ -203,7 +203,12 @@ struct NunaZonesView: View {
         let values = repo.days.filter { $0.day >= cutoffKey }.compactMap { $0.restingHr.map(Double.init) }
         return values.isEmpty ? profile.zoneRestingHR : values.reduce(0, +) / Double(values.count)
     }
-    private var resting: Int? { Int(monthlyResting.rounded()) }
+    private var resting: Int? {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -29, to: Date()) ?? Date()
+        let cutoffKey = Repository.localDayKey(cutoff)
+        let hasRHR = repo.days.contains { $0.day >= cutoffKey && $0.restingHr != nil }
+        return hasRHR ? Int(monthlyResting.rounded()) : nil
+    }
     private var tanaka: Int { Int((208 - 0.7 * Double(profile.age)).rounded()) }
 
     /// The zone starts being shown: the typed ones when manual, otherwise the percentages of the typed maximum.
