@@ -74,9 +74,64 @@ enum NunaAnyaDayContext {
             outdoorLevel: outdoor?.level)
         // Pass the same sleep scores and components already loaded above.
         let sleepContext = Self.sleepPerformanceBlock(model: sleepModel)
-        return [AnyaDayContext.block(input), sleepContext].filter { !$0.isEmpty }.joined(separator: "\n\n")
+
+        // Use the exact same cached seven-day calculation as the WHOOP Age orb and detail page.
+        // The factor contributions below come from the same VitalityEngine inputs, not a second estimate.
+        let whoopAgeContext: String
+        if let healthspan = await NunaHealthspan.latest(repo: repo, profile: profile) {
+            whoopAgeContext = Self.whoopAgeContext(healthspan)
+        } else {
+            whoopAgeContext = "WHOOP AGE: Not available yet. The Health tab needs chronological age in the profile and at least 3 of its 9 weekly inputs. Do not estimate or invent an age."
+        }
+        return [AnyaDayContext.block(input), sleepContext, whoopAgeContext]
+            .filter { !$0.isEmpty }.joined(separator: "\n\n")
     }
 
+    /// Same WHOOP Age value and nine signed factor effects as the Health tab's factor breakdown.
+    /// Positive years add to the estimate; negative years reduce it.
+    static func whoopAgeContext(_ result: NunaHealthspanResult) -> String {
+        let inputs = result.inputs
+        let ageLine: String
+        if let age = result.bodyAge {
+            let difference = inputs.chronoAge - age
+            let relation = abs(difference) < 0.05 ? "about the same as chronological age"
+                : difference > 0 ? String(format: "%.1f years younger than chronological age", difference)
+                : String(format: "%.1f years older than chronological age", abs(difference))
+            ageLine = String(format: "WHOOP Age %.1f years; chronological age %.0f; %@", age, inputs.chronoAge, relation)
+        } else {
+            ageLine = "WHOOP Age is not available yet; at least 3 of the 9 factors are needed"
+        }
+
+        func duration(_ minutes: Double) -> String {
+            let total = Int(minutes.rounded())
+            return "\(total / 60)h \(total % 60)m"
+        }
+        func factor(_ title: String, value: Double?, key: String, format: (Double) -> String) -> String {
+            guard let value else { return "\(title): unavailable (not counted)" }
+            guard let years = result.years(key) else { return "\(title): \(format(value)); contribution unavailable" }
+            let effect = years > 0.05 ? "adds to age" : (years < -0.05 ? "reduces age" : "near neutral")
+            return "\(title): \(format(value)); \(String(format: "%+.1f", years)) years (\(effect))"
+        }
+
+        let factors = [
+            factor("Sleep consistency", value: inputs.sleepConsistency, key: "consistency") { String(format: "%.0f%%", $0 * 100) },
+            factor("Average sleep", value: inputs.sleepHours, key: "sleep") { duration($0 * 60) },
+            factor("HR zones 1–3 per week", value: inputs.zonesLowMin, key: "zonesLow", format: duration),
+            factor("HR zones 4–5 per week", value: inputs.zonesHighMin, key: "zonesHigh", format: duration),
+            factor("Strength activity per week", value: inputs.strengthMin, key: "strength", format: duration),
+            factor("Daily steps average", value: inputs.steps, key: "steps") { Int($0.rounded()).formatted() },
+            factor("VO₂ max", value: inputs.vo2max, key: "vo2max") { String(format: "%.1f ml/kg/min", $0) },
+            factor("Resting heart rate", value: inputs.restingHR, key: "rhr") { String(format: "%.1f bpm", $0) },
+            factor("Lean body mass", value: inputs.leanMassPct, key: "leanMass") { String(format: "%.1f%%", $0) }
+        ]
+        return """
+        WHOOP AGE (same seven-day value shown in the Health tab):
+        \(ageLine). \(result.inputsUsed) of 9 factors currently have data.
+        Factor contributions (positive years add to WHOOP Age; negative years reduce it):
+        \(factors.map { "• " + $0 }.joined(separator: "\n"))
+        This is the app's wellness estimate, not a biological age or medical assessment. Stress Monitor itself is not one of the nine direct WHOOP Age inputs; use the factor effects above to explain what changes the estimate.
+        """
+    }
 
     /// Uses the same per-night score and components as the iOS Sleep ring.
     @MainActor private static func sleepPerformanceBlock(model: NunaSleepModel) -> String {
