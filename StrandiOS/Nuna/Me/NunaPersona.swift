@@ -197,14 +197,21 @@ struct NunaZonesView: View {
     @State private var mins: [Int] = []
     @State private var loaded = false
 
-    private static let pcts = ["50–60%", "60–70%", "70–80%", "80–90%", "90–100%"]
-    private var resting: Int? { repo.days.last(where: { $0.restingHr != nil })?.restingHr }
+    private var monthlyResting: Double {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -29, to: Date()) ?? Date()
+        let cutoffKey = Repository.localDayKey(cutoff)
+        let values = repo.days.filter { $0.day >= cutoffKey }.compactMap { $0.restingHr.map(Double.init) }
+        return values.isEmpty ? profile.zoneRestingHR : values.reduce(0, +) / Double(values.count)
+    }
+    private var resting: Int? { Int(monthlyResting.rounded()) }
     private var tanaka: Int { Int((208 - 0.7 * Double(profile.age)).rounded()) }
 
     /// The zone starts being shown: the typed ones when manual, otherwise the percentages of the typed maximum.
-    private var starts: [Int] { manual && mins.count == 5 ? mins : percentZones.map { Int($0.lower.rounded()) } }
+    private var starts: [Int] { manual && mins.count == 5 ? mins : automaticZones.map { Int($0.lower.rounded()) } }
     /// The zones as the rest of the app draws them from the typed maximum (the same rounding as the workout screens).
-    private var percentZones: [HRZone] { HRZones.zones(maxHR: Double(max(maxHR, 1))).zones }
+    private var automaticZones: [HRZone] {
+        HRZones.whoopBands(maxHR: Double(max(maxHR, 1)), restingHR: monthlyResting).zones
+    }
     private var valid: Bool {
         guard HRZones.customBPMRange.contains(maxHR) else { return false }
         return !manual || (ProfileStore.validZoneThresholds(mins) && (mins.last ?? 0) <= maxHR)
@@ -221,7 +228,7 @@ struct NunaZonesView: View {
                     Color.clear.frame(height: 52)
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Heart Rate Zones").font(.nuna(size: 16, weight: .semibold)).textCase(nil).foregroundStyle(NunaPalette.textPrimary)
-                        Text("Zones are set as a share of your maximum heart rate. Change the maximum, or turn on manual zones to choose where each one starts.")
+                        Text("Zones are calculated using heart rate reserve and your 30-day average resting heart rate. Change the maximum, or turn on manual zones to choose where each one starts.")
                             .font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).fixedSize(horizontal: false, vertical: true)
                     }
                     HStack(alignment: .top, spacing: 14) {
@@ -257,7 +264,8 @@ struct NunaZonesView: View {
             guard !loaded else { return }
             loaded = true
             maxHR = profile.hrMax; manual = profile.hasCustomHRZones
-            mins = profile.hasCustomHRZones ? profile.hrZoneThresholds : HRZones.defaultLowerBounds(maxHR: Double(profile.hrMax))
+            mins = profile.hasCustomHRZones ? profile.hrZoneThresholds
+                : HRZones.whoopDefaultLowerBounds(maxHR: Double(profile.hrMax), restingHR: monthlyResting)
         }
     }
 
@@ -315,7 +323,7 @@ struct NunaZonesView: View {
                     manual = on
                 })).labelsHidden().tint(NunaPalette.effortModerate)
             }
-            Text("As your fitness changes, the ranges follow your maximum heart rate. You can set them by hand if they do not feel right to you.")
+            Text("As your fitness and 30-day average resting heart rate change, the ranges adjust automatically. You can set them by hand if they do not feel right to you.")
                 .font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil).fixedSize(horizontal: false, vertical: true)
         }
     }
@@ -334,22 +342,20 @@ struct NunaZonesView: View {
                 HStack(spacing: 10) {
                     zoneLabel(i)
                     field(Binding(get: { lows.indices.contains(i) ? lows[i] : 0 }, set: { if manual, mins.indices.contains(i) { mins[i] = $0 } }), editable: manual)
-                    field(Binding(get: { manual ? (i < 4 ? (lows[i + 1] - 1) : maxHR) : Int(percentZones[i].upper.rounded()) },
+                    field(Binding(get: { manual ? (i < 4 ? (lows[i + 1] - 1) : maxHR) : Int(automaticZones[i].upper.rounded()) },
                                   set: { v in if i < 4 { if manual { mins[i + 1] = v + 1 } } else if manual { maxHR = v } }), editable: manual)
                 }
             }
         }
     }
 
-    /// "Zone 3" over its percentage range, on a band of the zone's colour fading to the right with a bright edge at the left.
+    /// Zone label on a band of the zone's colour fading to the right with a bright edge at the left.
     private func zoneLabel(_ i: Int) -> some View {
         let color = NunaWorkoutLogZones.colors[i]
         return HStack(spacing: 0) {
             Rectangle().fill(color).frame(width: 4)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(verbatim: String(localized: "Zone \(i + 1)")).font(.nuna(size: 16, weight: .medium)).textCase(nil).foregroundStyle(NunaPalette.textPrimary)
-                Text(verbatim: Self.pcts[i]).font(.nuna(size: 11.5, weight: .semibold)).textCase(nil).foregroundStyle(NunaPalette.textSecondary)
-            }
+            Text(verbatim: String(localized: "Zone \(i + 1)"))
+                .font(.nuna(size: 16, weight: .medium)).textCase(nil).foregroundStyle(NunaPalette.textPrimary)
             .padding(.leading, 12)
             Spacer(minLength: 0)
         }
