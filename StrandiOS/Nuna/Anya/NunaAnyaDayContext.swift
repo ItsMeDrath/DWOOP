@@ -132,7 +132,7 @@ enum NunaAnyaDayContext {
             factor("Lean body mass", value: inputs.leanMassPct, key: "leanMass", reference: "78%") { String(format: "%.1f%%", locale: AppLanguage.activeLocale, $0) }
         ]
         return """
-        WHOOP AGE (same seven-day value shown in the Health tab):
+        WHOOP AGE (the user-facing name; never call this Fitness Age or body age; same seven-day value shown in the Health tab):
         \(ageLine). \(result.inputsUsed) of 9 factors currently have data.
         Factor contributions (positive years add to WHOOP Age; negative years reduce it):
         \(factors.map { "• " + $0 }.joined(separator: "\n"))
