@@ -155,14 +155,14 @@ struct NunaWorkoutsView: View {
                     if let usual, usual > 0 { NunaChip(verbatim: String(localized: "\(Int((total / usual * 100).rounded()))% of your usual"), color: NunaPalette.effortText) }
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(verbatim: UnitFormatter.effortDisplay(total, scale: scale)).font(.nuna(size: 44, weight: .bold, design: NunaType.design)).tracking(nunaTrackingNumber(44)).foregroundStyle(NunaPalette.textPrimary)
-                    if let usual { Text(verbatim: "/ " + UnitFormatter.effortDisplay(usual, scale: scale)).font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textSecondary) }
+                    Text(verbatim: UnitFormatter.effortAggregateDisplay(total, scale: scale)).font(.nuna(size: 44, weight: .bold, design: NunaType.design)).tracking(nunaTrackingNumber(44)).foregroundStyle(NunaPalette.textPrimary)
+                    if let usual { Text(verbatim: "/ " + UnitFormatter.effortAggregateDisplay(usual, scale: scale)).font(.nuna(size: 17, weight: .bold)).foregroundStyle(NunaPalette.textSecondary) }
                     Text("Strain").font(.nuna(size: 13, weight: .bold)).foregroundStyle(NunaPalette.textSecondary)
                 }
                 NunaColumns(items: days.map { d, rs in
                     let e = m.effort(rs)
                     return NunaColumns.Item(weekday: wd.string(from: d), date: d, fraction: e > 0 ? e / top : nil,
-                                            valueText: e > 0 ? UnitFormatter.effortDisplay(e, scale: scale) : nil, highlight: cal.isDateInToday(d),
+                                            valueText: e > 0 ? UnitFormatter.effortAggregateDisplay(e, scale: scale) : nil, highlight: cal.isDateInToday(d),
                                             color: rs.isEmpty ? nil : (rs.allSatisfy(NunaWorkoutKind.isStrength) ? NunaPalette.rest : NunaPalette.effort))
                 }, color: NunaPalette.effort, highlightColor: NunaPalette.effortText, showsDates: false)
                 HStack(spacing: 14) { NunaLegendItem(color: NunaPalette.effort, text: "Cardio", dot: true); NunaLegendItem(color: NunaPalette.rest, text: "Strength", dot: true) }
@@ -188,7 +188,7 @@ struct NunaWorkoutsView: View {
         let week = rows(inWeek: 0)
         return Group {
             if !week.isEmpty {
-                NunaAnyaCard(verbatim: String(localized: "This week: \(week.count) sessions, Strain \(UnitFormatter.effortDisplay(m.effort(week), scale: scale)).")) { showCoach = true }
+                NunaAnyaCard(verbatim: String(localized: "This week: \(week.count) sessions, Strain \(UnitFormatter.effortAggregateDisplay(m.effort(week), scale: scale)).")) { showCoach = true }
             }
         }
     }
@@ -209,7 +209,7 @@ struct NunaWorkoutsView: View {
                         if let band { NunaChip(bandName(band), color: band == .optimal ? NunaPalette.charge : NunaPalette.warning) }
                     }
                     HStack(alignment: .top, spacing: 0) {
-                        loadRing("Cardio", UnitFormatter.effortDisplay(cardio.last ?? 0, scale: scale), "", (cardio.last ?? 0) / max(cardio.max() ?? 1, 1),
+                        loadRing("Cardio", UnitFormatter.effortAggregateDisplay(cardio.last ?? 0, scale: scale), "", (cardio.last ?? 0) / max(cardio.max() ?? 1, 1),
                                  NunaPalette.effort, TrendInsights.loadRatio(blocks: cardio).map(TrendInsights.loadBand), NunaPalette.effortText)
                         loadRing("Strength", volume.last.map { $0 >= 1000 ? String(format: "%.1f", locale: AppLanguage.activeLocale, $0 / 1000) : NunaTrendsFormat.num($0) } ?? "–",
                                  (volume.last ?? 0) >= 1000 ? "k" : "", (volume.last ?? 0) / max(volume.max() ?? 1, 1),
