@@ -7,8 +7,8 @@ import StrandAnalytics
 /// Covers the two small AI-Coach additions:
 ///   1. The editable system prompt — persisted in UserDefaults under `AICoachEngine.systemPromptKey`,
 ///      read FRESH per request via `systemPrompt`, with a Reset-to-default that clears the override.
-///   2. The derived Baevsky Stress Index context line — its pure formatter (`stressIndexSummary`) and
-///      that the line uses the SAME `StressIndex.stressIndex(rr:)` computation StressView does.
+///   2. The iOS Stress Monitor context line — it must use the same `StressModel` score and 0–3
+///      scale as the Stress screen, never the separate Baevsky Stress Index.
 ///
 /// Both paths are UserDefaults / pure — no network, no Keychain — so they run headlessly.
 @MainActor
