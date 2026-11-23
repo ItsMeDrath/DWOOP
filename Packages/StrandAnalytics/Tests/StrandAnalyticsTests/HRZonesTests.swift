@@ -69,15 +69,31 @@ final class HRZonesTests: XCTestCase {
         XCTAssertEqual(HRZones.defaultLowerBounds(maxHR: 187), [94, 113, 131, 150, 169])
     }
 
+    func testWhoopHRRZonesUseFortySixtySeventyEightyNinetyAndHundredPercent() {
+        let zs = HRZones.whoopBands(maxHR: 200, restingHR: 60)
+        XCTAssertEqual(zs.zones.map(\.lower), [116, 144, 158, 172, 186])
+        XCTAssertEqual(zs.zones.map(\.upper), [144, 158, 172, 186, 200])
+        XCTAssertEqual(zs.zoneNumber(forBPM: 115), 0)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 116), 1)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 144), 2)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 158), 3)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 172), 4)
+        XCTAssertEqual(zs.zoneNumber(forBPM: 186), 5)
+    }
+
+    func testWhoopDefaultLowerBoundsRoundUp() {
+        XCTAssertEqual(HRZones.whoopDefaultLowerBounds(maxHR: 191, restingHR: 59), [112, 139, 152, 165, 178])
+    }
+
     func testTimeInZoneAccountsForAllTime() {
-        let zs = HRZones.zones(maxHR: 200)  // edges 100/120/140/160/180/200
-        // 1 Hz samples: 3 in z1 (110), 2 in z3 (150), 1 below (90).
+        let zs = HRZones.whoopBands(maxHR: 200, restingHR: 60)
+        // 1 Hz samples: 3 in z1 (130), 2 in z3 (165), 1 below (90).
         let hr = [
-            HRSample(ts: 0, bpm: 110),
-            HRSample(ts: 1, bpm: 110),
-            HRSample(ts: 2, bpm: 110),
-            HRSample(ts: 3, bpm: 150),
-            HRSample(ts: 4, bpm: 150),
+            HRSample(ts: 0, bpm: 130),
+            HRSample(ts: 1, bpm: 130),
+            HRSample(ts: 2, bpm: 130),
+            HRSample(ts: 3, bpm: 165),
+            HRSample(ts: 4, bpm: 165),
             HRSample(ts: 5, bpm: 90),
         ]
         let tiz = HRZones.timeInZone(hr, zoneSet: zs)
