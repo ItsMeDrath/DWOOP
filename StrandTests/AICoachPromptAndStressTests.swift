@@ -152,6 +152,8 @@ final class AICoachPromptAndStressTests: XCTestCase {
         XCTAssertTrue(prompt.contains("Sleep Performance is 0-100"))
         XCTAssertTrue(prompt.contains("Your Strain today is 6.3"))
         XCTAssertTrue(prompt.contains("WHOOP Age"))
+        XCTAssertTrue(prompt.contains("never call it Fitness Age or body age"))
+        XCTAssertFalse(prompt.contains("Fitness Age"))
         XCTAssertFalse(prompt.contains("6.3/21"))
         XCTAssertFalse(prompt.contains("Baevsky Stress Index"))
     }
