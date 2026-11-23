@@ -25,9 +25,22 @@ enum NunaHealthspan {
     @MainActor private static var cached: (key: String, result: NunaHealthspanResult?)?
 
     /// The age of the latest 7 days. Read once for the same days, profile and VO₂ max, and shared by every screen that shows the age.
+    /// The body age of the last read, whatever it was read for, so a screen can show it on its first frame while `latest` checks it is current.
+    @MainActor static var lastBodyAge: Double? { cached?.result?.bodyAge }
+
+    /// The latest VO₂ max estimate and the `refreshSeq` it was read at: `latest` needs it just to build its cache key, and it is a 400-day read.
+    @MainActor private static var vo2Cache: (seq: Int, value: Double?)?
+
     @MainActor static func latest(repo: Repository, profile: ProfileStore) async -> NunaHealthspanResult? {
         let days = Array(repo.days.sorted { $0.day < $1.day }.suffix(7))
-        let vo2 = (await repo.exploreSeries(key: "vo2max_est", source: "my-whoop", days: 400)).last?.value
+        let vo2: Double?
+        if let kept = vo2Cache, kept.seq == repo.refreshSeq {
+            vo2 = kept.value
+        } else {
+            let seq = repo.refreshSeq
+            vo2 = (await repo.exploreSeries(key: "vo2max_est", source: "my-whoop", days: 400)).last?.value
+            vo2Cache = (seq, vo2)
+        }
         let key = "\(days.last?.day ?? "")-\(days.count)-\(repo.refreshSeq)-\(profile.age)-\(profile.sex)-\(profile.waistCm)-\(vo2 ?? -1)"
         if let cached, cached.key == key { return cached.result }
         let result = await compute(days: days, vo2: vo2, repo: repo, profile: profile)

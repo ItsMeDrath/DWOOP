@@ -241,7 +241,8 @@ struct NunaProfileView: View {
     @State private var showInbox = false
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @State private var workouts: [WorkoutRow] = []
-    @State private var whoopAge: Double?
+    /// Starts from the last age worked out, so the card is filled on the first frame; the task below refreshes it.
+    @State private var whoopAge: Double? = NunaHealthspan.lastBodyAge
     @StateObject private var sleepModel = NunaSleepModel.shared
     @State private var highlightsPeriod = Period.all
     @State private var summaryPeriod = Period.all
@@ -305,10 +306,11 @@ struct NunaProfileView: View {
         }
         .sheet(isPresented: $showInbox) { NunaUpdatesInbox(onClose: { showInbox = false }).nunaSheetChrome(detents: [.large]) }
         .task(id: repo.refreshSeq) {
-            workouts = await repo.workoutRows()
-            await sleepModel.load(repo: repo, historyDays: max(repo.days.count + 7, 60), includeMotion: false)
+            // The WHOOP Age card first: it used to wait for the workouts and a sleep load over the whole history.
             let age = await NunaHealthspan.latest(repo: repo, profile: profile)
             whoopAge = age?.bodyAge
+            workouts = await repo.workoutRows()
+            await sleepModel.load(repo: repo, historyDays: max(repo.days.count + 7, 60), includeMotion: false)
         }
     }
 
@@ -433,7 +435,9 @@ struct NunaProfileView: View {
     }
 
     private var memoryRow: some View {
-        NavigationLink { NunaAnyaMemoryView() } label: {
+        // A value link, like the AI settings use. A destination link here put My Memory on the stack outside its path, so the Chat History link
+        // inside it (also a value link) pushed onto a stack that did not match and jumped back to My Memory first.
+        NavigationLink(value: NunaAnyaRoute.memory) {
             HStack(spacing: 14) {
                 Image(systemName: "lightbulb.max").font(.system(size: 20)).foregroundStyle(Color(red: 0.55, green: 0.55, blue: 0.98))
                 Text("My Memory").font(.nuna(size: 13.5, weight: .heavy)).tracking(nunaTrackingLabel * 1.3).textCase(.uppercase).foregroundStyle(NunaPalette.textPrimary)
