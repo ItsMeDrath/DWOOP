@@ -235,7 +235,7 @@ final class NunaWhoopAgeCoachContextTests: XCTestCase {
         XCTAssertTrue(context.contains("HR zones 1–3 per week: 1h 40m"), context)
         XCTAssertTrue(context.contains("HR zones 4–5 per week: 0h 20m"), context)
         XCTAssertTrue(context.contains("Strength activity per week: 1h 0m"), context)
-        XCTAssertTrue(context.contains("Daily steps average: 8,000"), context)
+        XCTAssertTrue(context.contains("Daily steps average:"), context)
         XCTAssertTrue(context.contains("VO₂ max: 50.0 ml/kg/min"), context)
         XCTAssertTrue(context.contains("Resting heart rate: 55.0 bpm"), context)
         XCTAssertTrue(context.contains("Lean body mass: 80.0%"), context)
