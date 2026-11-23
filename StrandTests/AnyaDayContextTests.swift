@@ -228,7 +228,8 @@ final class NunaWhoopAgeCoachContextTests: XCTestCase {
         let context = NunaAnyaDayContext.whoopAgeContext(result)
 
         XCTAssertTrue(context.contains("WHOOP AGE (same seven-day value shown in the Health tab)"), context)
-        XCTAssertTrue(context.contains("WHOOP Age \(Int(age.rounded())) years"), context)
+        let displayedAge = String(format: "%.0f", locale: AppLanguage.activeLocale, age)
+        XCTAssertTrue(context.contains("WHOOP Age \(displayedAge) years"), context)
         XCTAssertTrue(context.contains("9 of 9 factors"), context)
         XCTAssertTrue(context.contains("Sleep consistency: 80%"), context)
         XCTAssertTrue(context.contains("Average sleep: 8h 0m"), context)
