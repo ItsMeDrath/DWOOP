@@ -176,7 +176,7 @@ struct NunaScoreRings: View {
             let text = effort.map { UnitFormatter.effortDisplay($0, scale: effortScale) } ?? "–"
             let state: LocalizedStringKey = effort.map { $0 < 33 ? "Light" : ($0 < 66 ? "Moderate" : "High") } ?? "No data"
             return RingValues(fraction: (effort ?? 0) / 100, color: effort.map(nunaEffortColor) ?? NunaPalette.effortModerate, textColor: effort.map(nunaEffortTextColor) ?? NunaPalette.effortModerate,
-                              number: text, unit: "", label: "Strain", state: state, route: HeroRingMetric.effort,
+                              number: text, unit: "/21", label: "Strain", state: state, route: HeroRingMetric.effort,
                               gradient: effort.map(nunaEffortRingColors), target: nunaEffortTargetFractions(charge: charge.pct))
         case .rest:
             let state: LocalizedStringKey = rest.map(nunaRestWord) ?? "No data"
