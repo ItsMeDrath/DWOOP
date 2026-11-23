@@ -41,10 +41,86 @@ struct NunaStreak {
     }
 }
 
+/// The colours of the day streak flame for how long the run is, taken from WHOOP's own Day Streak screen: the plain orange flame at first, then red from 200 days,
+/// magenta from 365, blue from 800 and gold from 2000 (it stays gold from there on).
+enum NunaFlameTier {
+    case ember, red, magenta, blue, gold
+
+    static func tier(forDays days: Int) -> NunaFlameTier {
+        switch days {
+        case ..<200: return .ember
+        case 200..<365: return .red
+        case 365..<800: return .magenta
+        case 800..<2000: return .blue
+        default: return .gold
+        }
+    }
+
+    /// The outer flame, top to bottom.
+    var outer: [Color] {
+        switch self {
+        case .ember: return [Color(red: 1, green: 0.50, blue: 0.20), Color(red: 0.97, green: 0.36, blue: 0.10)]
+        case .red: return [Self.rgb(0xF54B39), Self.rgb(0xD7444F)]
+        case .magenta: return [Self.rgb(0xC71F44), Self.rgb(0x8745A3)]
+        case .blue: return [Self.rgb(0x82C6EC), Self.rgb(0x7086D6)]
+        case .gold: return [Self.rgb(0xD8B062), Self.rgb(0xA57F3F)]
+        }
+    }
+
+    /// The lighter flame in the middle of it, top to bottom.
+    var core: [Color] {
+        switch self {
+        case .ember: return [Color(red: 0.95, green: 0.62, blue: 0.40), Color(red: 0.99, green: 0.78, blue: 0.55)]
+        case .red: return [Self.rgb(0x86C8EC), Self.rgb(0xDDF0FA)]
+        case .magenta: return [Self.rgb(0x6E9EDD), Self.rgb(0xD8EFFA)]
+        case .blue: return [Self.rgb(0x8FD3F0), Self.rgb(0xE4F8FD)]
+        case .gold: return [Self.rgb(0xE9CF7A), Self.rgb(0xFCF5C0)]
+        }
+    }
+
+    /// The shading flame between the two, with how strongly it shows.
+    var shade: (color: Color, opacity: Double) {
+        switch self {
+        case .ember: return (Color(red: 0.62, green: 0.18, blue: 0.05), 0.35)
+        case .red: return (Self.rgb(0xE4759A), 0.45)
+        case .magenta: return (Self.rgb(0xB22859), 0.40)
+        case .blue: return (Self.rgb(0x566BB3), 0.35)
+        case .gold: return (Self.rgb(0x8E6A2E), 0.35)
+        }
+    }
+
+    /// The glow behind the flame.
+    var glow: Color {
+        switch self {
+        case .ember: return Color(red: 1, green: 0.42, blue: 0.1)
+        case .red: return Self.rgb(0xF54B39)
+        case .magenta: return Self.rgb(0xC71F44)
+        case .blue: return Self.rgb(0x5B8FE0)
+        case .gold: return Self.rgb(0xE0B050)
+        }
+    }
+
+    /// The sparks rising from it.
+    var spark: Color {
+        switch self {
+        case .ember: return Color(red: 1, green: 0.62, blue: 0.25)
+        case .red: return Self.rgb(0xFFD98A)
+        case .magenta: return Self.rgb(0xF0A0C0)
+        case .blue: return Self.rgb(0xBFE6FA)
+        case .gold: return Self.rgb(0xF2D58A)
+        }
+    }
+
+    private static func rgb(_ hex: UInt32) -> Color {
+        Color(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255, blue: Double(hex & 0xFF) / 255)
+    }
+}
+
 /// A flame that moves: the body leans and stretches a little, the inner flame breathes out of step with it, a glow pulses behind, and sparks rise and fade.
 struct NunaAnimatedFlame: View {
     var lit = true
     var size: CGFloat = 164
+    var tier: NunaFlameTier = .ember
 
     var body: some View {
         TimelineView(.animation) { tl in
@@ -52,12 +128,12 @@ struct NunaAnimatedFlame: View {
             let stretch = 1 + 0.03 * sin(t * 3.1), lean = 1.4 * sin(t * 2.2), breath = 1 + 0.07 * sin(t * 5.0 + 1)
             let w = size * 0.5
             ZStack {
-                Circle().fill(RadialGradient(colors: [Color(red: 1, green: 0.42, blue: 0.1).opacity(0.28 + 0.06 * sin(t * 2.6)), .clear], center: .center, startRadius: 0, endRadius: size * 0.7))
+                Circle().fill(RadialGradient(colors: [tier.glow.opacity(0.28 + 0.06 * sin(t * 2.6)), .clear], center: .center, startRadius: 0, endRadius: size * 0.7))
                     .frame(width: size * 1.5, height: size * 1.5).offset(y: size * 0.1)
                 ZStack {
-                    NunaFlameShape().fill(LinearGradient(colors: [Color(red: 1, green: 0.50, blue: 0.20), Color(red: 0.97, green: 0.36, blue: 0.10)], startPoint: .top, endPoint: .bottom))
-                    NunaFlameShape().fill(Color(red: 0.62, green: 0.18, blue: 0.05).opacity(0.35)).scaleEffect(x: 0.5, y: 0.72, anchor: .bottomLeading).offset(x: w * 0.06)
-                    NunaFlameShape(inner: true).fill(LinearGradient(colors: [Color(red: 0.95, green: 0.62, blue: 0.40), Color(red: 0.99, green: 0.78, blue: 0.55)], startPoint: .top, endPoint: .bottom))
+                    NunaFlameShape().fill(LinearGradient(colors: tier.outer, startPoint: .top, endPoint: .bottom))
+                    NunaFlameShape().fill(tier.shade.color.opacity(tier.shade.opacity)).scaleEffect(x: 0.5, y: 0.72, anchor: .bottomLeading).offset(x: w * 0.06)
+                    NunaFlameShape(inner: true).fill(LinearGradient(colors: tier.core, startPoint: .top, endPoint: .bottom))
                         .scaleEffect(x: 0.36 * breath, y: 0.40 * breath, anchor: .bottom).offset(y: -size * 0.02).rotationEffect(.degrees(-lean * 1.6), anchor: .bottom)
                 }
                 .frame(width: w, height: size)
@@ -66,7 +142,7 @@ struct NunaAnimatedFlame: View {
                 if lit {
                     ForEach(0..<4, id: \.self) { i in
                         let phase = (t * (0.28 + 0.05 * Double(i)) + Double(i) * 0.27).truncatingRemainder(dividingBy: 1)
-                        Circle().fill(Color(red: 1, green: 0.62, blue: 0.25)).frame(width: 3 + CGFloat(i % 2), height: 3 + CGFloat(i % 2))
+                        Circle().fill(tier.spark).frame(width: 3 + CGFloat(i % 2), height: 3 + CGFloat(i % 2))
                             .offset(x: CGFloat([-18, 10, 26, -6][i]) * (1 + CGFloat(phase) * 0.3) + 4 * CGFloat(sin(t * 2 + Double(i))), y: -size * 0.45 - CGFloat(phase) * size * 0.35)
                             .opacity(1 - phase)
                     }
@@ -103,7 +179,7 @@ struct NunaDayStreakView: View {
     private func hero(_ s: NunaStreak) -> some View {
         VStack(spacing: 6) {
             ZStack(alignment: .bottom) {
-                NunaAnimatedFlame(lit: s.current > 0, size: 176)
+                NunaAnimatedFlame(lit: s.current > 0, size: 176, tier: .tier(forDays: s.current))
                 Text(verbatim: "\(s.current)").font(.nunaBoldFigure(size: 88)).foregroundStyle(.white).shadow(color: .black.opacity(0.45), radius: 10).offset(y: 22)
             }
             .padding(.top, 4).padding(.bottom, 20)
@@ -146,9 +222,9 @@ struct NunaDayStreakView: View {
                         Text(verbatim: wf.string(from: d)).font(.nuna(size: 12.5, weight: .heavy)).tracking(nunaTrackingLabel * 1.2).textCase(.uppercase)
                             .foregroundStyle(isToday ? NunaPalette.textPrimary : NunaPalette.textMuted)
                         if has {
-                            let starts = s.start.map { cal.isDate(d, inSameDayAs: $0) } ?? false
-                            NunaFlameIcon(height: 34, outer: starts ? NunaFlameIcon.gold : [Color(red: 1, green: 0.50, blue: 0.20), Color(red: 0.97, green: 0.36, blue: 0.10)],
-                                          inner: starts ? [Color(red: 1, green: 0.93, blue: 0.72), Color(red: 1, green: 0.88, blue: 0.60)] : [Color(red: 0.95, green: 0.62, blue: 0.40), Color(red: 0.99, green: 0.78, blue: 0.55)])
+                            // Each day's flame takes the colour of its own day in the run, so a week that crosses 2000 days turns gold on the day it gets there.
+                            let flame = NunaFlameTier.tier(forDays: runDay(d, s))
+                            NunaFlameIcon(height: 34, outer: flame.outer, inner: flame.core)
                                 .frame(height: 36)
                         } else {
                             Circle().strokeBorder(NunaPalette.textMuted.opacity(0.7), style: StrokeStyle(lineWidth: 1.3, dash: [3, 3])).frame(width: 36, height: 36)
@@ -159,6 +235,17 @@ struct NunaDayStreakView: View {
         }
         .padding(18).frame(maxWidth: .infinity, alignment: .leading)
         .background(NunaPalette.cardSurface, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    /// Which day of its run a day is: 1 for the first day of a streak, 232 for the 232nd.
+    private func runDay(_ d: Date, _ s: NunaStreak) -> Int {
+        if let start = s.start, d >= start {
+            return (cal.dateComponents([.day], from: cal.startOfDay(for: start), to: cal.startOfDay(for: d)).day ?? 0) + 1
+        }
+        // A day from an earlier run: count back through the days that carry a reading.
+        var n = 0, day = d
+        while n < 5000, s.keys.contains(Repository.localDayKey(day)) { n += 1; day = cal.date(byAdding: .day, value: -1, to: day) ?? day }
+        return max(n, 1)
     }
 
     private func milestone(_ s: NunaStreak) -> some View {
@@ -182,12 +269,13 @@ struct NunaDayStreakView: View {
     }
 
     private func badge(_ n: Int, lit: Bool) -> some View {
-        ZStack(alignment: .bottom) {
+        let tier = NunaFlameTier.tier(forDays: n)
+        return ZStack(alignment: .bottom) {
             Circle().fill(RadialGradient(colors: [lit ? Color(red: 0.30, green: 0.10, blue: 0.03) : Color(red: 0.16, green: 0.17, blue: 0.18), Color(red: 0.05, green: 0.05, blue: 0.06)], center: .center, startRadius: 4, endRadius: 40))
                 .overlay(Circle().strokeBorder(lit ? Color(red: 1, green: 0.42, blue: 0.14) : Color.white.opacity(0.35), lineWidth: 2.5))
                 .frame(width: 74, height: 74)
-                .overlay(NunaFlameIcon(height: 40, outer: lit ? [Color(red: 1, green: 0.50, blue: 0.20), Color(red: 0.97, green: 0.36, blue: 0.10)] : NunaFlameIcon.unlit,
-                                       inner: lit ? [Color(red: 0.95, green: 0.62, blue: 0.40), Color(red: 0.99, green: 0.78, blue: 0.55)] : [Color.white.opacity(0.62), Color.white.opacity(0.5)]).offset(y: -5))
+                .overlay(NunaFlameIcon(height: 40, outer: lit ? tier.outer : NunaFlameIcon.unlit,
+                                       inner: lit ? tier.core : [Color.white.opacity(0.62), Color.white.opacity(0.5)]).offset(y: -5))
             Text(verbatim: "\(n)").font(.nunaBoldFigure(size: 36)).foregroundStyle(.white).shadow(color: .black.opacity(0.7), radius: 4).offset(y: 18)
         }
         .frame(width: 80, height: 96, alignment: .top)
