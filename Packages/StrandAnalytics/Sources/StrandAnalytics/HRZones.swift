@@ -3,21 +3,11 @@ import WhoopProtocol
 
 // HRZones.swift — HR-max + 5 heart-rate zones and time-in-zone from an HR stream.
 //
-// HR-max uses Tanaka et al. (2001): HRmax = 208 − 0.7 × age (gender-independent),
-// with an optional manual override. The five zones are the conventional %HRmax
-// bands used across consumer wearables:
-//
-//   Zone 1 (50–60% HRmax) — very light / recovery
-//   Zone 2 (60–70% HRmax) — light / fat-burn
-//   Zone 3 (70–80% HRmax) — moderate / aerobic
-//   Zone 4 (80–90% HRmax) — hard / threshold
-//   Zone 5 (90–100% HRmax) — maximum
-//
-// NOTE: the Python source (strain.py) uses Karvonen %HRR zones (Edwards 5-zone,
-// 50/60/70/80/90 %HRR) for TRIMP/strain. Those are reproduced faithfully in
-// StrainScorer.swift. This file provides the simpler, age-only %HRmax zone model
-// the task asks for (zones from age, time-in-zone from [HRSample]); it is the
-// "display" zone model and is independent of the HRR-based strain math.
+// HRmax uses Tanaka et al. (2001): HRmax = 208 − 0.7 × age, with an optional manual override.
+// The app's WHOOP-style display zones use Karvonen HRR bands (40/60/70/80/90/100% HRR).
+// Legacy zones(maxHR:) helpers remain available for callers that explicitly need percentage-of-maximum
+// bands; live display, Activity, workout splits and coaching use whoopBands.
+// Effort/Strain scoring remains a separate calculation in StrainScorer.swift.
 
 /// A single heart-rate zone defined as a bpm interval [lower, upper).
 public struct HRZone: Equatable, Sendable {
@@ -27,9 +17,9 @@ public struct HRZone: Equatable, Sendable {
     public let lower: Double
     /// Upper bound (bpm); exclusive except for the top zone where it is inclusive.
     public let upper: Double
-    /// Fraction-of-HRmax lower bound (e.g. 0.50 for Zone 1).
+    /// Fractional lower boundary in the model's reference scale (HRmax or HRR).
     public let lowerPct: Double
-    /// Fraction-of-HRmax upper bound (e.g. 0.60 for Zone 1).
+    /// Fractional upper boundary in the model's reference scale (HRmax or HRR).
     public let upperPct: Double
 
     public init(number: Int, lower: Double, upper: Double, lowerPct: Double, upperPct: Double) {
@@ -106,6 +96,29 @@ public struct TimeInZone: Equatable, Sendable {
 }
 
 public enum HRZones {
+
+    /// WHOOP-style display zones calculated from heart-rate reserve (Karvonen).
+    /// Zone 1 is 40–60% HRR; Zones 2–5 are 60–70%, 70–80%, 80–90%, and 90–100%.
+    public static func whoopBands(maxHR: Double, restingHR: Double,
+                                  customLowerBounds: [Double]? = nil) -> HRZoneSet {
+        let reserve = max(maxHR - restingHR, 1)
+        let edges: [Double] = [0.40, 0.60, 0.70, 0.80, 0.90, 1.00]
+        let custom = customLowerBounds.flatMap(validCustomLowerBounds)
+        let zones = (0..<5).map { i -> HRZone in
+            let lower = custom?[i] ?? (restingHR + reserve * edges[i])
+            let upper = custom.map { i < 4 ? $0[i + 1] : max(maxHR, $0[i]) }
+                ?? (restingHR + reserve * edges[i + 1])
+            return HRZone(number: i + 1, lower: lower, upper: upper,
+                          lowerPct: edges[i], upperPct: edges[i + 1])
+        }
+        return HRZoneSet(zones: zones, maxHR: maxHR, source: custom == nil ? "reserve" : "custom")
+    }
+
+    /// WHOOP-style integer editor starts, rounded up so integer BPM classification matches the boundaries.
+    public static func whoopDefaultLowerBounds(maxHR: Double, restingHR: Double) -> [Int] {
+        let reserve = max(maxHR - restingHR, 1)
+        return [0.40, 0.60, 0.70, 0.80, 0.90].map { Int(ceil(restingHR + reserve * $0)) }
+    }
 
     /// %HRmax band edges for zones 1...5: [0.50, 0.60, 0.70, 0.80, 0.90, 1.00].
     public static let zoneEdges: [Double] = [0.50, 0.60, 0.70, 0.80, 0.90, 1.00]
