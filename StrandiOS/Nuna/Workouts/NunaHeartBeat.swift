@@ -126,7 +126,10 @@ struct NunaHeartBeat: View {
 
 extension NunaHeartBeat {
     /// Zone 1 is a light grey, not the dark track colour, so a disc or a label in it stays readable.
-    static let zoneColors: [Color] = [NunaPalette.textSecondary, NunaPalette.charge, NunaPalette.effort, NunaPalette.warning, NunaPalette.alert]
+    static let zoneColors: [Color] = [
+        Color(hex: "#A9BAC8"), Color(hex: "#4F97C2"), Color(hex: "#6BB894"),
+        Color(hex: "#D4A55A"), Color(hex: "#CF6068")
+    ]
 
     /// Text on the disc: dark on the light zone colours (grey, green, lime, amber), white on the blue idle disc and on the red of zone 5.
     static func inkColor(zone: Int, hasReading: Bool) -> Color {
