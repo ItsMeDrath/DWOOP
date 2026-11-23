@@ -212,7 +212,7 @@ struct NunaZonesView: View {
     private var tanaka: Int { Int((208 - 0.7 * Double(profile.age)).rounded()) }
 
     /// The zone starts being shown: the typed ones when manual, otherwise the percentages of the typed maximum.
-    private var starts: [Int] { manual && mins.count == 5 ? mins : automaticZones.map { Int($0.lower.rounded()) } }
+    private var starts: [Int] { manual && mins.count == 5 ? mins : automaticZones.map { Int(ceil($0.lower)) } }
     /// The zones as the rest of the app draws them from the typed maximum (the same rounding as the workout screens).
     private var automaticZones: [HRZone] {
         HRZones.whoopBands(maxHR: Double(max(maxHR, 1)), restingHR: monthlyResting).zones
@@ -347,7 +347,7 @@ struct NunaZonesView: View {
                 HStack(spacing: 10) {
                     zoneLabel(i)
                     field(Binding(get: { lows.indices.contains(i) ? lows[i] : 0 }, set: { if manual, mins.indices.contains(i) { mins[i] = $0 } }), editable: manual)
-                    field(Binding(get: { manual ? (i < 4 ? (lows[i + 1] - 1) : maxHR) : Int(automaticZones[i].upper.rounded()) },
+                    field(Binding(get: { i < 4 ? (lows[i + 1] - 1) : maxHR },
                                   set: { v in if i < 4 { if manual { mins[i + 1] = v + 1 } } else if manual { maxHR = v } }), editable: manual)
                 }
             }
