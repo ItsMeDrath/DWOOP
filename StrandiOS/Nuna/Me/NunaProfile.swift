@@ -366,9 +366,10 @@ struct NunaProfileView: View {
             return o.string(from: date)
         }
         return HStack(spacing: 14) {
-            Image(systemName: "waveform.path.ecg").font(.system(size: 11, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary)
+            WhoopMonogram().fill(NunaPalette.textPrimary)
+                .frame(width: 15, height: 11)
                 .frame(width: 24, height: 24).overlay(Circle().strokeBorder(NunaPalette.textPrimary, lineWidth: 1.2))
-            Text("Data since").font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
+            Text("Member since").font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
             Text(verbatim: first ?? "–").font(.nuna(size: 14, weight: .semibold)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
             Spacer(minLength: 0)
         }
