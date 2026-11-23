@@ -51,9 +51,31 @@ final class NunaSleepHistory: ObservableObject {
     @Published private(set) var wakeHour: [String: Double] = [:]
     @Published private(set) var loaded = false
 
+    /// One long-lived copy for the pages that open from Today (Recovery), the way `NunaSleepModel.shared` serves the Sleep page. Building this
+    /// history reads over a year of series, so doing it from scratch each time a page opened is what made those pages' figures arrive late.
+    static let shared = NunaSleepHistory()
+    /// The `refreshSeq` the figures above were read at; a page opened at the same one has nothing to read again.
+    private var loadedSeq: Int?
+    private var inflight: Task<Void, Never>?
+
+    /// Loads only when the data has changed since the last load. While it reloads, the figures from the last load stay on screen.
+    func ensureLoaded(repo: Repository) async {
+        if loaded, loadedSeq == repo.refreshSeq { return }
+        if let running = inflight {
+            await running.value
+            if loaded, loadedSeq == repo.refreshSeq { return }
+        }
+        let task = Task { await self.load(repo: repo) }
+        inflight = task
+        await task.value
+        inflight = nil
+    }
+
     /// The need used for a night with no stored one: the same fallback the sleep model uses.
 
     func load(repo: Repository) async {
+        let seqAtStart = repo.refreshSeq
+        defer { loadedSeq = seqAtStart }
         var a: [String: Double] = [:], d: [String: Double] = [:], r: [String: Double] = [:]
         for row in repo.days {
             guard let t = row.totalSleepMin, t > 0 else { continue }

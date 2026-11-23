@@ -20,17 +20,19 @@ struct NunaChargeDetailView: View {
     @EnvironmentObject private var profile: ProfileStore
     @EnvironmentObject private var router: NavRouter
     @AppStorage("noop.coachEnabled") private var coachEnabled = true
-    @StateObject private var series = NunaSeriesModel()
+    // The series start from the last read of each metric (and the sleep history is the one shared copy), so opening this page again draws every
+    // figure on the first frame; they are only read again when the data has changed.
+    @StateObject private var series = NunaSeriesModel(seeding: "recovery", source: "my-whoop")
     @StateObject private var day = NunaTodayModel()
     /// Last night's Rest and skin-temperature deviation: two of the signals Charge is made of.
-    @StateObject private var restSeries = NunaSeriesModel()
+    @StateObject private var restSeries = NunaSeriesModel(seeding: "sleep_performance", source: "my-whoop")
     /// The same calculated sleep-performance history used by the Sleep trend page.
-    @StateObject private var sleepPerformanceHistory = NunaSleepHistory()
-    @StateObject private var skinSeries = NunaSeriesModel()
+    @ObservedObject private var sleepPerformanceHistory = NunaSleepHistory.shared
+    @StateObject private var skinSeries = NunaSeriesModel(seeding: "skin_temp", source: "my-whoop")
     /// The daily series the 30-day averages under the ring are made from.
-    @StateObject private var hrvSeries = NunaSeriesModel()
-    @StateObject private var rhrSeries = NunaSeriesModel()
-    @StateObject private var respSeries = NunaSeriesModel()
+    @StateObject private var hrvSeries = NunaSeriesModel(seeding: "hrv", source: "my-whoop")
+    @StateObject private var rhrSeries = NunaSeriesModel(seeding: "rhr", source: "my-whoop")
+    @StateObject private var respSeries = NunaSeriesModel(seeding: "resp_rate", source: "my-whoop")
     @State private var showCoach = false
     @State private var showInfo = false
 
@@ -97,13 +99,17 @@ struct NunaChargeDetailView: View {
         }
         .task(id: "\(repo.refreshSeq)-\(router.todayDayOffset)") {
             day.dayOffset = router.todayDayOffset
-            await series.load(repo: repo, key: "recovery", source: "my-whoop")
-            await restSeries.load(repo: repo, key: "sleep_performance", source: "my-whoop")
-            await sleepPerformanceHistory.load(repo: repo)
-            await skinSeries.load(repo: repo, key: "skin_temp", source: "my-whoop")
-            await hrvSeries.load(repo: repo, key: "hrv", source: "my-whoop")
-            await rhrSeries.load(repo: repo, key: "rhr", source: "my-whoop")
-            await respSeries.load(repo: repo, key: "resp_rate", source: "my-whoop")
+            // The ring and the vitals are already in memory: draw them before any read, not after the last one.
+            day.applyDaily(repo: repo)
+            // Then what the four rows are compared with, the cheap series first and the long sleep history after them; the slow, rarely
+            // needed rest (extras, steps, stress) comes last in `day.load`.
+            await hrvSeries.load(repo: repo, key: "hrv", source: "my-whoop", cached: true)
+            await rhrSeries.load(repo: repo, key: "rhr", source: "my-whoop", cached: true)
+            await respSeries.load(repo: repo, key: "resp_rate", source: "my-whoop", cached: true)
+            await series.load(repo: repo, key: "recovery", source: "my-whoop", cached: true)
+            await sleepPerformanceHistory.ensureLoaded(repo: repo)
+            await restSeries.load(repo: repo, key: "sleep_performance", source: "my-whoop", cached: true)
+            await skinSeries.load(repo: repo, key: "skin_temp", source: "my-whoop", cached: true)
             await day.load(repo: repo, profile: profile)
         }
         // Anya floats over the page and reads it as it opens; her line speaks of today, so on another day she is only the button.
@@ -212,7 +218,7 @@ struct NunaEffortDetailView: View {
     /// Minutes in the heart-rate zones day by day, for the 30-day comparison and the weekly zone cards.
     @StateObject private var zones = NunaEffortZoneHistory()
     /// Steps for the 30-day comparison (the stored estimate), and the workouts of every day, for the strength time and its 30-day average.
-    @StateObject private var stepsSeries = NunaSeriesModel()
+    @StateObject private var stepsSeries = NunaSeriesModel(seeding: "steps_est", source: "my-whoop")
     @State private var allWorkouts: [WorkoutRow] = []
     /// Steps day by day, the on-device estimate with Apple Health's count for the days that have none: the weekly steps card.
     @State private var stepsPoints: [(day: String, value: Double)] = []
@@ -258,9 +264,13 @@ struct NunaEffortDetailView: View {
         }
         .task(id: "\(repo.refreshSeq)-\(router.todayDayOffset)") {
             day.dayOffset = router.todayDayOffset
-            await stepsSeries.load(repo: repo, key: "steps_est", source: "my-whoop")
-            await day.load(repo: repo, profile: profile)
+            // The four rows under the ring first: the day's readings and workouts, the steps and what they are compared with. Nothing slow sits
+            // ahead of them; `day.load` (the ring's live Effort, extras, stress) and the weekly cards' data follow.
+            day.applyDaily(repo: repo)
+            applyCachedDay()
+            await stepsSeries.load(repo: repo, key: "steps_est", source: "my-whoop", cached: true)
             await loadDay()
+            await day.load(repo: repo, profile: profile)
             await loadCalories()
             await loadSteps()
         }
@@ -308,6 +318,24 @@ struct NunaEffortDetailView: View {
         kcalPoints = byDay.map { (day: $0.key, value: $0.value) }
     }
 
+    /// The last read of a day's heart rate and workouts, kept for the next time this page opens: a day's heart rate is a big read, and the page
+    /// used to start from nothing and wait for it on every visit. It only stands in until `loadDay` has read the day again, so the figures can
+    /// lag by what arrived since, never differ.
+    private static var dayCache: (key: String, hr: [HRSample], all: [WorkoutRow])?
+
+    /// Puts the kept reading in place, when it is for the day on show, before anything has been read.
+    private func applyCachedDay() {
+        guard hrDay.isEmpty, allWorkouts.isEmpty, let kept = Self.dayCache, kept.key == dayKey else { return }
+        let cal = Calendar.current
+        let dayStart = NunaSelectedDay.date(offset: router.todayDayOffset)
+        let start = Int(dayStart.timeIntervalSince1970)
+        let next = Int((cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart).timeIntervalSince1970)
+        hrDay = kept.hr
+        allWorkouts = kept.all
+        todayWorkouts = kept.all.filter { $0.startTs >= start && $0.startTs < next }
+        restingDay = repo.days.first { $0.day == dayKey }?.restingHr.map(Double.init) ?? (router.todayDayOffset == 0 ? day.restingHr : nil)
+    }
+
     /// The readings, workouts and resting heart rate of the day on show.
     private func loadDay() async {
         let cal = Calendar.current
@@ -318,6 +346,7 @@ struct NunaEffortDetailView: View {
         hrDay = await repo.hrSamples(from: start, to: end, limit: 200_000)
         let rows = await repo.workoutRows()
         allWorkouts = rows
+        Self.dayCache = (dayKey, hrDay, rows)
         todayWorkouts = rows.filter { $0.startTs >= start && $0.startTs < Int((cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart).timeIntervalSince1970) }
         // Everyday movement: the part of a finished day's Effort that none of its workouts explains. Effort is a logarithm of heart-rate load, so the split is
         // made on the load (`EffortAttribution`), not by subtracting points. Only for a past day: today's Effort is still moving.

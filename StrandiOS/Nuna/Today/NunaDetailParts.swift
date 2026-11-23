@@ -838,6 +838,23 @@ final class NunaSeriesModel: ObservableObject {
     @Published private(set) var byDay: [String: Double] = [:]
     @Published private(set) var loaded = false
 
+    /// Series already read for a detail page, by metric, and the `refreshSeq` they were read at. A page that opens again is drawn from these on its
+    /// first frame (see `init(seeding:)`) and only reads the store when the data has changed. Only pages that ask for it (`cached: true`) use it.
+    private static var cache: [String: (seq: Int, byDay: [String: Double])] = [:]
+    private static func cacheKey(_ key: String, _ source: String, _ days: Int, _ also: String?) -> String {
+        "\(key)|\(source)|\(days)|\(also ?? "")"
+    }
+
+    init() {}
+
+    /// A model that starts with the last series read for this metric, when there is one, so a page showing it has its figures on the first frame.
+    init(seeding key: String, source: String, days: Int = 190, also: String? = nil) {
+        if let hit = Self.cache[Self.cacheKey(key, source, days, also)] {
+            byDay = hit.byDay
+            loaded = true
+        }
+    }
+
     /// Fills the series from values the caller already has (the water log, which is not a metric series), one value per day key.
     func set(_ points: [(day: String, value: Double)]) {
         byDay = Dictionary(points.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
@@ -845,7 +862,14 @@ final class NunaSeriesModel: ObservableObject {
     }
 
     /// `also` is a second source merged on top (a value typed in by hand wins over the imported one for that day).
-    func load(repo: Repository, key: String, source: String, days: Int = 190, also: String? = nil) async {
+    /// `cached`: take the series from the last read when the data has not changed since (and show it at once while a changed one is read again).
+    func load(repo: Repository, key: String, source: String, days: Int = 190, also: String? = nil, cached: Bool = false) async {
+        let cacheKey = Self.cacheKey(key, source, days, also)
+        let seq = repo.refreshSeq
+        if cached, let hit = Self.cache[cacheKey] {
+            if !loaded || hit.seq == seq { byDay = hit.byDay; loaded = true }
+            if hit.seq == seq { return }
+        }
         let s = await repo.exploreSeries(key: key, source: source, days: days)
         var map = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         if let also {
@@ -857,6 +881,7 @@ final class NunaSeriesModel: ObservableObject {
         }
         byDay = map
         loaded = true
+        if cached { Self.cache[cacheKey] = (seq, map) }
     }
 
     /// Slots for the last `days` calendar days ending today.

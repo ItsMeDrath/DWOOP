@@ -116,7 +116,11 @@ final class NunaTodayModel: ObservableObject {
     /// Date shown in the header pill.
     var displayDate: Date { selectedLogicalDay }
 
-    func load(repo: Repository, profile: ProfileStore) async {
+    /// Everything that is already in memory for the day on show: the Charge score, the vitals and their changes, the readiness read, sleep minutes and
+    /// the strap's step count. It reads nothing from the store and never suspends, so a detail page can call it before its first await and have these
+    /// figures drawn at once instead of after the long reads in `load`, which fills in the rest. `load` runs it first, so the two always agree.
+    @discardableResult
+    func applyDaily(repo: Repository) -> (key: String, today: Bool, row: DailyMetric?) {
         let key = dayKey(repo: repo)
         let today = isToday
         let row = today ? (repo.today ?? repo.days.last(where: { $0.day == key }))
@@ -157,6 +161,13 @@ final class NunaTodayModel: ObservableObject {
         restingHrDelta = change(restingHr, source: rhrSrc) { $0.restingHr.map(Double.init) }
         respiratoryDelta = change(respiratory, source: respSrc) { $0.respRateBpm }
         spo2Delta = change(spo2, source: spo2Src) { $0.spo2Pct }
+        // The strap's own count, when the day has one; `load` goes on to Apple Health and the estimate for a day without.
+        if let counted = row?.steps { steps = Double(counted) }
+        return (key, today, row)
+    }
+
+    func load(repo: Repository, profile: ProfileStore) async {
+        let (key, today, row) = applyDaily(repo: repo)
 
         // Live Effort for today over midnight..now, stored Effort otherwise.
         var live: Double?

@@ -175,7 +175,8 @@ struct NunaTodayView: View {
 
     @StateObject var model = NunaTodayModel()
     /// The year of sleep, charge and effort figures the My Dashboard cards that open a trend page show.
-    @StateObject var history = NunaSleepHistory()
+    /// The one shared copy, so the pages opened from here (Recovery) find it already read.
+    @ObservedObject var history = NunaSleepHistory.shared
     @StateObject private var sparks = NunaKeySparkModel()
     @StateObject private var highlightsFeed = NunaHighlightsFeed()
     /// What the customize sheet opens on; set together with presenting it, so the sheet always gets the right page.
@@ -396,7 +397,7 @@ struct NunaTodayView: View {
                 if case .card(let c) = $0 { return c == .sleep }
                 return false
             }) else { return }
-            await history.load(repo: repo)
+            await history.ensureLoaded(repo: repo)
         }
         .background(NunaSavedSessionsWatcher(count: $savedSessions))
         .background(NunaLowBatteryWatcher(pct: $lowBatteryPct, onRecovered: { if lowBatteryDismissed != 0 { lowBatteryDismissed = 0 } }))
