@@ -77,7 +77,7 @@ public struct HRZoneSet: Equatable, Sendable {
 public struct TimeInZone: Equatable, Sendable {
     /// Seconds in each of the five zones, indexed z1...z5 (zone[0] == Zone 1).
     public let seconds: [Double]
-    /// Seconds spent below Zone 1 (HR under 50% HRmax).
+    /// Seconds below the Zone 1 lower boundary of the supplied zone set.
     public let belowZone1: Double
 
     public init(seconds: [Double], belowZone1: Double) {
