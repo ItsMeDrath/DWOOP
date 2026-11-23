@@ -1751,7 +1751,7 @@ final class AICoachEngine: ObservableObject {
         let sleep = current.totalSleepMin
         let hrv = current.avgHrv
         let rhr = current.restingHr
-        let effort = current.strain
+        let effort = current.strain.map(whoopStrain)
 
         let sleepBaseline = average(prior.compactMap { $0.totalSleepMin })
         let hrvBaseline = average(prior.compactMap { $0.avgHrv })
