@@ -8,7 +8,9 @@ import WhoopProtocol
 enum NunaZoneMinutes {
     /// One rolling 30-day average RHR baseline is used for every displayed HR zone.
     @MainActor private static func baseline(repo: Repository, age: Int) -> (maxHR: Double, restingHR: Double, custom: [Double]?) {
-        let maxHR = age > 0 ? StrainScorer.tanakaHRmax(age: Double(age)) : Double(StrainScorer.defaultMaxHR())
+        let override = UserDefaults.standard.integer(forKey: "profile.hrMaxOverride")
+        let maxHR = override > 0 ? Double(override)
+            : (age > 0 ? StrainScorer.tanakaHRmax(age: Double(age)) : Double(StrainScorer.defaultMaxHR()))
         let cutoff = Calendar.current.date(byAdding: .day, value: -29, to: Date()) ?? Date()
         let cutoffKey = Repository.localDayKey(cutoff)
         let values = repo.days.filter { $0.day >= cutoffKey }.compactMap { $0.restingHr.map(Double.init) }
