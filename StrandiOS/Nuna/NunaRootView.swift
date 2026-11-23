@@ -153,7 +153,8 @@ struct NunaRootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { CoachBriefScheduler.activateIfEnabled { await model.coach.generateBrief() } }
         }
-        .onDisappear { model.coach.dayContextProvider = nil; model.coach.beforeBrief = nil }
+        // The Coach context is owned by the app-level AICoachEngine and stays installed when
+        // switching between the two iOS shells; both shells install the same provider on entry.
         // A session left running by a previous launch comes back as the bar; if its screen was open when the app was killed, the screen comes back too.
         .task {
             guard !liftSession.isActive, let snapshot = LiftSessionPersistence.load() else { return }
