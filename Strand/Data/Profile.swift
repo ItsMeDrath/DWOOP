@@ -3,6 +3,7 @@ import Combine
 import SwiftUI
 import StrandAnalytics
 import WhoopProtocol
+import WhoopStore
 
 /// User profile (age/sex/body metrics/HR-max) persisted in UserDefaults.
 /// Powers HR zones, calories and recovery baselines.
