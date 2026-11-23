@@ -329,6 +329,7 @@ final class AppModel: ObservableObject {
         $bpm.sink { [weak self] hr in self?.coachZone(hr) }.store(in: &hrCancellables)
         // Illness/strain early-warning recomputes when the daily history changes.
         repo.$days.sink { [weak self] days in
+            self?.profile.updateZoneRestingHR(from: days)
             self?.evaluateIllness(days)
             self?.evaluateStrainTarget()
             // Keep the battery night-guard's learned bedtime warm off the same signal (throttled inside).
