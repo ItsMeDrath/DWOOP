@@ -94,7 +94,7 @@ enum NunaAnyaDayContext {
         let ageLine: String
         if let age = result.bodyAge {
             // The orb displays WHOOP Age as a whole number (NunaFitnessOrbCenter, %.0f).
-            let displayedAge = Int(age.rounded())
+            let displayedAge = String(format: "%.0f", locale: AppLanguage.activeLocale, age)
             let difference = Int((inputs.chronoAge - age).rounded())
             let relation = difference == 0 ? "about the same as chronological age"
                 : difference > 0 ? "\(difference) years younger than chronological age"
@@ -115,10 +115,10 @@ enum NunaAnyaDayContext {
                 return "\(title): \(format(value)); break-even \(reference); contribution unavailable"
             }
             let effect = years > 0.05 ? "adds to age" : (years < -0.05 ? "reduces age" : "near neutral")
-            return "\(title): \(format(value)); break-even \(reference); \(String(format: "%+.1f", years)) years (\(effect))"
+            return "\(title): \(format(value)); break-even \(reference); \(String(format: "%+.1f", locale: AppLanguage.activeLocale, years)) years (\(effect))"
         }
 
-        let vo2Reference = inputs.expectedVO2max.map { String(format: "%.0f ml/kg/min", $0) } ?? "age/sex reference unavailable"
+        let vo2Reference = inputs.expectedVO2max.map { String(format: "%.0f ml/kg/min", locale: AppLanguage.activeLocale, $0) } ?? "age/sex reference unavailable"
         let factors = [
             factor("Sleep consistency", value: inputs.sleepConsistency, key: "consistency", reference: "70%") { String(format: "%.0f%%", $0 * 100) },
             factor("Average sleep", value: inputs.sleepHours, key: "sleep", reference: "7h 30m") { duration($0 * 60) },
@@ -127,8 +127,8 @@ enum NunaAnyaDayContext {
             factor("Strength activity per week", value: inputs.strengthMin, key: "strength", reference: duration(VitalityEngine.strengthBreakEven), format: duration),
             factor("Daily steps average", value: inputs.steps, key: "steps", reference: "7,000/day") { Int($0.rounded()).formatted() },
             factor("VO₂ max", value: inputs.vo2max, key: "vo2max", reference: vo2Reference) { String(format: "%.1f ml/kg/min", $0) },
-            factor("Resting heart rate", value: inputs.restingHR, key: "rhr", reference: "60 bpm") { String(format: "%.1f bpm", $0) },
-            factor("Lean body mass", value: inputs.leanMassPct, key: "leanMass", reference: "78%") { String(format: "%.1f%%", $0) }
+            factor("Resting heart rate", value: inputs.restingHR, key: "rhr", reference: "60 bpm") { String(format: "%.0f bpm", locale: AppLanguage.activeLocale, $0) },
+            factor("Lean body mass", value: inputs.leanMassPct, key: "leanMass", reference: "78%") { String(format: "%.1f%%", locale: AppLanguage.activeLocale, $0) }
         ]
         return """
         WHOOP AGE (same seven-day value shown in the Health tab):
