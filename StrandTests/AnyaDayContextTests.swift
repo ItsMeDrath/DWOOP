@@ -66,7 +66,7 @@ final class AnyaDayContextTests: XCTestCase {
         XCTAssertTrue(out.contains("last 7 days 10.2 of the weekly target 14.7"))
         XCTAssertTrue(out.contains("STRAIN (WHOOP 0-21 daily scale; weekly total is cumulative)"))
         XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +2.4-3.7 Strain"))
-        XCTAssertTrue(out.contains("Charge of 72"))
+        XCTAssertTrue(out.contains("Recovery of 72"))
         XCTAssertTrue(out.contains("healthy baseline 7h 30m"))
         XCTAssertTrue(out.contains("total target tonight 7h 45m"))
         XCTAssertTrue(out.contains("carried sleep debt 1h 20m"))
