@@ -5,7 +5,7 @@ import Foundation
 ///
 /// Before this block Anya did not know the time, so it answered "Have I done enough today?" at 08:00 and at 21:00 the same
 /// way, and it could not tell a morning planning question from an evening review. It also worked its own training direction
-/// out of the Charge band, which could differ from the session the Plan card shows. Everything here is derived from numbers
+/// out of the Recovery band, which could differ from the session the Plan card shows. Everything here is derived from numbers
 /// the phone already holds and goes out as plain sentences, never raw readings.
 ///
 /// Pure (Foundation only) so it is unit-testable with no store, strap or network. The data is gathered by the Nuna builder.
@@ -14,7 +14,7 @@ enum AnyaDayContext {
     struct Input {
         var now: Date
         var calendar: Calendar = .current
-        /// Today's Charge, 0-100.
+        /// Today's Recovery, 0-100.
         var chargePct: Double?
         /// The Plan card's session, in the same words as the card.
         var sessionTitle: String?
@@ -26,7 +26,7 @@ enum AnyaDayContext {
         var sessionEffortHigh: Double?
         /// Effort banked so far today, stored 0-100 axis.
         var todayEffort: Double?
-        /// The band of daily Effort worth aiming for at today's Charge (the one the Today card judges by), stored axis.
+        /// The band of daily Effort worth aiming for at today's Recovery (the one the Today card judges by), stored axis.
         var effortTargetLow: Double?
         var effortTargetHigh: Double?
         /// The wearer's typical daily Effort (a median of recent scored days).
