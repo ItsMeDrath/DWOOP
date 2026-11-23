@@ -386,10 +386,12 @@ struct NunaWorkoutLogZones: View {
                             Text(verbatim: String(localized: "Zone \(zone)")).font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingHead(0.8)).textCase(.uppercase)
                                 .foregroundStyle(on ? NunaPalette.textPrimary : NunaPalette.textMuted)
                             if zone >= 1, zone <= bands.count {
-                                Text(verbatim: "\(Int(bands[zone - 1].lower.rounded()))–\(Int(bands[zone - 1].upper.rounded())) BPM").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingHead(0.4))
+                                let lower = Int(ceil(bands[zone - 1].lower))
+                                let upper = zone == 5 ? Int(bands[zone - 1].upper.rounded()) : Int(ceil(bands[zone - 1].upper)) - 1
+                                Text(verbatim: "\(lower)–\(upper) BPM").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingHead(0.4))
                                     .foregroundStyle(NunaPalette.textMuted).textCase(nil)
                             } else if zone == 0, let first = bands.first {
-                                Text(verbatim: "<\(Int(first.lower.rounded())) BPM").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingHead(0.4))
+                                Text(verbatim: "<\(Int(ceil(first.lower))) BPM").font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingHead(0.4))
                                     .foregroundStyle(NunaPalette.textMuted).textCase(nil)
                             }
                             Text(verbatim: "\(Int((share * 100).rounded()))%").font(.nuna(size: 13, weight: .heavy))
