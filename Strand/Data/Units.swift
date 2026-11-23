@@ -344,18 +344,28 @@ enum UnitFormatter {
         min(max(value, 0), 99)
     }
 
-    /// The stored 0–100 Effort value mapped onto the selected display scale.
-    /// The existing 99 display cap is applied before conversion; there is no separate WHOOP 20.8 clamp.
-    /// The stored value is unchanged; only the read-out is capped.
+    /// An individual stored 0–100 Effort score, capped at 99 for display only.
+    /// On WHOOP's scale this tops out at 20.79, which displays as 20.8/21.
     static func effortValue(_ value: Double, scale: EffortScale) -> Double {
         let bounded = min(max(value, 0), 99)
         return scale == .whoop ? bounded * effortScaleFactor : bounded
     }
 
-    /// Format a stored 0–100 Effort value for display on the selected scale, to one decimal — the single
-    /// helper every Effort read-out (Today tile, Intelligence, Live, Trends, Workouts) routes through.
+    /// Format one individual Effort score. Scores below the display cap are not altered.
     static func effortDisplay(_ value: Double, scale: EffortScale) -> String {
         oneDecimal(effortValue(value, scale: scale))
+    }
+
+    /// Convert an accumulated Effort value without the individual-score cap.
+    /// Weekly totals, daily multi-session sums and training-load series can legitimately exceed 21.
+    static func effortAggregateValue(_ value: Double, scale: EffortScale) -> Double {
+        let bounded = max(value, 0)
+        return scale == .whoop ? bounded * effortScaleFactor : bounded
+    }
+
+    /// Format an accumulated Effort value without applying the individual-score display cap.
+    static func effortAggregateDisplay(_ value: Double, scale: EffortScale) -> String {
+        oneDecimal(effortAggregateValue(value, scale: scale))
     }
 
     /// The "out of" denominator label for the selected Effort scale — "100" or "21". Used by the tile
