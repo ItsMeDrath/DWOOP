@@ -113,27 +113,31 @@ final class AICoachPromptAndStressTests: XCTestCase {
                     recovery: charge, strain: effort, exerciseCount: nil)
     }
 
-    // MARK: - Feature 2: derived stress line
+    // MARK: - WHOOP-native scores
 
-    func testStressIndexSummaryFormatsOneRoundedNumber() {
-        // The line carries exactly the rounded SI plus the labelled proxy note — a derived summary.
-        let line = AICoachEngine.stressIndexSummary(si: 223.82920110192836)
-        XCTAssertTrue(line.hasPrefix("Stress (SI): 224 "), "rounds and labels the SI: \(line)")
-        XCTAssertTrue(line.contains("Baevsky Stress Index"))
-        // No raw R-R reading leaks into the summary — it's a single derived number only.
-        XCTAssertFalse(line.contains("700"))
-        XCTAssertFalse(line.contains("ms"), "no raw R-R values in the summary line")
+    func testCoachUsesWHOOPStrainScaleRatherThanInternalHundredScale() {
+        XCTAssertEqual(AICoachEngine.whoopStrain(100), 21, accuracy: 1e-9)
+        XCTAssertEqual(AICoachEngine.whoopStrain(50), 10.5, accuracy: 1e-9)
+        XCTAssertEqual(AICoachEngine.whoopStrain(12.3), 2.583, accuracy: 1e-9)
+        XCTAssertEqual(AICoachEngine.whoopStrain(-5), 0, accuracy: 1e-9)
+        XCTAssertEqual(AICoachEngine.whoopStrain(120), 21, accuracy: 1e-9)
     }
 
-    func testSummaryNumberMatchesStressViewComputation() {
-        // The SAME 22-beat golden series StressIndexTests pins (SI ≈ 223.83 → rounds to 224). The coach
-        // line must report the value `StressIndex.stressIndex(rr:)` produces — the exact StressView path.
-        let raw: [Double] = [700, 720, 740, 760, 780, 800, 820, 840, 860, 800, 800,
-                             800, 800, 820, 780, 800, 810, 790, 800, 800, 805, 795]
-        let rr = raw.enumerated().map { RRInterval(ts: 1000 + $0.offset, rrMs: Int($0.element)) }
-        let si = StressIndex.stressIndex(rr: rr)
-        XCTAssertNotNil(si)
-        let expected = "Stress (SI): \(Int(si!.rounded())) "
-        XCTAssertTrue(AICoachEngine.stressIndexSummary(si: si!).hasPrefix(expected))
+    func testStressSummaryUsesWHOOPZeroToThreeScaleAndNotBaevsky() {
+        let line = AICoachEngine.whoopStressSummary(level: 2.36)
+        XCTAssertEqual(line, "WHOOP Stress Monitor (0–3): 2.4")
+        XCTAssertFalse(line.contains("Baevsky"))
+        XCTAssertFalse(line.contains("SI"))
     }
+
+    func testDefaultPromptDefinesOnlyWHOOPScoreScales() {
+        let prompt = AICoachEngine.defaultSystemPrompt
+        XCTAssertTrue(prompt.contains("Recovery 0-100"))
+        XCTAssertTrue(prompt.contains("Strain 0-21"))
+        XCTAssertTrue(prompt.contains("Stress Monitor 0-3"))
+        XCTAssertFalse(prompt.contains("effort 0-100"))
+        XCTAssertFalse(prompt.contains("charge 0-100"))
+        XCTAssertFalse(prompt.contains("Baevsky"))
+    }
+
 }
