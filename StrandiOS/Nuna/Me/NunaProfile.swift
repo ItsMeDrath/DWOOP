@@ -82,6 +82,10 @@ struct NunaLevelsView: View {
     @EnvironmentObject private var repo: Repository
     private var recoveries: Int { repo.days.filter { $0.recovery != nil }.count }
     private var level: Int { NunaLevels.level(for: recoveries) }
+    private var whoopAgeGap: Int? {
+        guard let whoopAge, profile.age > 0 else { return nil }
+        return Int((Double(profile.age) - whoopAge).rounded())
+    }
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
@@ -241,7 +245,7 @@ struct NunaProfileView: View {
     @State private var showInbox = false
     @AppStorage(UnitPrefs.effortScaleKey) private var effortScaleRaw = EffortScale.whoop.rawValue
     @State private var workouts: [WorkoutRow] = []
-    @State private var fitnessAge: Double?
+    @State private var whoopAge: Double?
     @StateObject private var sleepModel = NunaSleepModel.shared
     @State private var highlightsPeriod = Period.all
     @State private var summaryPeriod = Period.all
@@ -291,7 +295,7 @@ struct NunaProfileView: View {
             workouts = await repo.workoutRows()
             await sleepModel.load(repo: repo, historyDays: max(repo.days.count + 7, 60), includeMotion: false)
             let m = NunaTodayModel(); await m.load(repo: repo, profile: profile)
-            fitnessAge = m.extras["body_age"]
+            whoopAge = m.extras["body_age"]
         }
     }
 
@@ -369,12 +373,13 @@ struct NunaProfileView: View {
                 }
             }.buttonStyle(.plain)
             Button { router.pendingMetricKey = "body_age" } label: {
-                profileCard(title: "Fitness age", subtitle: fitnessAge.map { String(localized: "\(Int($0.rounded())) years") } ?? String(localized: "Needs a few more days of data before it can be worked out."),
+                profileCard(title: "WHOOP Age", subtitle: whoopAge.map { String(localized: "\(Int($0.rounded())) years") } ?? String(localized: "Needs a few more days of data before it can be worked out."),
                             chevron: true) {
-                    Circle().fill(RadialGradient(colors: [Color(red: 0.2, green: 0.2, blue: 0.22), Color(red: 0.62, green: 0.28, blue: 0.75).opacity(0.85)], center: .center, startRadius: 12, endRadius: 36))
-                        .overlay(Circle().strokeBorder(Color(red: 0.75, green: 0.35, blue: 0.9), lineWidth: 1.5)).frame(width: 66, height: 66)
-                        .overlay { if let a = fitnessAge { Text(verbatim: "\(Int(a.rounded()))").font(.nunaBoldFigure(size: 26)).foregroundStyle(.white) } }
-                        .frame(height: 78)
+                    NunaFitnessOrb(tint: NunaFitnessAgeTone.tint(gap: whoopAgeGap), size: 66) {
+                        NunaFitnessOrbCenter(value: whoopAge, gap: nil, numberSize: 19, captionSize: 5.5, showsGap: false)
+                    }
+                    .frame(width: 66, height: 66)
+                    .frame(height: 78)
                 }
             }.buttonStyle(.plain)
         }
