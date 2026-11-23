@@ -67,7 +67,47 @@ enum NunaAnyaDayContext {
             sessionFeelings: feelings,
             outdoorLine: outdoor?.line,
             outdoorLevel: outdoor?.level)
-        return AnyaDayContext.block(input)
+        var context = AnyaDayContext.block(input)
+
+        // The same weekly Body Age / WHOOP Healthspan-style result and factor breakdown shown
+        // on the Health tab. NunaHealthspan shares the Healthspan screen's cached reader/model,
+        // so Coach never recomputes a different age or invents contributors.
+        if let age = await NunaHealthspan.latest(repo: repo, profile: profile),
+           let bodyAge = age.bodyAge {
+            context += "\n\n" + bodyAgeContext(age)
+        }
+        return context
+    }
+
+    /// Compact explanation of the exact weekly Body Age and signed factor effects.
+    /// Positive years make the estimate older; negative years make it younger.
+    static func bodyAgeContext(_ result: NunaHealthspanResult) -> String {
+        guard let bodyAge = result.bodyAge else {
+            return "BODY AGE: Not available yet; do not estimate it."
+        }
+        let chronological = result.inputs.chronoAge
+        let difference = bodyAge - chronological
+        let comparison: String
+        if abs(difference) < 0.5 {
+            comparison = "about the same as chronological age"
+        } else if difference < 0 {
+            comparison = String(format: "%.1f years younger than chronological age", abs(difference))
+        } else {
+            comparison = String(format: "%.1f years older than chronological age", difference)
+        }
+        let ageLine = String(format: "Body Age %.1f years; chronological age %.0f; %@", bodyAge, chronological, comparison)
+        let factors = result.contributions.map { contribution -> String in
+            let years = VitalityEngine.years(of: contribution)
+            let sign = years > 0 ? "+" : ""
+            let direction = years > 0.05 ? "adds age" : (years < -0.05 ? "lowers age" : "near neutral")
+            return String(format: "%@: %@%.1f years (%@)", contribution.label, sign, years, direction)
+        }
+        let factorLine = factors.isEmpty ? "No individual factors are available yet." : factors.joined(separator: "; ")
+        return """
+        BODY AGE / WHOOP HEALTHSPAN-STYLE ESTIMATE (weekly, same result and inputs as the Health tab):
+        \(ageLine). Based on \(result.inputsUsed) available factors. Factor effects are signed contributions: positive adds years, negative takes years off. \(factorLine)
+        This is the app's wellness estimate, not a clinical or medical age. Use the listed factors to explain what is helping or holding it back; never infer missing factors.
+        """
     }
 
     /// The reading and what it means for training, in plain English for Anya.
