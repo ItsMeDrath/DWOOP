@@ -20,7 +20,7 @@ struct NunaTrainingLoadView: View {
     @State private var showBalanceInfo = false
 
     private var scale: EffortScale { UnitPrefs.resolveEffortScale(effortScaleRaw) }
-    private func eff(_ v: Double) -> Double { UnitFormatter.effortValue(v, scale: scale) }
+    private func eff(_ v: Double) -> Double { UnitFormatter.effortAggregateValue(v, scale: scale) }
 
     var body: some View {
         NunaDetailScreen("Training load", onAnya: tab == 1 ? { showCoach = true } : nil) {
@@ -74,7 +74,7 @@ struct NunaTrainingLoadView: View {
                 VStack(spacing: 16) {
                     HStack { nunaTrendsCap("Last 7 days"); Spacer(); if let band { NunaChip(bandName(band), color: band == .optimal ? NunaPalette.charge : NunaPalette.warning) } }
                     HStack(alignment: .top, spacing: 0) {
-                        ringColumn("Cardio", UnitFormatter.effortDisplay(cardio.last ?? 0, scale: scale), "", (cardio.last ?? 0) / cTop, NunaPalette.effort, cBand, NunaPalette.effortText)
+                        ringColumn("Cardio", UnitFormatter.effortAggregateDisplay(cardio.last ?? 0, scale: scale), "", (cardio.last ?? 0) / cTop, NunaPalette.effort, cBand, NunaPalette.effortText)
                         ringColumn("Strength", vol.last.map { $0 >= 1000 ? String(format: "%.1f", locale: AppLanguage.activeLocale, $0 / 1000) : NunaTrendsFormat.num($0) } ?? "–", (vol.last ?? 0) >= 1000 ? "k" : "",
                                    (vol.last ?? 0) / vTop, NunaPalette.textPrimary, vBand, NunaPalette.textPrimary)
                     }
@@ -96,7 +96,7 @@ struct NunaTrainingLoadView: View {
             NunaCard(small: true, padding: EdgeInsets(top: 4, leading: 18, bottom: 4, trailing: 18)) {
                 VStack(spacing: 0) {
                     NavigationLink(value: NunaWorkoutRoute.loadCardio) {
-                        NunaListRow("Cardio", subtitle: LocalizedStringKey(String(localized: "Strain \(UnitFormatter.effortDisplay(m.effort(week), scale: scale)) · \(week.count) sessions with heart rate")), systemImage: "heart", showsChevron: true)
+                        NunaListRow("Cardio", subtitle: LocalizedStringKey(String(localized: "Strain \(UnitFormatter.effortAggregateDisplay(m.effort(week), scale: scale)) · \(week.count) sessions with heart rate")), systemImage: "heart", showsChevron: true)
                     }.buttonStyle(.plain)
                     NunaDivider()
                     NavigationLink(value: NunaWorkoutRoute.loadMuscle) {
@@ -320,7 +320,7 @@ struct NunaTrainingLoadView: View {
                                     Text(verbatim: String(localized: "\(g.rows.count) sessions · \(Int(m.minutes(g.rows).rounded())) min")).font(.nuna(size: 12.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
                                 }
                                 Spacer()
-                                Text(verbatim: UnitFormatter.effortDisplay(m.effort(g.rows), scale: scale)).font(.nuna(size: 18, weight: .bold, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
+                                Text(verbatim: UnitFormatter.effortAggregateDisplay(m.effort(g.rows), scale: scale)).font(.nuna(size: 18, weight: .bold, design: NunaType.design)).foregroundStyle(NunaPalette.textPrimary)
                             }
                             NunaProgressBar(fraction: m.effort(g.rows) / top, color: NunaPalette.effort)
                         }.padding(.vertical, 12)
