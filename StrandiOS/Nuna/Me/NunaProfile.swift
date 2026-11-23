@@ -366,7 +366,7 @@ struct NunaProfileView: View {
             return o.string(from: date)
         }
         return HStack(spacing: 14) {
-            WhoopMonogram().fill(NunaPalette.textPrimary)
+            Image("WhoopMemberIcon").resizable().scaledToFit()
                 .frame(width: 15, height: 11)
                 .frame(width: 24, height: 24).overlay(Circle().strokeBorder(NunaPalette.textPrimary, lineWidth: 1.2))
             Text("Member since").font(.nuna(size: 14, weight: .regular)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
