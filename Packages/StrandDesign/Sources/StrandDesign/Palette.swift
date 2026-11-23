@@ -158,11 +158,11 @@ public enum StrandPalette {
     static let cSleepDeep  = Color(light: "#203E73", dark: "#2A4C8F")
     static let cSleepREM   = Color(light: "#6A4FC0", dark: "#8E6FD6")
     // HR zones: grey → green → yellow → orange → red.
-    static let cZone1 = Color(light: "#828D9B", dark: "#9AA7B5")
-    static let cZone2 = Color(light: "#2E9E4F", dark: "#46B45A")
-    static let cZone3 = Color(light: "#CFA528", dark: "#F2C53D")
-    static let cZone4 = Color(light: "#D87328", dark: "#EE8B3C")
-    static let cZone5 = Color(light: "#CB3A2F", dark: "#E5483B")
+    static let cZone1 = Color(light: "#A9BAC8", dark: "#A9BAC8")
+    static let cZone2 = Color(light: "#4F97C2", dark: "#4F97C2")
+    static let cZone3 = Color(light: "#6BB894", dark: "#6BB894")
+    static let cZone4 = Color(light: "#D4A55A", dark: "#D4A55A")
+    static let cZone5 = Color(light: "#CF6068", dark: "#CF6068")
     // Stress: calm green → amber → red.
     static let cStressStops: [Gradient.Stop] = [
         .init(color: Color(light: "#2E9E4F", dark: "#46B45A"), location: 0.0),
@@ -225,11 +225,11 @@ public enum StrandPalette {
     public static var sleepREM:   Color { isClassic ? cSleepREM   : Color(light: "#8E3BD6", dark: "#AE5BEF") }
 
     // MARK: HR zones — Titanium cool→warm (no green), or the Classic grey→green→yellow→orange→red.
-    public static var zone1: Color { isClassic ? cZone1 : Color(light: "#3A80D6", dark: "#4A90E2") }
-    public static var zone2: Color { isClassic ? cZone2 : Color(light: "#2E92B4", dark: "#3FA9C9") }
-    public static var zone3: Color { isClassic ? cZone3 : Color(light: "#C28E26", dark: "#E8B84B") }
-    public static var zone4: Color { isClassic ? cZone4 : Color(light: "#C2792E", dark: "#D98A3D") }
-    public static var zone5: Color { isClassic ? cZone5 : Color(light: "#C84E1E", dark: "#E0662F") }
+    public static var zone1: Color { cZone1 }
+    public static var zone2: Color { cZone2 }
+    public static var zone3: Color { cZone3 }
+    public static var zone4: Color { cZone4 }
+    public static var zone5: Color { cZone5 }
 
     /// HR zones indexed 1...5; index 0 mirrors zone1 for convenience.
     public static var hrZones: [Color] { [zone1, zone1, zone2, zone3, zone4, zone5] }
