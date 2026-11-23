@@ -93,11 +93,13 @@ enum NunaAnyaDayContext {
         let inputs = result.inputs
         let ageLine: String
         if let age = result.bodyAge {
-            let difference = inputs.chronoAge - age
-            let relation = abs(difference) < 0.05 ? "about the same as chronological age"
-                : difference > 0 ? String(format: "%.1f years younger than chronological age", difference)
-                : String(format: "%.1f years older than chronological age", abs(difference))
-            ageLine = String(format: "WHOOP Age %.1f years; chronological age %.0f; %@", age, inputs.chronoAge, relation)
+            // The orb displays WHOOP Age as a whole number (NunaFitnessOrbCenter, %.0f).
+            let displayedAge = Int(age.rounded())
+            let difference = Int((inputs.chronoAge - age).rounded())
+            let relation = difference == 0 ? "about the same as chronological age"
+                : difference > 0 ? "\(difference) years younger than chronological age"
+                : "\(abs(difference)) years older than chronological age"
+            ageLine = "WHOOP Age \(displayedAge) years; chronological age \(Int(inputs.chronoAge.rounded())); \(relation)"
         } else {
             ageLine = "WHOOP Age is not available yet; at least 3 of the 9 factors are needed"
         }
