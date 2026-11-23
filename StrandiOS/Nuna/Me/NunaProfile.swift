@@ -294,8 +294,8 @@ struct NunaProfileView: View {
         .task(id: repo.refreshSeq) {
             workouts = await repo.workoutRows()
             await sleepModel.load(repo: repo, historyDays: max(repo.days.count + 7, 60), includeMotion: false)
-            let m = NunaTodayModel(); await m.load(repo: repo, profile: profile)
-            whoopAge = m.extras["body_age"]
+            let age = await NunaHealthspan.latest(repo: repo, profile: profile)
+            whoopAge = age?.bodyAge
         }
     }
 
