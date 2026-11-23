@@ -355,12 +355,16 @@ struct NunaFitnessOrbCenter: View {
     var numberSize: CGFloat = 46
     var captionSize: CGFloat = 13
     var showsGap = true
+    /// The small "WHOOP Age" name under the number. The profile card turns it off: its own title already says it, so the orb holds the number alone.
+    var showsCaption = true
 
     var body: some View {
         VStack(spacing: numberSize > 40 ? 5 : 1) {
             Text(verbatim: value.map { String(format: "%.0f", locale: AppLanguage.activeLocale, $0) } ?? "–")
                 .font(.nuna(size: numberSize, weight: .bold, design: NunaType.design)).tracking(nunaTrackingNumber(numberSize)).foregroundStyle(NunaPalette.textPrimary).textCase(nil)
-            Text("WHOOP Age").font(.nuna(size: captionSize, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.textSecondary)
+            if showsCaption {
+                Text("WHOOP Age").font(.nuna(size: captionSize, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase).foregroundStyle(NunaPalette.textSecondary)
+            }
             if showsGap, let gap {
                 Group { if gap == 0 { Text("About your age") } else { Text(nunaYearsGap(gap)) } }
                     .font(.nuna(size: 16, weight: .medium)).foregroundStyle(NunaPalette.restLight).textCase(nil).padding(.top, 2)

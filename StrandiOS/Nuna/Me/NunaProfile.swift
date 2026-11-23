@@ -260,6 +260,19 @@ struct NunaProfileView: View {
         return Int((Double(profile.age) - whoopAge).rounded())
     }
 
+    /// The line under the orb's title: how far WHOOP Age is from the calendar age ("2 years younger"), the same wording and whole years as the Health tab.
+    private var whoopAgeSubtitle: String {
+        guard let whoopAge else { return String(localized: "Needs a few more days of data before it can be worked out.") }
+        guard let gap = whoopAgeGap else { return String(localized: "\(Int(whoopAge.rounded())) years") }
+        switch gap {
+        case 0: return String(localized: "About your age")
+        case 1: return String(localized: "1 year younger")
+        case -1: return String(localized: "1 year older")
+        case let d where d > 0: return String(localized: "\(d) years younger")
+        default: return String(localized: "\(-gap) years older")
+        }
+    }
+
     private func days(_ p: Period) -> [DailyMetric] {
         guard let n = p.days, let from = cal.date(byAdding: .day, value: -(n - 1), to: cal.startOfDay(for: Date())) else { return allDays }
         let key = Repository.localDayKey(from)
@@ -373,10 +386,11 @@ struct NunaProfileView: View {
                 }
             }.buttonStyle(.plain)
             Button { router.pendingMetricKey = "body_age" } label: {
-                profileCard(title: "WHOOP Age", subtitle: whoopAge.map { String(localized: "\(Int($0.rounded())) years") } ?? String(localized: "Needs a few more days of data before it can be worked out."),
+                profileCard(title: "WHOOP Age", subtitle: whoopAgeSubtitle,
                             chevron: true) {
                     NunaFitnessOrb(tint: NunaFitnessAgeTone.tint(gap: whoopAgeGap), size: 66) {
-                        NunaFitnessOrbCenter(value: whoopAge, gap: nil, numberSize: 19, captionSize: 5.5, showsGap: false)
+                        // Only the number inside the orb; the card's own title names it and the line below says how far it is from the calendar age.
+                        NunaFitnessOrbCenter(value: whoopAge, gap: nil, numberSize: 24, showsGap: false, showsCaption: false)
                     }
                     .frame(width: 66, height: 66)
                     .frame(height: 78)
