@@ -83,13 +83,19 @@ extension WidgetSnapshot {
         let caloriesKcal = appleRows.last(where: { $0.day == Repository.localDayKey(now) })?.activeKcal.map { Int($0.rounded()) }
             ?? todayRow?.activeKcalEst.map { Int($0.rounded()) }
             ?? day?.activeKcalEst.map { Int($0.rounded()) }
-        var restScore: Double?
-        let restSeries = await model.repo.exploreSeries(key: "sleep_performance", source: "my-whoop")
-        let restByDay = Dictionary(restSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
-        restScore = Self.freshRestScore(
+        // The Sleep Score is the 60/20/10/10 one the Sleep screen and Today show, which comes from the sleep model. The stored
+        // `sleep_performance` series this used to read is the older formula, so the widget disagreed with the app. The model is
+        // reloaded only when what it holds is not current for this data (Today normally has it loaded already).
+        let sleepModel = NunaSleepModel.shared
+        if sleepModel.loadedKey != NunaSleepModel.loadKey(seq: model.repo.refreshSeq) {
+            await sleepModel.load(repo: model.repo)
+        }
+        let restByDay = sleepModel.scoresByDay()
+        let latestRest = restByDay.max { $0.key < $1.key }
+        let restScore = Self.freshRestScore(
             todayValue: restByDay[todayKey],
-            lastDay: restSeries.last?.day,
-            lastValue: restSeries.last?.value,
+            lastDay: latestRest?.key,
+            lastValue: latestRest?.value,
             todayKey: todayKey
         )
         // #313: honour the user's Effort scale at publish time. The widget extension cannot read the

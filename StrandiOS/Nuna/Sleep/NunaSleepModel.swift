@@ -208,6 +208,12 @@ final class NunaSleepModel: ObservableObject {
     @Published private(set) var series: [String: [String: Double]] = [:]
     @Published private(set) var sleepStressHighPct: [String: Double] = [:]
     @Published private(set) var loaded = false
+    /// What the nights were last read for (see `loadKey`), so a caller that only needs the scores can tell whether a load is current.
+    private(set) var loadedKey: String?
+    /// The key a load with these settings leaves in `loadedKey`; the defaults are what Today loads with, and so what its scores are made from.
+    static func loadKey(seq: Int, historyDays: Int = 60, includeMotion: Bool = true) -> String {
+        "\(seq)-\(NunaNapPrefs.autoDetect)-\(historyDays)-\(includeMotion)"
+    }
     /// Recency-weighted debt over the latest nights (same ledger the Default Sleep tab shows).
     @Published private(set) var ledger: SleepDebtLedger?
     private var importedNeed: [String: Double] = [:]
@@ -384,6 +390,7 @@ final class NunaSleepModel: ObservableObject {
     /// with the new nights and the latest one selected.
     func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil,
               historyDays: Int = 60, includeMotion: Bool = true) async {
+        let keyAtStart = Self.loadKey(seq: repo.refreshSeq, historyDays: historyDays, includeMotion: includeMotion)
         let hab = await repo.habitualMidsleepSec()
         let sessions = await repo.allSleepSessions(days: historyDays)
         let motions = includeMotion ? await repo.sessionMotions(sessions: sessions) : [:]
@@ -512,6 +519,7 @@ final class NunaSleepModel: ObservableObject {
         let napByDay = SleepModel.napSleepMinutesByDay(navDays: SleepModel.navDays(navSessions: sessions), habitualMidsleepSec: hab)
         ledger = SleepModel.debtLedger(days: repo.days, napSleepMinByDay: napByDay)
         if index >= out.count { index = 0 }
+        loadedKey = keyAtStart
         loaded = true
     }
 }
