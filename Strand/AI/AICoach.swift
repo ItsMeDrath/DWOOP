@@ -1496,7 +1496,7 @@ final class AICoachEngine: ObservableObject {
         }
         let source = model.usingStored
             ? "recorded daily Stress score"
-            : "derived from resting HR and HRV against the 30-day baseline"
+            : "derived from available resting HR and/or HRV against the 30-day baseline"
         return "Stress Monitor (0–3; same score as the Stress screen): \(String(format: "%.1f", min(max(model.score, 0), 3))). Source: \(source). Change versus baseline: resting HR \(delta(model.rhrDelta, unit: "bpm")); HRV \(delta(model.hrvDelta, unit: "ms")). \(model.explanation)"
     }
 
@@ -1796,7 +1796,7 @@ final class AICoachEngine: ObservableObject {
         let recentLoadHigh = if let recentEffort, let baseline = effortBaseline, baseline > 0 {
             recentEffort >= baseline * 1.25
         } else {
-            effort.map { $0 >= 14 } ?? false
+            effort.map { Self.strain21Value($0) >= 14 } ?? false
         }
 
         let state: String
@@ -1858,6 +1858,10 @@ final class AICoachEngine: ObservableObject {
     /// Stored Effort is 0–100; the iPhone Coach must speak the displayed WHOOP 0–21 scale.
     nonisolated static func strain21(_ storedEffort: Double) -> String {
         String(format: "%.1f", min(max(storedEffort, 0), 100) * 0.21)
+    }
+
+    private nonisolated static func strain21Value(_ storedEffort: Double) -> Double {
+        min(max(storedEffort, 0), 100) * 0.21
     }
 
     private func avgStrain21(_ values: [Double]) -> String {
