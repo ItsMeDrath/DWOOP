@@ -157,7 +157,7 @@ public enum StrandPalette {
     static let cSleepLight = Color(light: "#3A80D6", dark: "#6FA8E8")
     static let cSleepDeep  = Color(light: "#203E73", dark: "#2A4C8F")
     static let cSleepREM   = Color(light: "#6A4FC0", dark: "#8E6FD6")
-    // HR zones: grey → green → yellow → orange → red.
+    // HR zones: grey → blue → green → amber → red.
     static let cZone1 = Color(light: "#A9BAC8", dark: "#A9BAC8")
     static let cZone2 = Color(light: "#4F97C2", dark: "#4F97C2")
     static let cZone3 = Color(light: "#6BB894", dark: "#6BB894")
@@ -224,7 +224,7 @@ public enum StrandPalette {
     public static var sleepDeep:  Color { isClassic ? cSleepDeep  : Color(light: "#C13EC1", dark: "#FD96FD") }
     public static var sleepREM:   Color { isClassic ? cSleepREM   : Color(light: "#8E3BD6", dark: "#AE5BEF") }
 
-    // MARK: HR zones — Titanium cool→warm (no green), or the Classic grey→green→yellow→orange→red.
+    // MARK: HR zones — one consistent WHOOP-style grey→blue→green→amber→red ramp.
     public static var zone1: Color { cZone1 }
     public static var zone2: Color { cZone2 }
     public static var zone3: Color { cZone3 }
