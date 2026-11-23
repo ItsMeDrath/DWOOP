@@ -82,10 +82,6 @@ struct NunaLevelsView: View {
     @EnvironmentObject private var repo: Repository
     private var recoveries: Int { repo.days.filter { $0.recovery != nil }.count }
     private var level: Int { NunaLevels.level(for: recoveries) }
-    private var whoopAgeGap: Int? {
-        guard let whoopAge, profile.age > 0 else { return nil }
-        return Int((Double(profile.age) - whoopAge).rounded())
-    }
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 3)
 
     var body: some View {
@@ -259,6 +255,10 @@ struct NunaProfileView: View {
     private var allDays: [DailyMetric] { repo.days.sorted { $0.day < $1.day } }
     private var recoveries: Int { allDays.filter { $0.recovery != nil }.count }
     private var level: Int { NunaLevels.level(for: recoveries) }
+    private var whoopAgeGap: Int? {
+        guard let whoopAge, profile.age > 0 else { return nil }
+        return Int((Double(profile.age) - whoopAge).rounded())
+    }
 
     private func days(_ p: Period) -> [DailyMetric] {
         guard let n = p.days, let from = cal.date(byAdding: .day, value: -(n - 1), to: cal.startOfDay(for: Date())) else { return allDays }
