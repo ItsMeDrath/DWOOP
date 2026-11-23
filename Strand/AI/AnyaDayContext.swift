@@ -101,28 +101,28 @@ enum AnyaDayContext {
         // Effort so far, against what is usual and against the week.
         var effort: [String] = []
         if let t = i.todayEffort, t > 0 {
-            var s = "Strain so far today \(oneDecimal(t))"
-            if let u = i.usualEffort, u > 0 { s += " (a usual day is about \(oneDecimal(u)))" }
+            var s = "Strain so far today \(strain(t))"
+            if let u = i.usualEffort, u > 0 { s += " (a usual day is about \(strain(u)))" }
             effort.append(s)
         } else if i.todayEffort != nil {
             effort.append("no Strain banked yet today")
         }
         if let lo = i.effortTargetLow, let hi = i.effortTargetHigh {
-            effort.append("the Strain worth aiming for at today's Recovery is \(Int(lo.rounded()))-\(Int(hi.rounded()))")
+            effort.append("the Strain worth aiming for at today's Recovery is \(Int(whoopStrain(lo).rounded()))-\(Int(whoopStrain(hi).rounded()))")
         }
         if let w = i.weekEffort, w > 0 {
-            var s = "last 7 days \(Int(w.rounded()))"
-            if let g = i.weeklyEffortGoal, g > 0 { s += " of the weekly target \(Int(g.rounded()))" }
+            var s = "last 7 days \(Int(whoopStrain(w).rounded()))"
+            if let g = i.weeklyEffortGoal, g > 0 { s += " of the weekly target \(Int(whoopStrain(g).rounded()))" }
             effort.append(s)
         }
-        if !effort.isEmpty { lines.append("STRAIN (0-100 axis): " + effort.joined(separator: "; ") + ".") }
+        if !effort.isEmpty { lines.append("STRAIN (WHOOP 0-21 daily axis; weekly totals are cumulative): " + effort.joined(separator: "; ") + ".") }
 
         // The Plan card's session. Anya must not contradict it unless the person gives a reason to change it.
         if let title = i.sessionTitle {
             var s = "TODAY'S SUGGESTED SESSION (the same one the Plan card shows; do not contradict it unless the person gives a reason): \(title)"
             if let z = i.sessionMainZone { s += ", main work in zone \(z)" }
             if let lo = i.sessionEffortLow, let hi = i.sessionEffortHigh {
-                s += ", about +\(Int(lo.rounded()))-\(Int(hi.rounded())) Strain"
+                s += ", about +\(Int(whoopStrain(lo).rounded()))-\(Int(whoopStrain(hi).rounded())) Strain"
             }
             s += "."
             if let c = i.chargePct { s += " It was chosen from a Recovery of \(Int(c.rounded()))."}
@@ -241,6 +241,11 @@ enum AnyaDayContext {
         if debt >= 60, let bed { s += " With about \(hours(debt)) of sleep debt, be asleep by \(bed) tonight." }
         return s
     }
+
+    /// Convert the app's stored 0–100 Effort axis to the WHOOP 0–21 Strain axis used in Coach text.
+    private static func whoopStrain(_ value: Double) -> Double { min(max(value, 0), 100) * 21.0 / 100.0 }
+
+    private static func strain(_ value: Double) -> String { oneDecimal(whoopStrain(value)) }
 
     private static func oneDecimal(_ v: Double) -> String { String(format: "%.1f", v) }
 
