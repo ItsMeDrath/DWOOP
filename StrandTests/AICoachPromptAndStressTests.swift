@@ -138,7 +138,7 @@ final class AICoachPromptAndStressTests: XCTestCase {
         let expected = String(format: "%.1f", model.score)
 
         XCTAssertTrue(line.contains("Stress Monitor (0–3; same score as the Stress screen): \(expected)"), line)
-        XCTAssertTrue(line.contains("derived from resting HR and HRV"), line)
+        XCTAssertTrue(line.contains("derived from available resting HR and/or HRV"), line)
         XCTAssertTrue(line.contains("resting HR"), line)
         XCTAssertTrue(line.contains("HRV"), line)
         XCTAssertFalse(line.contains("Baevsky"), line)
@@ -150,7 +150,7 @@ final class AICoachPromptAndStressTests: XCTestCase {
         XCTAssertTrue(prompt.contains("Strain is 0-21"))
         XCTAssertTrue(prompt.contains("Stress Monitor is 0-3"))
         XCTAssertTrue(prompt.contains("Sleep Performance is 0-100"))
-        XCTAssertTrue(prompt.contains("Strain is 6.3 today"))
+        XCTAssertTrue(prompt.contains("Your Strain today is 6.3"))
         XCTAssertTrue(prompt.contains("WHOOP Age"))
         XCTAssertFalse(prompt.contains("6.3/21"))
         XCTAssertFalse(prompt.contains("Baevsky Stress Index"))
