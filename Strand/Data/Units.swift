@@ -345,11 +345,11 @@ enum UnitFormatter {
     }
 
     /// The stored 0–100 Effort value mapped onto the selected display scale.
-    /// Display is capped below the scale ceiling: 99 on the native axis, 20.8 on WHOOP's 0–21 axis.
+    /// The existing 99 display cap is applied before conversion; there is no separate WHOOP 20.8 clamp.
     /// The stored value is unchanged; only the read-out is capped.
     static func effortValue(_ value: Double, scale: EffortScale) -> Double {
         let bounded = min(max(value, 0), 99)
-        return scale == .whoop ? min(bounded * effortScaleFactor, 20.8) : bounded
+        return scale == .whoop ? bounded * effortScaleFactor : bounded
     }
 
     /// Format a stored 0–100 Effort value for display on the selected scale, to one decimal — the single
