@@ -58,11 +58,11 @@ final class AnyaDayContextTests: XCTestCase {
         i.sleepDebtMin = 80
         i.habitualMidsleepSec = 3 * 3600
         let out = AnyaDayContext.block(i)
-        XCTAssertTrue(out.contains("Effort so far today 6.2"), out)   // %.1f of 6.25 rounds to even → 6.2
-        XCTAssertTrue(out.contains("usual day is about 10.0"))
-        XCTAssertTrue(out.contains("last 7 days 48 of the weekly target 70"))
-        XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +12-17 Effort"))
-        XCTAssertTrue(out.contains("Charge of 72"))
+        XCTAssertTrue(out.contains("Strain so far today 1.3"), out)
+        XCTAssertTrue(out.contains("usual day is about 2.1"))
+        XCTAssertTrue(out.contains("last 7 days 10 of the weekly target 15"))
+        XCTAssertTrue(out.contains("Tempo session, 42 min, main work in zone 4, about +2-4 Strain"))
+        XCTAssertTrue(out.contains("Recovery of 72"))
         XCTAssertTrue(out.contains("need about 7h 45m"))
         XCTAssertTrue(out.contains("debt of about 1h 20m"))
         XCTAssertTrue(out.contains("asleep by about 23:07"), out)   // 03:00 − 3 h 52.5 m → 23:07:30 → 23:07
@@ -78,7 +78,7 @@ final class AnyaDayContextTests: XCTestCase {
     func testNoEffortBankedYetIsStatedNotZeroed() {
         var i = AnyaDayContext.Input(now: date(2026, 10, 13, 9, 0), calendar: cal)
         i.todayEffort = 0
-        XCTAssertTrue(AnyaDayContext.block(i).contains("no Effort banked yet today"))
+        XCTAssertTrue(AnyaDayContext.block(i).contains("no Strain banked yet today"))
     }
 }
 
