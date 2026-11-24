@@ -3,18 +3,22 @@ import StrandAnalytics
 import StrandDesign
 import WhoopStore
 
-/// Compact Today surface for Stress, using the same intraday curve and score language as the Stress
-/// widget. The curve comes from `StressDayCurve`, so the app and widget never invent separate readings.
+/// Compact Today surface for Stress, using the exact same intraday timeline and line as Stress Monitor.
+/// Both surfaces consume the shared WHOOP-reference result; neither creates a separate reading.
 struct StressTodayCardView: View {
     @EnvironmentObject private var repo: Repository
     @State private var result: DaytimeStress.Result?
 
-    private var scoredHours: [DaytimeStress.HourPoint] {
-        result?.hours.filter { $0.level != nil } ?? []
+    private var scoredTimeline: [DaytimeStress.HourPoint] {
+        result?.timeline.filter { $0.level != nil } ?? []
     }
 
     private var latest: DaytimeStress.HourPoint? {
-        result?.hours.last(where: { $0.level != nil })
+        scoredTimeline.last
+    }
+
+    private var peak: DaytimeStress.HourPoint? {
+        scoredTimeline.max { ($0.level ?? 0) < ($1.level ?? 0) }
     }
 
     var body: some View {
@@ -45,7 +49,7 @@ struct StressTodayCardView: View {
                         }
                     }
 
-                    if let result, !scoredHours.isEmpty {
+                    if let result, !scoredTimeline.isEmpty {
                         HStack(alignment: .top, spacing: NoopMetrics.space2) {
                             VStack(alignment: .trailing, spacing: 0) {
                                 ForEach([3, 2, 1, 0], id: \.self) { tick in
@@ -57,12 +61,12 @@ struct StressTodayCardView: View {
                             }
                             .frame(width: 14, height: 78)
 
-                            DaytimeLoadLine(hours: result.hours)
+                            DaytimeLoadLine(hours: result.timeline)
                         }
 
-                        StressTodayTimeAxis(hours: result.hours)
+                        StressTodayTimeAxis(hours: result.timeline)
 
-                        if let peak = result.peak, let peakLevel = peak.level {
+                        if let peak, let peakLevel = peak.level {
                             HStack(spacing: 4) {
                                 Text("Peak")
                                 Text(verbatim: "\(StressTrace.formatLevel(peakLevel)) · \(peakDate(peak))")
