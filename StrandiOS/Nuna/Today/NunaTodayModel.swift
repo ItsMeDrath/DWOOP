@@ -105,6 +105,9 @@ final class NunaTodayModel: ObservableObject {
         default: charge = .noData
         }
         effort = snapshot.effort
+        // Mark the restored score as already seeded for this day. Otherwise onAppear's
+        // applyDaily() can replace it with nil while the repository is still loading.
+        effortKey = snapshot.dayKey
         rest = snapshot.rest
         stress = snapshot.stress
         hrv = snapshot.hrv
