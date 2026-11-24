@@ -77,6 +77,10 @@ final class NunaSleepHistory: ObservableObject {
         let seqAtStart = repo.refreshSeq
         defer { loadedSeq = seqAtStart }
 
+        // Keep the last known, already-scored nights visible while the 400-day history is refreshed.
+        let cachedScores = NunaSleepModel.cachedSleepScores()
+        if !cachedScores.isEmpty { performance = cachedScores }
+
         var a: [String: Double] = [:], d: [String: Double] = [:], r: [String: Double] = [:]
         for row in repo.days {
             guard let t = row.totalSleepMin, t > 0 else { continue }
