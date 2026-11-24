@@ -933,7 +933,7 @@ struct NunaTodayView: View {
                                    cachedNaps: model.highlightNaps.filter {
                                        let end = Date(timeIntervalSince1970: TimeInterval($0.endTs))
                                        return end <= Date() && Date().timeIntervalSince(end) <= 3 * 3600
-                                   }.map { NunaHighlightNap(id: $0.id, duration: $0.duration) },
+                                   }.map { NunaHighlightNap(id: $0.id, duration: NunaHighlightEngine.hm($0.asleepMin)) },
                                    onBreathe: { showBreath = true }, onWindDown: { pushToday(.windDown) }, onOutlook: { showOutlook = true },
                                    onJournal: { router.openJournal(day: 1) }, onTrend: { pushToday(.trend(.charge)) }, onPlan: { pushToday(.plan) })
             }
