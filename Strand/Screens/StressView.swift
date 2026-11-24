@@ -161,7 +161,9 @@ struct StressView: View {
 
             // 3. Today's intraday timeline — when in the day stress ran high, + a
             //    passive Breathe suggestion when the recent hours stay elevated.
-            if let daytime, !daytime.scored.isEmpty {
+            // The WHOOP conversion can have valid half-hour display points before a
+            // complete hourly summary bucket exists. Gate the graph on the data it actually draws.
+            if let daytime, !daytime.timeline.isEmpty {
                 daytimeSection(daytime)
                     .staggeredAppear(index: 2)
             }
@@ -259,8 +261,13 @@ struct StressView: View {
     /// "avg 1.4 · 9h" summary for the timeline header, from the scored hours.
     private func timelineTrailing(_ day: DaytimeStress.Result) -> String {
         let n = day.scored.count
-        guard let mean = day.dayMean else { return String(localized: "\(n)h") }
-        return String(localized: "avg \(StressTrace.formatLevel(mean)) · \(n)h")
+        if let mean = day.dayMean {
+            return String(localized: "avg \(StressTrace.formatLevel(mean)) · \(n)h")
+        }
+        let points = day.timeline.compactMap(\.level)
+        guard !points.isEmpty else { return String(localized: "0h") }
+        let mean = points.reduce(0, +) / Double(points.count)
+        return String(localized: "avg \(StressTrace.formatLevel(mean)) · \(points.count) points")
     }
 
     /// The same WHOOP-reference result shown on Home: each point is total-day stress,
