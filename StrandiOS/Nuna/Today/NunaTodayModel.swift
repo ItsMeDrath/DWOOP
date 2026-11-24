@@ -90,6 +90,8 @@ final class NunaTodayModel: ObservableObject {
         let stressTypicalMin: Int?
         let stressCurve: StressCurveSnapshot?
         let highlightNaps: [HighlightNapSnapshot]?
+        /// Streak count cached with the same complete Home snapshot for first-frame display.
+        let streakCurrent: Int?
     }
 
     private func restoreHomeSnapshot() {
@@ -130,6 +132,7 @@ final class NunaTodayModel: ObservableObject {
         stressTypicalMin = snapshot.stressTypicalMin
         stressCurve = snapshot.stressCurve?.result
         highlightNaps = snapshot.highlightNaps ?? []
+        streakCurrent = snapshot.streakCurrent
     }
 
     private func persistHomeSnapshot(dayKey: String) {
@@ -153,7 +156,8 @@ final class NunaTodayModel: ObservableObject {
             keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
             stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
             stressBaseline: stressBaseline, stressTypicalMin: stressTypicalMin,
-            stressCurve: stressCurve.map(StressCurveSnapshot.init), highlightNaps: highlightNaps)
+            stressCurve: stressCurve.map(StressCurveSnapshot.init), highlightNaps: highlightNaps,
+            streakCurrent: streakCurrent)
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
     }
@@ -235,6 +239,8 @@ final class NunaTodayModel: ObservableObject {
     @Published private(set) var monitorSeriesLoaded = false
     @Published private(set) var keySparkSeries: [String: [Double]] = [:]
     @Published private(set) var highlightNaps: [HighlightNapSnapshot] = []
+    /// The last complete streak count, restored with Home and refreshed once repository history is ready.
+    @Published private(set) var streakCurrent: Int?
     @Published private(set) var loaded = false
     /// Stress has its own readiness: it can be shown as soon as its independent calculation finishes.
     @Published private(set) var stressLoaded = false
@@ -392,6 +398,9 @@ final class NunaTodayModel: ObservableObject {
         let row = today ? (repo.today ?? repo.days.last(where: { $0.day == key }))
                         : repo.days.last(where: { $0.day == key })
         day = row
+        // `repo.days` is empty during the first launch read. Keep the snapshot's streak until
+        // the repository is ready, then replace it with the current calculation.
+        if repo.loaded { streakCurrent = NunaStreak.compute(days: repo.days).current }
 
         // Charge, with the same carry / calibration rules as the other Today screens.
         // Only once the history has been read: before that `repo.days` is empty, which reads as "calibrating, 0 nights" and drew a
