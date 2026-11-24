@@ -388,7 +388,9 @@ struct NunaTodayView: View {
             guard keyMetricsDetailed else { return }
             let chosen: [KeyMetric] = keyMetricsRaw.trimmingCharacters(in: .whitespaces).isEmpty
                 ? Self.nunaDefaultMetrics : KeyMetricPrefs.decodeEnabled(keyMetricsRaw)
-            await sparks.load(repo: repo, metrics: chosen, days: max(keyMetricsWindowDays, 2))
+            await sparks.load(repo: repo, metrics: chosen, days: max(keyMetricsWindowDays, 2),
+                              seed: model.keySparkSeries,
+                              onChange: { model.updateKeySparkSeries($0) })
         }
         // Only the cards that open a trend page, and the Sleep performance card (it compares with the night before), need the long history.
         .task(id: "\(repo.refreshSeq)-\(myDashboardRaw)") {
@@ -949,7 +951,9 @@ struct NunaTodayView: View {
         case .vitalMonitor:
             NunaMonitorPackCard(hrv: model.hrv, restingHr: model.restingHr, spo2: model.spo2, respiratory: model.respiratory,
                                 skinTemp: model.extras["skin_temp"], stress: model.stress, stressCurve: model.stressCurve,
-                                stressNights: model.stressStatus.isReady || !model.stressLoaded ? nil : model.stressStatus.nights)
+                                stressNights: model.stressStatus.isReady || !model.stressLoaded ? nil : model.stressStatus.nights,
+                                cachedSeries: model.monitorSeries,
+                                onSeriesChange: { model.updateMonitorSeries($0) })
         case .keyMetrics:
             let tiles = metricTiles
             if !tiles.isEmpty {
