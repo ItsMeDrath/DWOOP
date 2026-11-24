@@ -472,10 +472,22 @@ final class NunaSleepModel: ObservableObject {
         else if let selectIndex, selectIndex > 0, selectIndex < out.count { index = selectIndex }
         nights = out
 
+        // These history series are independent database reads. Fetch them together instead of making Today
+        // wait through nine serial round trips before it can publish the Sleep score.
+        async let performanceA = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: historyDays)
+        async let needA = repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: historyDays)
+        async let debtA = repo.exploreSeries(key: "sleep_debt_min", source: "my-whoop", days: historyDays)
+        async let hoursA = repo.exploreSeries(key: "hours_vs_needed_pct", source: "my-whoop", days: historyDays)
+        async let strainA = repo.exploreSeries(key: "strain", source: "my-whoop", days: historyDays)
+        async let consistencyA = repo.exploreSeries(key: "sleep_consistency", source: "my-whoop", days: historyDays)
+        async let restorativePctA = repo.exploreSeries(key: "restorative_pct", source: "my-whoop", days: historyDays)
+        async let efficiencyA = repo.exploreSeries(key: "sleep_efficiency", source: "my-whoop", days: historyDays)
+        async let restorativeMinA = repo.exploreSeries(key: "restorative_min", source: "my-whoop", days: historyDays)
+        let loadedSeries = await (performanceA, needA, debtA, hoursA, strainA, consistencyA, restorativePctA, efficiencyA, restorativeMinA)
         var all: [String: [String: Double]] = [:]
-        for k in Self.keys {
-            let s = await repo.exploreSeries(key: k, source: "my-whoop", days: historyDays)
-            all[k] = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+        for (key, points) in zip(Self.keys, [loadedSeries.0, loadedSeries.1, loadedSeries.2, loadedSeries.3, loadedSeries.4,
+                                             loadedSeries.5, loadedSeries.6, loadedSeries.7, loadedSeries.8]) {
+            all[key] = Dictionary(points.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
         }
         series = all
 
