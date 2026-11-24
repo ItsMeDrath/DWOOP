@@ -173,7 +173,13 @@ struct NunaChargeDetailView: View {
                                 destination: { AnyView(NunaTrendHost(initial: .respiratory, endingDaysAgo: router.todayDayOffset)) }, endingDaysAgo: router.todayDayOffset)
             NunaWeeklyTrendCard(title: "Sleep performance", key: "sleep_performance", style: .bars, color: NunaPalette.restDeep, labelColor: NunaPalette.restText,
                                 destination: { AnyView(NunaTrendHost(initial: .restPerformance, endingDaysAgo: router.todayDayOffset)) },
-                                points: sleepPerformanceHistory.performance.map { (day: $0.key, value: $0.value) }.sorted { $0.day < $1.day },
+                                points: {
+                                    // Use the exact nightly scores from the Sleep screen wherever available,
+                                    // retaining long-range history only for nights outside its loaded window.
+                                    var performance = sleepPerformanceHistory.performance
+                                    for (key, score) in day.sleepScoresByDay { performance[key] = score }
+                                    return performance.map { (day: $0.key, value: $0.value) }.sorted { $0.day < $1.day }
+                                }(),
                                 valueText: { "\(Int($0.rounded()))%" }, endingDaysAgo: router.todayDayOffset)
             NunaWeeklyTrendCard(title: "Skin temperature", key: "skin_temp", style: .line, decimals: 1, signed: true, color: NunaPalette.effortModerate, endingDaysAgo: router.todayDayOffset)
         }
