@@ -115,7 +115,9 @@ final class NunaTodayModel: ObservableObject {
         stressLoaded = snapshot.stressLoaded
         monitorSeries = snapshot.monitorSeries ?? [:]
         keySparkSeries = snapshot.keySparkSeries ?? [:]
-        stressStatus = snapshot.stressStatusReady == true ? .ready : .calibrating(nights: snapshot.stressStatusNights ?? 0)
+        let hasLegacyReadyStress = snapshot.stressStatusReady == nil && snapshot.stressLoaded && snapshot.stress != nil
+        stressStatus = (snapshot.stressStatusReady == true || hasLegacyReadyStress)
+            ? .ready : .calibrating(nights: snapshot.stressStatusNights ?? 0)
         stressBaseline = snapshot.stressBaseline
         stressTypicalMin = snapshot.stressTypicalMin
         stressCurve = snapshot.stressCurve?.result
