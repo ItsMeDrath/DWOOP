@@ -43,8 +43,15 @@ struct NunaHealthView: View {
         container
         .nunaTodayDestinations()
         .nunaWorkoutDestinations()
+        .onAppear {
+            // The overnight vitals already live in the local daily-metrics store. Seed them before
+            // any asynchronous history/series reads so the monitor's first frame has real values.
+            if vitalsOnly { day.seedFromMemory(repo: repo) }
+        }
         .task(id: repo.refreshSeq) {
             if vitalsOnly {
+                // Also seed on repository refreshes; load() then refreshes the same values and histories.
+                day.seedFromMemory(repo: repo)
                 await day.load(repo: repo, profile: profile)
                 await hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 400)
                 await rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 400)
