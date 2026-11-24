@@ -1895,21 +1895,36 @@ private struct NunaHatch: View {
 private struct TwoFingerWorkoutMinimizeSwipe: UIViewRepresentable {
     let onMinimize: () -> Void
     func makeCoordinator() -> Coordinator { Coordinator(onMinimize: onMinimize) }
+    private final class AnchorView: UIView {
+        var onWindowChange: ((UIView) -> Void)?
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            onWindowChange?(self)
+        }
+    }
+
     func makeUIView(context: Context) -> UIView {
-        let anchor = UIView(frame: .zero)
+        let anchor = AnchorView(frame: .zero)
         anchor.backgroundColor = .clear
-        DispatchQueue.main.async { context.coordinator.install(from: anchor) }
+        anchor.onWindowChange = { [weak coordinator = context.coordinator] view in
+            DispatchQueue.main.async { coordinator?.install(from: view) }
+        }
         return anchor
     }
     func updateUIView(_ uiView: UIView, context: Context) {
         context.coordinator.onMinimize = onMinimize
+        (uiView as? AnchorView)?.onWindowChange = { [weak coordinator = context.coordinator] view in
+            DispatchQueue.main.async { coordinator?.install(from: view) }
+        }
         DispatchQueue.main.async { context.coordinator.install(from: uiView) }
     }
-    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) { coordinator.uninstall() }
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
+        (uiView as? AnchorView)?.onWindowChange = nil
+        coordinator.uninstall()
+    }
 
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         var onMinimize: () -> Void
-        private weak var installedView: UIView?
         private lazy var pan: UIPanGestureRecognizer = {
             let gesture = UIPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
             gesture.minimumNumberOfTouches = 2
@@ -1921,16 +1936,30 @@ private struct TwoFingerWorkoutMinimizeSwipe: UIViewRepresentable {
         init(onMinimize: @escaping () -> Void) { self.onMinimize = onMinimize }
         func install(from anchor: UIView) {
             guard anchor.window != nil else { return }
-            var target = anchor
-            while let parent = target.superview, !(parent is UIWindow) { target = parent }
-            guard installedView !== target else { return }
-            uninstall()
+            // Attach to this screen's hosting controller, not a stale ancestor from a previous presentation.
+            var responder: UIResponder? = anchor
+            var target: UIView?
+            while let current = responder {
+                if let controller = current as? UIViewController {
+                    target = controller.view
+                    break
+                }
+                responder = current.next
+            }
+            if target == nil {
+                var fallback = anchor
+                while let parent = fallback.superview, !(parent is UIWindow) { fallback = parent }
+                target = fallback
+            }
+            guard let target else { return }
+            // UIKit may detach a recognizer while a sheet/cover is dismissed and later reused.
+            // Check the recognizer's actual attachment, not only the last view we intended to install it on.
+            if pan.view === target { return }
+            pan.view?.removeGestureRecognizer(pan)
             target.addGestureRecognizer(pan)
-            installedView = target
         }
         func uninstall() {
-            if let installedView { installedView.removeGestureRecognizer(pan) }
-            installedView = nil
+            pan.view?.removeGestureRecognizer(pan)
         }
         func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
                                shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }
