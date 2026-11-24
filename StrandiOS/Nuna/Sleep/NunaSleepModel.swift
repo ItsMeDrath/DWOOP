@@ -473,10 +473,16 @@ final class NunaSleepModel: ObservableObject {
         nights = out
 
         // Stress history and calibration are independent of the nine metric-series reads.
-        let stressHistoryTask = Task { @MainActor in
+        let highStressTask = Task { @MainActor in
             let history = NunaStressHistory()
             await history.ensure(days: out.map(\.wakeDate), repo: repo)
-            return history
+            var values: [String: Double] = [:]
+            for night in out {
+                if let zones = history.entries[night.dayKey]?.zones(.sleep), zones.total > 0 {
+                    values[night.dayKey] = zones.high / zones.total * 100
+                }
+            }
+            return values
         }
         let stressStatusTask = Task { @MainActor in await StressEngine.shared.status(repo: repo) }
 
@@ -510,13 +516,7 @@ final class NunaSleepModel: ObservableObject {
         strainByDay = calculations.mapValues { $0.strainMin }
         debtByDay = calculations.mapValues { $0.debtMin }
         ledger = nil
-        let stressHistory = await stressHistoryTask.value
-        var highStress: [String: Double] = [:]
-        for night in out {
-            if let zones = stressHistory.entries[night.dayKey]?.zones(.sleep), zones.total > 0 {
-                highStress[night.dayKey] = zones.high / zones.total * 100
-            }
-        }
+        var highStress = await highStressTask.value
         let stressStatus = await stressStatusTask.value
         if stressStatus.isReady, let todayNight = out.first(where: { Calendar.current.isDateInToday($0.wakeDate) }) {
             let start = Calendar.current.startOfDay(for: todayNight.wakeDate)
