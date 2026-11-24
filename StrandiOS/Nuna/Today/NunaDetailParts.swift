@@ -847,6 +847,12 @@ final class NunaSeriesModel: ObservableObject {
 
     init() {}
 
+    /// A Home monitor model seeded directly from the persisted snapshot before the first frame.
+    init(seeding values: [String: Double]) {
+        byDay = values.filter { $0.value.isFinite }
+        loaded = !byDay.isEmpty
+    }
+
     /// A model that starts with the last series read for this metric, when there is one, so a page showing it has its figures on the first frame.
     init(seeding key: String, source: String, days: Int = 190, also: String? = nil) {
         if let hit = Self.cache[Self.cacheKey(key, source, days, also)] {
