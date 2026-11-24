@@ -64,7 +64,7 @@ final class NunaTodayModel: ObservableObject {
 
     struct HighlightNapSnapshot: Codable {
         let id: String
-        let duration: String
+        let asleepMin: Double
         let endTs: Int
     }
 
@@ -188,7 +188,7 @@ final class NunaTodayModel: ObservableObject {
         let now = Date()
         highlightNaps = naps.filter { $0.end <= now && now.timeIntervalSince($0.end) <= 3 * 3600 }
             .map { HighlightNapSnapshot(id: "nap-\(Int($0.start.timeIntervalSince1970))",
-                                        duration: NunaHighlightEngine.hm($0.asleepMin),
+                                        asleepMin: $0.asleepMin,
                                         endTs: Int($0.end.timeIntervalSince1970)) }
         if snapshotCoreReady { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
