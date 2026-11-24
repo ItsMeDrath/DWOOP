@@ -307,15 +307,45 @@ final class NunaSleepModel: ObservableObject {
                                           wakeTimes: window.map { clock($0.wake, bedtime: false) })
     }
 
+    /// A previously calculated score for instant first paint. The score is shown optimistically until
+    /// the current night is loaded and its input fingerprint is checked.
+    static func cachedSleepScore(dayKey: String) -> Double? {
+        UserDefaults.standard.object(forKey: "nuna.sleepScore.v1.\\(dayKey).score") as? Double
+    }
+
     /// The agreed 60/20/10/10 Sleep Score. Missing data earns neutral half-credit, never a fabricated perfect score.
+    /// The durable snapshot is reused only while every score input is unchanged; a corrected night, changed
+    /// need/consistency, or updated sleep-stress result naturally produces a new fingerprint and score.
     func sleepScore(_ n: NunaNight) -> Double? {
         guard let hours = hoursVsNeeded(n), let efficiency = efficiency(n) else { return nil }
         func clamp(_ value: Double) -> Double { min(max(value, 0), 1) }
+        let consistencyValue = consistency(n) ?? 45
+        let highStress = sleepStressHighPct[n.dayKey]
         let durationPoints = clamp(hours / 100)
-        let consistencyPoints = clamp((consistency(n) ?? 45) / 90)
+        let consistencyPoints = clamp(consistencyValue / 90)
         let efficiencyPoints = clamp(efficiency / 90)
-        let stressPoints = NunaSleepStressScoring.points(highPercent: sleepStressHighPct[n.dayKey])
-        return ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
+        let stressPoints = NunaSleepStressScoring.points(highPercent: highStress)
+        let fingerprint = [
+            "v1",
+            String(format: "%.8f", hours),
+            String(format: "%.8f", need(n)),
+            String(format: "%.8f", efficiency),
+            String(format: "%.8f", consistencyValue),
+            highStress.map { String(format: "%.8f", $0) } ?? "missing",
+            String(n.onset.timeIntervalSince1970),
+            String(n.wake.timeIntervalSince1970)
+        ].joined(separator: "|")
+        let fingerprintKey = "nuna.sleepScore.v1.\\(n.dayKey).fingerprint"
+        let scoreKey = "nuna.sleepScore.v1.\\(n.dayKey).score"
+        let defaults = UserDefaults.standard
+        if defaults.string(forKey: fingerprintKey) == fingerprint,
+           let cached = defaults.object(forKey: scoreKey) as? Double {
+            return cached
+        }
+        let score = ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
+        defaults.set(fingerprint, forKey: fingerprintKey)
+        defaults.set(score, forKey: scoreKey)
+        return score
     }
 
     /// The Sleep Score of every loaded night, keyed by the day the night ended: the one rule the screens, Anya and the factor
