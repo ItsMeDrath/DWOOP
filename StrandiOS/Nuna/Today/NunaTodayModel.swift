@@ -81,6 +81,7 @@ final class NunaTodayModel: ObservableObject {
         let stressLoaded: Bool
         /// Bounded daily history used by the Health monitor's personal ranges.
         let monitorSeries: [String: [String: Double]]?
+        let monitorSeriesLoaded: Bool?
         /// Bounded display points for optional Detailed Key Metrics tiles.
         let keySparkSeries: [String: [Double]]?
         let stressStatusReady: Bool?
@@ -117,6 +118,7 @@ final class NunaTodayModel: ObservableObject {
         previous = snapshot.previous
         stressLoaded = snapshot.stressLoaded
         monitorSeries = snapshot.monitorSeries ?? [:]
+        monitorSeriesLoaded = snapshot.monitorSeriesLoaded ?? false
         keySparkSeries = snapshot.keySparkSeries ?? [:]
         let hasLegacyReadyStress = snapshot.stressStatusReady == nil && snapshot.stressLoaded && snapshot.stress != nil
         stressStatus = (snapshot.stressStatusReady == true || hasLegacyReadyStress)
@@ -144,7 +146,8 @@ final class NunaTodayModel: ObservableObject {
             effort: effort, rest: rest, stress: stress, hrv: hrv, restingHr: restingHr,
             respiratory: respiratory, spo2: spo2, steps: steps, calories: calories,
             sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
-            monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
+            monitorSeries: Self.boundedMonitorSeries(monitorSeries), monitorSeriesLoaded: monitorSeriesLoaded,
+            keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
             stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
             stressBaseline: stressBaseline, stressTypicalMin: stressTypicalMin,
             stressCurve: stressCurve.map(StressCurveSnapshot.init), highlightNaps: highlightNaps)
@@ -226,6 +229,7 @@ final class NunaTodayModel: ObservableObject {
     @Published private(set) var extras: [String: Double] = [:]
     /// Small, date-scoped histories restored with the Home snapshot.
     @Published private(set) var monitorSeries: [String: [String: Double]] = [:]
+    @Published private(set) var monitorSeriesLoaded = false
     @Published private(set) var keySparkSeries: [String: [Double]] = [:]
     @Published private(set) var highlightNaps: [HighlightNapSnapshot] = []
     @Published private(set) var loaded = false
@@ -571,6 +575,7 @@ final class NunaTodayModel: ObservableObject {
             "resp_rate": Dictionary(monitorResp.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
             "skin_temp": Dictionary(monitorSkin.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
         ]
+        monitorSeriesLoaded = true
         if let w = weights.last?.value { ex["weight"] = w }
         if weights.count >= 2 { prev["weight"] = weights[weights.count - 2].value }
         extras = ex
