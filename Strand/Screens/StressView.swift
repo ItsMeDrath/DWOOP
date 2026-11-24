@@ -40,10 +40,6 @@ struct StressView: View {
     /// from the day's banked HR + R-R via the SAME 0–3 proxy the daily score uses. Nil
     /// until the async read completes; `.empty` when the day has no usable intraday HR.
     @State private var daytime: DaytimeStress.Result?
-    /// Whether TODAY's intraday timeline is scored against the PERSONAL cross-day daytime baseline
-    /// (`.baselineRelative`, once enough worn history exists) instead of the day's own calm hours
-    /// (`.dayRelative`). Drives only the explanatory copy — the 0–3 scale + bands are identical either way.
-    @State private var daytimeUsesPersonalBaseline = false
     /// Drives the Breathe sheet presented from the sustained-stress suggestion.
     @State private var showBreathe = false
 
@@ -93,127 +89,37 @@ struct StressView: View {
         await loadDaytime()
     }
 
-    /// Read TODAY's banked HR + R-R and build the intraday stress timeline. Local-day
-    /// window [midnight, now]; the helper buckets it into waking hours and reuses the
-    /// daily score's math, so this is the same proxy at a finer grain — never a new score.
+    /// Reuse the exact WHOOP-reference result already used by the Home stress card.
+    /// StressDayCurve / StressEngine own the baseline, data reads and memoized calculation;
+    /// this screen only adapts that shared result to its existing timeline view.
     private func loadDaytime() async {
+        let now = Date()
         let cal = Calendar.current
-        let startOfDay = cal.startOfDay(for: Date())
+        let startOfDay = cal.startOfDay(for: now)
         let from = Int(startOfDay.timeIntervalSince1970)
-        let to = Int(Date().timeIntervalSince1970)
-        let tz = TimeZone.current.secondsFromGMT(for: Date())
+        let to = Int(now.timeIntervalSince1970)
 
-        let hr = await repo.hrSamples(from: from, to: to, limit: 200_000)
-        // Too few HR samples: empty the timeline AND clear the advanced readouts in lockstep. Without this
-        // reset a later refresh that hits this path would leave the Advanced HRV card showing stale values
-        // next to an empty timeline (the readouts are only recomputed past this guard).
-        guard hr.count >= DaytimeStress.minHourHRSamples else {
+        // The advanced HRV card is additive and does not feed the stress score. Start its
+        // RR read alongside the shared calculation so it cannot delay the timeline once the
+        // shared result is ready. The scoring result itself is always the Home result.
+        async let rrRead = repo.rrIntervals(from: from, to: to, limit: 200_000)
+        guard let shared = await StressDayCurve.today(repo: repo, now: now, calendar: cal) else {
             daytime = .empty
             stressIndex = nil
             freqHRV = nil
             return
         }
-        let rr = await repo.rrIntervals(from: from, to: to, limit: 200_000)
-        // Wrist accelerometer for the motion gate: an ambulatory hour is EXERTION, not stress, so it
-        // is masked rather than scored (DaytimeStress). Same store read as R-R; empty on hardware or
-        // imports with no gravity, which is exactly the "no masking, prior behaviour" degradation.
-        let gravity = await repo.gravitySamplesUnion(from: from, to: to, limit: 200_000)
+        daytime = shared.result
 
-        // Score today's hours against the PERSONAL cross-day daytime baseline ONLY when the user has
-        // opted in (Settings → Experimental) AND enough worn history exists (Oura-style
-        // `.baselineRelative`), else the day's own calm hours (`.dayRelative`, the default). The opt-in
-        // gate is deliberate: the validated r≈0.6 margin is single-subject so far (#463), so this stays a
-        // chooseable lens, not a silent default. The mode is resolved only AFTER the HR-count guard above,
-        // so the trailing-history reads are never paid on a day with no scorable timeline — and are never
-        // paid at all while the toggle is OFF (the default), keeping the read byte-identical to before.
-        let mode = PuffinExperiment.stressPersonalBaselineEnabled
-            ? await daytimeScoringMode(startOfToday: startOfDay)
-            : .dayRelative
-        if case .baselineRelative = mode { daytimeUsesPersonalBaseline = true }
-        else { daytimeUsesPersonalBaseline = false }
-        // includeTimeline: the SLIDING read, so the screen's line moves in half-hours instead of
-        // stepping through whole clock hours (#2144). The scored unit is still a full hour; this only
-        // decides how often that hour is re-read, so a thin ten minutes costs the windows that overlap
-        // it rather than a whole hour of chart. The Today card and the widget have always asked for
-        // this; the screen people actually study was the one still stepping. Twin of the Kotlin change.
-        // #2181: this is pure, database-free computation over a whole local day of samples, and it used
-        // to run inline on this view's (main) actor. `analyze` memoises behind a lock-guarded
-        // `AnalyticsMemoCache`, so it is safe off the main actor and the Today card already reads its own
-        // stress the same way. Moving it here is what lets the timeline be published — and drawn — before
-        // the advanced readouts below are started.
-        //
-        // `runUnescalated`, NOT `await Task.detached(...).value`: awaiting a task from a @MainActor
-        // caller makes it a child and hands it the caller's priority, so a `.utility` label on a
-        // detached task is decorative and the work races the UI for cores anyway. StressDayCurve
-        // learned that on this same issue; the continuation in UnescalatedWork is what keeps the
-        // priority honest.
-        daytime = await runUnescalated(priority: .userInitiated) {
-            DaytimeStress.analyze(hr: hr, rr: rr, gravity: gravity, tzOffsetSeconds: tz, mode: mode,
-                                  includeTimeline: true)
-        }
-
-        // ADDITIVE advanced readouts, computed on-demand from the SAME `rr` (no extra fetch, no
-        // DB / schema change, and no effect on the 0..3 score above). Each engine returns nil when
-        // its own gate is not met (Baevsky needs >= 20 clean beats; freq-HRV needs >= 60 s span),
-        // in which case its row is simply hidden.
-        // A SECOND hop on purpose (#2181). `HRVFreqDomain` is a Lomb-Scargle periodogram: its cost is
-        // (clean beats x frequency-grid steps) with a transcendental per step, and it takes whatever beat
-        // count the day's read returned — the store read above is bounded at 200 000, this is not bounded
-        // at all. On a live-banked day that is seconds of arithmetic, and run inline it held the main
-        // thread for all of them, which is why the screen stayed blank rather than drawing the timeline it
-        // already had. Both engines are pure statics over the same `rr`, so they compute together off the
-        // main actor and publish when done; their card is hidden until then, exactly as it is when a gate
-        // is unmet. Same `runUnescalated` reasoning as above, and the default `.utility` is real here
-        // because nothing escalates it: this is the phase that must yield to the UI.
+        let rr = await rrRead
+        // Advanced readouts stay off the critical path: the timeline is already published.
+        // Frequency-domain HRV can be expensive on a full day's RR stream, so it remains a
+        // lower-priority follow-up and never changes the shared 0–3 stress result.
         let advanced = await runUnescalated {
             (index: StressIndex.components(rr: rr), freq: HRVFreqDomain.freqDomain(rr: rr))
         }
         stressIndex = advanced.index
         freqHRV = advanced.freq
-    }
-
-    /// Trailing local days folded into the personal daytime baselines the `.baselineRelative` mode
-    /// scores against. 30 mirrors the app's other rolling baselines (nightly resting-HR / HRV) and the
-    /// illness engine's ~28-day base.
-    private static let baselineHistoryDays = 30
-
-    /// Build the personal daytime baselines from the trailing `baselineHistoryDays` local days (TODAY
-    /// EXCLUDED — it's the day being scored, not part of its own baseline) and return the scoring mode
-    /// for today's intraday read: `.baselineRelative` once there's enough real worn daytime-HR history
-    /// for a usable baseline, else `.dayRelative` (the unchanged default). The only behavioural change
-    /// vs. before is that a user with a few worn days now scores today's hours against their own
-    /// cross-day floor instead of the day's own calm hours; a cold-start / sparse-history user is
-    /// byte-identical to before (`DaytimeStress.scoringMode` is the single degradation gate).
-    ///
-    /// PERF: reads each past day's raw HR (and, only when that day was worn, R-R) once, bounded per day,
-    /// off the main actor via `repo` — riding the same async `load()` the today-timeline already runs on.
-    /// Unworn days are skipped without an R-R read. The `DaytimeStress` analyze memo is untouched; the
-    /// fold itself is O(days).
-    private func daytimeScoringMode(startOfToday: Date) async -> DaytimeStress.ScoringMode {
-        let cal = Calendar.current
-        // #2107: keep each day's AGGREGATE, never its streams. This used to accumulate 30 x
-        // DaytimeDayStreams, each holding up to 200,000 HR plus 200,000 R-R samples, and hand the lot to
-        // the fold. The fold's first act is to reduce a day to two Doubles, so all that was ever wanted
-        // from thirty days was sixty numbers; holding the samples alive to produce them is what exhausted
-        // a 256MB heap on the Android twin and crashed it with an OutOfMemoryError. Reducing here lets
-        // each day's samples be released at the end of its own iteration.
-        var aggregates: [(hr: Double?, rmssd: Double?)] = []
-        aggregates.reserveCapacity(Self.baselineHistoryDays)
-        // Oldest → newest so the EWMA fold replays the history in order.
-        for back in stride(from: Self.baselineHistoryDays, through: 1, by: -1) {
-            guard let dayStart = cal.date(byAdding: .day, value: -back, to: startOfToday),
-                  let dayEnd = cal.date(byAdding: .day, value: 1, to: dayStart) else { continue }
-            let from = Int(dayStart.timeIntervalSince1970)
-            let to = Int(dayEnd.timeIntervalSince1970) - 1
-            let dayTz = TimeZone.current.secondsFromGMT(for: dayStart)
-            let dayHR = await repo.hrSamples(from: from, to: to, limit: 200_000)
-            guard !dayHR.isEmpty else { continue }   // unworn day — no floor to learn, skip the R-R read
-            let dayRR = await repo.rrIntervals(from: from, to: to, limit: 200_000)
-            aggregates.append(
-                DaytimeStress.dayDaytimeAggregate(hr: dayHR, rr: dayRR, tzOffsetSeconds: dayTz)
-            )
-        }
-        return DaytimeStress.scoringModeFromAggregates(aggregates)
     }
 
     /// Recompute the cached `StressModel` only when (repo.days, storedSeries)
@@ -355,14 +261,10 @@ struct StressView: View {
         return String(localized: "avg \(StressTrace.formatLevel(mean)) · \(n)h")
     }
 
-    /// The timeline's explanatory line, honest about WHICH reference each hour was scored against —
-    /// the personal cross-day baseline (`.baselineRelative`) or the day's own calm hours (`.dayRelative`).
-    /// Explicit `LocalizedStringKey` so BOTH variants stay in the string catalog (a ternary inside
-    /// `Text(_:)` would resolve to the verbatim, non-localized `String` overload).
+    /// The same WHOOP-reference result shown on Home: each point is total-day stress,
+    /// scored against the personal 14-night baseline; the 0–3 scale includes sleep and activity.
     private var daytimeTimelineCaption: LocalizedStringKey {
-        daytimeUsesPersonalBaseline
-            ? "The line is each waking hour's 0-3 proxy, scored against your personal daytime baseline (how your own days usually run). The bar below splits your day into calm, moderate and high stress time."
-            : "The line is each waking hour's 0-3 proxy, scored against your own calm hours today. The bar below splits your day into calm, moderate and high stress time."
+        "The line is your total-day 0-3 stress, scored from heart rate and HRV against your personal 14-night baseline. It includes sleep and activity; the bar below splits the day into low, moderate and high stress time."
     }
 
     /// A passive, in-app nudge to run a Breathe session after a sustained high-stress run.
