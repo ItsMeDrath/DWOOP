@@ -2,7 +2,7 @@ import SwiftUI
 import StrandDesign
 
 /// Backup & Sync (folder destination). The Apple mirror of the Android `BackupSyncScreen`: pick a
-/// folder, turn on daily auto-backup (an on-launch catch-up), back up now, or restore from a snapshot
+/// folder, turn on automatic backup (a six-hour on-launch catch-up), back up now, or restore from a snapshot
 /// already in that folder. Snapshots are the existing `.noopbak` whole-DB format. Point the folder at
 /// Google Drive / iCloud / Dropbox for off-device sync with no in-app cloud account.
 struct BackupSyncView: View {
@@ -108,14 +108,14 @@ struct BackupSyncView: View {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(alignment: .center, spacing: 16) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Daily auto-backup")
+                        Text("Automatic backup")
                             .font(StrandFont.body).foregroundStyle(StrandPalette.textPrimary)
-                        Text("Backs up to your folder about once a day and keeps the latest \(keep). On this platform it runs when you next open NOOP.")
+                        Text("Backs up to your folder every 6 hours and keeps the latest \(keep). It runs when you next open NOOP.")
                             .font(StrandFont.footnote).foregroundStyle(StrandPalette.textTertiary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 0)
-                    Toggle("Daily auto-backup", isOn: $auto)
+                    Toggle("Automatic backup", isOn: $auto)
                         .labelsHidden().toggleStyle(.switch).tint(StrandPalette.accent)
                         .disabled(folderLabel == nil)
                         .onChangeCompat(of: auto) { on in FolderBackup.autoEnabled = on }
