@@ -113,6 +113,9 @@ struct NunaScoreRings: View {
                     .accessibilityHidden(t < 0.75)
             }
             .frame(maxWidth: .infinity)
+                // Make the whole score tile (including the ring's empty centre and track) a hit target,
+                // rather than requiring a tap directly on the number or drawn arc.
+                .contentShape(Rectangle())
         }
     }
 
