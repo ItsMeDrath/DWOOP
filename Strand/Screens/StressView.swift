@@ -99,19 +99,18 @@ struct StressView: View {
         let from = Int(startOfDay.timeIntervalSince1970)
         let to = Int(now.timeIntervalSince1970)
 
-        // The advanced HRV card is additive and does not feed the stress score. Start its
-        // RR read alongside the shared calculation so it cannot delay the timeline once the
-        // shared result is ready. The scoring result itself is always the Home result.
-        async let rrRead = repo.rrIntervals(from: from, to: to, limit: 200_000)
         guard let shared = await StressDayCurve.today(repo: repo, now: now, calendar: cal) else {
             daytime = .empty
             stressIndex = nil
             freqHRV = nil
             return
         }
+        // Publish the shared timeline before doing anything for the optional Advanced HRV card.
         daytime = shared.result
 
-        let rr = await rrRead
+        // This RR read is deliberately after publication: it must not compete with the shared
+        // StressEngine read or hold the graph behind the advanced frequency-domain calculation.
+        let rr = await repo.rrIntervals(from: from, to: to, limit: 200_000)
         // Advanced readouts stay off the critical path: the timeline is already published.
         // Frequency-domain HRV can be expensive on a full day's RR stream, so it remains a
         // lower-priority follow-up and never changes the shared 0–3 stress result.
