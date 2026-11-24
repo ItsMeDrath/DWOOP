@@ -437,7 +437,10 @@ struct NunaTodayView: View {
         }
         #endif
         .onChange(of: model.dayOffset) { _, v in router.todayDayOffset = v }
-        .onAppear { router.todayDayOffset = model.dayOffset }
+        .onAppear {
+            router.todayDayOffset = model.dayOffset
+            model.seedFromMemory(repo: repo)
+        }
         .task(id: "\(repo.refreshSeq)-\(model.dayOffset)-\(savedSessions)") {
             await model.load(repo: repo, profile: profile)
             dayPlan = model.isToday ? await NunaDayPlanResult.load(repo: repo, profile: profile) : nil
@@ -931,7 +934,7 @@ struct NunaTodayView: View {
         case .recoveryVitals:
             if !model.stressStatus.isReady {
                 // Still learning the person: no stress figure, only how far along it is.
-                if model.loaded { NunaStressCalibrationCard(nights: model.stressStatus.nights) }
+                if model.stressLoaded { NunaStressCalibrationCard(nights: model.stressStatus.nights) }
             } else if model.stress != nil || model.stressCurve != nil {
                 NunaStressCard(score: model.stress, curve: model.stressCurve, baseline: model.stressBaseline, isToday: model.isToday, workouts: model.workouts)
             }
@@ -946,7 +949,7 @@ struct NunaTodayView: View {
         case .vitalMonitor:
             NunaMonitorPackCard(hrv: model.hrv, restingHr: model.restingHr, spo2: model.spo2, respiratory: model.respiratory,
                                 skinTemp: model.extras["skin_temp"], stress: model.stress, stressCurve: model.stressCurve,
-                                stressNights: model.stressStatus.isReady || !model.loaded ? nil : model.stressStatus.nights)
+                                stressNights: model.stressStatus.isReady || !model.stressLoaded ? nil : model.stressStatus.nights)
         case .keyMetrics:
             let tiles = metricTiles
             if !tiles.isEmpty {
