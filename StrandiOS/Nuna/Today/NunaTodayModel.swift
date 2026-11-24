@@ -124,7 +124,9 @@ final class NunaTodayModel: ObservableObject {
             selectCachedSleepNight()
             sleepLoadKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
         } else {
-            rest = nil
+            // Show the last completed-night score immediately; NunaSleepModel validates its input
+            // fingerprint after loading and replaces it only if this night's data has changed.
+            rest = NunaSleepModel.cachedSleepScore(dayKey: dayKey(repo: repo))
         }
         _ = seedStress(repo: repo)
     }
