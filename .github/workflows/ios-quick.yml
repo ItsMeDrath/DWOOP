@@ -1,0 +1,76 @@
+# Fast iOS-only test build: unsigned .ipa for AltStore / Sideloadly, uploaded as a workflow artifact.
+#
+# Why it is faster than "Testing build (fork)":
+#   - Builds ONLY iOS. No release recreate, no Android, no macOS.
+#   - Release config but with optimisation OFF (-Onone) and incremental, multi-core Swift compilation.
+#     This is the biggest saving. The app runs a bit slower on the phone, which is fine for testing.
+#   - No dSYM / debug-info post-processing, no index store.
+#   - Swift package clones are cached between runs.
+# Keep using "Testing build (fork)" or fork-release.yml for builds you want to ship.
+name: Quick iOS test build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-quick
+  cancel-in-progress: true
+
+jobs:
+  ios:
+    # iOS 26 SDK (glassEffect) needs Xcode 26, so macos-26.
+    runs-on: macos-26
+    timeout-minutes: 30
+    env:
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      HOMEBREW_NO_INSTALL_CLEANUP: "1"
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Cache Swift packages
+        uses: actions/cache@v4
+        with:
+          path: build/spm
+          key: ios-quick-spm-${{ hashFiles('project.yml', 'Packages/**/Package.swift', 'Packages/**/Package.resolved') }}
+          restore-keys: |
+            ios-quick-spm-
+
+      - name: Install XcodeGen
+        run: command -v xcodegen >/dev/null || brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build NOOPiOS (unsigned, Release config, unoptimised)
+        run: |
+          set -o pipefail
+          START=$(date +%s)
+          xcodebuild -scheme NOOPiOS -configuration Release -destination 'generic/platform=iOS' \
+            -derivedDataPath build/dd -clonedSourcePackagesDirPath build/spm \
+            -jobs "$(sysctl -n hw.ncpu)" -showBuildTimingSummary \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+            SWIFT_OPTIMIZATION_LEVEL=-Onone SWIFT_COMPILATION_MODE=incremental GCC_OPTIMIZATION_LEVEL=0 \
+            DEBUG_INFORMATION_FORMAT=dwarf COMPILER_INDEX_STORE_ENABLE=NO \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build
+          echo "xcodebuild took $(( $(date +%s) - START ))s"
+
+      - name: Package sideload .ipa
+        run: |
+          APP=$(find build/dd/Build/Products/Release-iphoneos -maxdepth 1 -name '*.app' -type d | head -1)
+          test -n "$APP" || { echo ".app (iphoneos) not found"; exit 1; }
+          rm -rf "$APP/Watch"
+          test -d "$APP/PlugIns/NOOPWidgets.appex" || { echo "NOOPWidgets.appex missing"; exit 1; }
+          Tools/prepare-ios-sideload-app.sh "$APP"
+          rm -rf Payload && mkdir Payload && cp -R "$APP" Payload/
+          zip -qr NOOP-ios-quick.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NOOP-ios-quick-ipa
+          path: NOOP-ios-quick.ipa
+          retention-days: 7
+          compression-level: 0
