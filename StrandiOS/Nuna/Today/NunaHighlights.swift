@@ -307,7 +307,9 @@ struct NunaHighlightsCard: View {
 
     /// Highlights put away today, stored as "day|id" and read back for today only, so tomorrow starts clean.
     private var dismissed: Set<String> {
-        Set(dismissedRaw.split(separator: ",").compactMap { entry -> String? in
+        // Read persisted dismissals synchronously before the first card is built.
+        let raw = UserDefaults.standard.string(forKey: NunaHighlightPrefs.dismissedKey) ?? dismissedRaw
+        return Set(raw.split(separator: ",").compactMap { entry -> String? in
             let p = entry.split(separator: "|", maxSplits: 1)
             return p.count == 2 && String(p[0]) == dayKey ? String(p[1]) : nil
         })
@@ -556,7 +558,10 @@ struct NunaHighlightsCard: View {
         if id == "outlook-first" { UserDefaults.standard.set(true, forKey: NunaOutlookGate.openedKey) }
         var entries = dismissedRaw.split(separator: ",").map(String.init).filter { $0.hasPrefix(dayKey + "|") }
         entries.append("\(dayKey)|\(id)")
-        withAnimation(.easeInOut(duration: 0.25)) { dismissedRaw = entries.joined(separator: ",") }
+        let updated = entries.joined(separator: ",")
+        // Persist before animating away, so a quick app close/reopen cannot replay the dismissed card.
+        UserDefaults.standard.set(updated, forKey: NunaHighlightPrefs.dismissedKey)
+        withAnimation(.easeInOut(duration: 0.25)) { dismissedRaw = updated }
     }
 }
 

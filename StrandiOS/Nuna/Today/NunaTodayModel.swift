@@ -107,6 +107,9 @@ final class NunaTodayModel: ObservableObject {
         if whoop != stressWhoop || status != stressStatus { applyStress(whoop, status: status, today: true, remember: repo) }
     }
 
+    /// A persisted same-day fallback for the Home tile while the latest HR samples are being scored.
+    private static func persistedStressKey(dayKey: String) -> String { "nuna.today.stress.last.\(dayKey)" }
+
     /// The last stress reading per day and refresh, so the Stress screen opens with it drawn instead of building it again.
     private static var stressCache: [String: (status: StressStatus, whoop: WhoopStress.Result?)] = [:]
     private func stressCacheKey(_ repo: Repository) -> String { "\(repo.refreshSeq)-\(dayOffset)" }
@@ -131,6 +134,13 @@ final class NunaTodayModel: ObservableObject {
             // fingerprint after loading and replaces it only if this night's data has changed.
             rest = NunaSleepModel.cachedSleepScore(dayKey: dayKey(repo: repo))
         }
+        // Keep the most recent same-day stress reading visible on the first frame after relaunch.
+        // The live stress calculation below replaces it as soon as fresh heart-rate data is ready.
+        if isToday,
+           let cached = UserDefaults.standard.object(forKey: Self.persistedStressKey(dayKey: dayKey(repo: repo))) as? NSNumber {
+            stress = min(max(cached.doubleValue, 0), 3)
+            stressLoaded = false
+        }
         _ = seedStress(repo: repo)
     }
 
@@ -138,15 +148,26 @@ final class NunaTodayModel: ObservableObject {
     private func applyStress(_ w: WhoopStress.Result?, status: StressStatus, today: Bool, remember repo: Repository? = nil) {
         if let repo { Self.stressCache[stressCacheKey(repo)] = (status, w) }
         stressStatus = status
-        stressLoaded = true
         stressWhoop = w
-        guard let w else { stressCurve = nil; stress = nil; stressBaseline = nil; return }
+        guard let w else {
+            stressCurve = nil
+            stressBaseline = nil
+            // Keep the last valid reading visible while fresh HR data is unavailable.
+            stressLoaded = (stress == nil)
+            return
+        }
+        stressLoaded = true
         stressCurve = WhoopStress.daytimeResult(w, tzOffsetSeconds: TimeZone.current.secondsFromGMT())
         if today {
-            stress = w.current.map { min(max($0, 0), 3) }
+            if let current = w.current {
+                let value = min(max(current, 0), 3)
+                stress = value
+                let stressDayKey = repo.map { dayKey(repo: $0) } ?? Repository.localDayKey(Date())
+                UserDefaults.standard.set(value, forKey: Self.persistedStressKey(dayKey: stressDayKey))
+            }
         } else {
             let waking = w.epochs.filter { $0.kind == .waking }.compactMap(\.level)
-            stress = waking.isEmpty ? nil : waking.reduce(0, +) / Double(waking.count)
+            if !waking.isEmpty { stress = waking.reduce(0, +) / Double(waking.count) }
         }
         // After calibration the person's usual waking state sits at neutral, 1.5: that is what the baseline is set from.
         stressBaseline = 1.5
@@ -273,13 +294,15 @@ final class NunaTodayModel: ObservableObject {
             sleepModel.index = pickedNight ?? 0
             self.rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
         }
+        let hrTask = today ? Task { await repo.hrSamples(from: from, to: to, limit: 200_000) } : nil
         Task { @MainActor [weak self] in
+            // Score stress only after the latest Home heart-rate read has completed.
+            if let hrTask { _ = await hrTask.value }
             let status = await StressEngine.shared.status(repo: repo)
             let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
             guard let self, self.dayOffset == requestedDayOffset, repo.refreshSeq == requestedRefreshSeq else { return }
             self.applyStress(whoop, status: status, today: today, remember: repo)
         }
-        let hrTask = today ? Task { await repo.hrSamples(from: from, to: to, limit: 200_000) } : nil
         let stepsTask = Task { await repo.exploreSeries(key: "steps_est", source: "my-whoop") }
         let appleTask = Task { await repo.appleDailyRows() }
         let workoutsTask = Task { await repo.workoutRows() }
