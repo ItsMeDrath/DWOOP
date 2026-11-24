@@ -257,14 +257,22 @@ final class NunaTodayModel: ObservableObject {
             stressWhoop = nil
         }
 
-        let sleepTask = Task { @MainActor in
-            if needsSleepReload {
-                await sleepModel.load(repo: repo)
-                sleepLoadKey = sleepKey
-            }
-        }
+        // Sleep is deliberately independent from today's live Strain calculation. Start it now,
+        // but publish its result when ready instead of making the dashboard wait for it.
         let requestedDayOffset = dayOffset
         let requestedRefreshSeq = repo.refreshSeq
+        Task { @MainActor [weak self] in
+            if needsSleepReload {
+                await sleepModel.load(repo: repo)
+                guard let self else { return }
+                self.sleepLoadKey = sleepKey
+            }
+            guard let self, self.dayOffset == requestedDayOffset,
+                  repo.refreshSeq == requestedRefreshSeq else { return }
+            let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
+            sleepModel.index = pickedNight ?? 0
+            self.rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
+        }
         Task { @MainActor [weak self] in
             let status = await StressEngine.shared.status(repo: repo)
             let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
@@ -281,14 +289,8 @@ final class NunaTodayModel: ObservableObject {
         let skinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 60) }
         let weightsTask = Task { await repo.exploreSeries(key: "weight", source: "apple-health", days: 90) }
 
-        // Stress publishes itself as soon as its independent calculation finishes.
-        // Sleep can now finish without waiting for live HR, and stress never waits for the sleep history.
-        await sleepTask.value
-        let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
-        sleepModel.index = pickedNight ?? 0
-        rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
-
         // Live Effort for today over midnight..now, stored Effort otherwise.
+        // This is intentionally allowed to finish independently of the Sleep model above.
         let live: Double?
         if let hrTask {
             let hr = await hrTask.value
