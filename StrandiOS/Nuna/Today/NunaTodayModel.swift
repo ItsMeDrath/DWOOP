@@ -15,6 +15,9 @@ final class NunaTodayModel: ObservableObject {
     private static let homeSnapshotKey = "nuna.home.snapshot.v1"
     /// Keep restored same-day values visible until their fresh independent reads settle.
     private var restoredHomeSnapshot = false
+    /// Only a load whose main, Sleep and Stress reads have all settled may replace the durable snapshot.
+    private var snapshotCoreReady = false
+    private var loadGeneration = 0
 
     /// One compact, date-scoped copy of the values needed to paint the Home metrics immediately.
     /// Historical samples and chart series remain in their existing stores.
@@ -170,7 +173,7 @@ final class NunaTodayModel: ObservableObject {
 
     func updateMonitorSeries(_ values: [String: [String: Double]]) {
         monitorSeries = Self.boundedMonitorSeries(values)
-        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
+        if snapshotCoreReady { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
 
     func updateKeySparkSeries(_ values: [String: [Double]]) {
@@ -452,6 +455,9 @@ final class NunaTodayModel: ObservableObject {
         // The repository has not read its history yet (a launch): every figure below would be worked out from nothing and then again a moment
         // later. The refresh that finishes it bumps `refreshSeq`, which runs this again with the real data.
         guard repo.loaded else { return }
+        loadGeneration += 1
+        let requestedLoadGeneration = loadGeneration
+        snapshotCoreReady = false
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: selectedLogicalDay)
         let from = Int(dayStart.timeIntervalSince1970)
@@ -567,7 +573,9 @@ final class NunaTodayModel: ObservableObject {
             await sleepRefreshTask.value
             await stressRefreshTask.value
             guard let self, self.dayOffset == requestedDayOffset,
-                  repo.refreshSeq == requestedRefreshSeq, self.loaded else { return }
+                  repo.refreshSeq == requestedRefreshSeq,
+                  self.loadGeneration == requestedLoadGeneration, self.loaded else { return }
+            self.snapshotCoreReady = true
             self.persistHomeSnapshot(dayKey: key)
         }
         if today {
@@ -576,9 +584,10 @@ final class NunaTodayModel: ObservableObject {
             Task { @MainActor [weak self] in
                 let typical = await StressTypical.load(repo: repo)
                 guard let self, self.dayOffset == requestedDayOffset,
-                      repo.refreshSeq == requestedRefreshSeq else { return }
+                      repo.refreshSeq == requestedRefreshSeq,
+                      self.loadGeneration == requestedLoadGeneration else { return }
                 self.stressTypicalMin = typical
-                if self.loaded { self.persistHomeSnapshot(dayKey: key) }
+                if self.snapshotCoreReady { self.persistHomeSnapshot(dayKey: key) }
             }
         } else {
             stressTypicalMin = nil
