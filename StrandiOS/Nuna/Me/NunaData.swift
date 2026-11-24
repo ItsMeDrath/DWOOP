@@ -173,7 +173,7 @@ struct NunaBackupView: View {
                 }
             }
             NunaSettingsSection("Schedule") {
-                NunaSettingsSwitch("Automatic backup", subtitle: "Every 6 hours when NOOP is opened", systemImage: "calendar.badge.clock", isOn: Binding(get: { auto }, set: { auto = $0; FolderBackup.autoEnabled = $0 }))
+                NunaSettingsSwitch("Automatic backup", subtitle: "When NOOP opens, if 6 hours have passed", systemImage: "calendar.badge.clock", isOn: Binding(get: { auto }, set: { auto = $0; FolderBackup.autoEnabled = $0 }))
                 NunaSettingsCard {
                     NunaStepRow(label: "Keep the last", value: "\(keep)", note: "Older ones are deleted, oldest first", canDecrement: keep > (FolderBackup.keepOptions.first ?? 1),
                                 onMinus: { step(-1) }, onPlus: { step(1) })
