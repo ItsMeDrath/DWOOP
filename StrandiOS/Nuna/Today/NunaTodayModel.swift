@@ -12,6 +12,74 @@ import WhoopStore
 /// Display only: nothing is computed or stored differently.
 @MainActor
 final class NunaTodayModel: ObservableObject {
+    private static let homeSnapshotKey = "nuna.home.snapshot.v1"
+
+    /// One compact, date-scoped copy of the values needed to paint the Home metrics immediately.
+    /// Historical samples and chart series remain in their existing stores.
+    private struct HomeSnapshot: Codable {
+        let version: Int
+        let dayKey: String
+        let savedAt: Date
+        let chargeKind: String
+        let chargeValue: Double?
+        let chargeCaption: String?
+        let chargeNights: Int?
+        let effort, rest, stress, hrv, restingHr, respiratory, spo2, steps, calories, sleepMinutes: Double?
+        let extras, previous: [String: Double]
+        let stressLoaded: Bool
+    }
+
+    private func restoreHomeSnapshot() {
+        guard let data = UserDefaults.standard.data(forKey: Self.homeSnapshotKey),
+              let snapshot = try? JSONDecoder().decode(HomeSnapshot.self, from: data),
+              snapshot.version == 1,
+              snapshot.dayKey == Repository.localDayKey(Date()) else { return }
+        switch snapshot.chargeKind {
+        case "scored": charge = .scored(pct: snapshot.chargeValue ?? 0)
+        case "carried": charge = .carried(pct: snapshot.chargeValue ?? 0, caption: snapshot.chargeCaption ?? "")
+        case "calibrating": charge = .calibrating(nights: snapshot.chargeNights ?? 0)
+        default: charge = .noData
+        }
+        effort = snapshot.effort
+        rest = snapshot.rest
+        stress = snapshot.stress
+        hrv = snapshot.hrv
+        restingHr = snapshot.restingHr
+        respiratory = snapshot.respiratory
+        spo2 = snapshot.spo2
+        steps = snapshot.steps
+        calories = snapshot.calories
+        sleepMinutes = snapshot.sleepMinutes
+        extras = snapshot.extras
+        previous = snapshot.previous
+        stressLoaded = snapshot.stressLoaded
+    }
+
+    private func persistHomeSnapshot(dayKey: String) {
+        guard dayOffset == 0, dayKey == Repository.localDayKey(Date()) else { return }
+        let kind: String
+        let value: Double?
+        let caption: String?
+        let nights: Int?
+        switch charge {
+        case .scored(let pct): kind = "scored"; value = pct; caption = nil; nights = nil
+        case .carried(let pct, let text): kind = "carried"; value = pct; caption = text; nights = nil
+        case .calibrating(let count): kind = "calibrating"; value = nil; caption = nil; nights = count
+        case .noData: kind = "noData"; value = nil; caption = nil; nights = nil
+        }
+        let snapshot = HomeSnapshot(version: 1, dayKey: dayKey, savedAt: Date(),
+            chargeKind: kind, chargeValue: value, chargeCaption: caption, chargeNights: nights,
+            effort: effort, rest: rest, stress: stress, hrv: hrv, restingHr: restingHr,
+            respiratory: respiratory, spo2: spo2, steps: steps, calories: calories,
+            sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded)
+        guard let data = try? JSONEncoder().encode(snapshot) else { return }
+        UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
+    }
+
+    init() {
+        restoreHomeSnapshot()
+    }
+
     /// 0 = today, 1 = yesterday, ...
     /// Picking another day moves the Sleep score at once from the nights already loaded, the way Charge and Effort follow the day, instead of
     /// waiting for the reload that follows.
@@ -296,7 +364,7 @@ final class NunaTodayModel: ObservableObject {
         // but publish its result when ready instead of making the dashboard wait for it.
         let requestedDayOffset = dayOffset
         let requestedRefreshSeq = repo.refreshSeq
-        Task { @MainActor [weak self] in
+        let sleepRefreshTask = Task { @MainActor [weak self] in
             if needsSleepReload {
                 await sleepModel.load(repo: repo)
                 guard let self else { return }
@@ -309,7 +377,7 @@ final class NunaTodayModel: ObservableObject {
             self.rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
         }
         let hrTask = today ? Task { await repo.hrSamples(from: from, to: to, limit: 200_000) } : nil
-        Task { @MainActor [weak self] in
+        let stressRefreshTask = Task { @MainActor [weak self] in
             // Score stress only after the latest Home heart-rate read has completed.
             if let hrTask { _ = await hrTask.value }
             let status = await StressEngine.shared.status(repo: repo)
@@ -378,6 +446,15 @@ final class NunaTodayModel: ObservableObject {
         // Workout rows were fetched alongside the other dashboard reads.
         workouts = (await workoutsTask.value).filter { $0.startTs >= from && $0.startTs < to }
         loaded = true
+        // Persist one complete snapshot only after the independent Sleep and Stress refreshes have both settled.
+        // The previous snapshot remains intact if this load is cancelled or superseded.
+        Task { @MainActor [weak self] in
+            await sleepRefreshTask.value
+            await stressRefreshTask.value
+            guard let self, self.dayOffset == requestedDayOffset,
+                  repo.refreshSeq == requestedRefreshSeq, self.loaded else { return }
+            self.persistHomeSnapshot(dayKey: key)
+        }
         if today {
             // After the screen is up: it reads four earlier days of heart rate, once a day.
             stressTypicalMin = StressTypical.cached()
