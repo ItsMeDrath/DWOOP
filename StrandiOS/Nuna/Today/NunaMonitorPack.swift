@@ -18,10 +18,6 @@ struct NunaMonitorPackCard: View {
     var stressNights: Int?
     /// The last complete monitor histories, supplied by the single Home snapshot.
     var cachedSeries: [String: [String: Double]] = [:]
-    /// Called once the four independent history reads have settled.
-    var onSeriesChange: ([String: [String: Double]]) -> Void = { _ in }
-
-    @EnvironmentObject private var repo: Repository
     @StateObject private var hrvS: NunaSeriesModel
     @StateObject private var rhrS: NunaSeriesModel
     @StateObject private var respS: NunaSeriesModel
@@ -29,8 +25,7 @@ struct NunaMonitorPackCard: View {
 
     init(hrv: Double?, restingHr: Double?, spo2: Double?, respiratory: Double?, skinTemp: Double?,
          stress: Double?, stressCurve: DaytimeStress.Result?, stressNights: Int? = nil,
-         cachedSeries: [String: [String: Double]] = [:],
-         onSeriesChange: @escaping ([String: [String: Double]]) -> Void = { _ in }) {
+         cachedSeries: [String: [String: Double]] = [:]) {
         self.hrv = hrv
         self.restingHr = restingHr
         self.spo2 = spo2
@@ -40,7 +35,6 @@ struct NunaMonitorPackCard: View {
         self.stressCurve = stressCurve
         self.stressNights = stressNights
         self.cachedSeries = cachedSeries
-        self.onSeriesChange = onSeriesChange
         _hrvS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["hrv"] ?? [:]))
         _rhrS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["rhr"] ?? [:]))
         _respS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["resp_rate"] ?? [:]))
@@ -87,25 +81,12 @@ struct NunaMonitorPackCard: View {
             NavigationLink(value: stressRoute) { stressTile }.buttonStyle(.plain)
         }
         .fixedSize(horizontal: false, vertical: true)
-        .task(id: repo.refreshSeq) {
-            let requestedRefreshSeq = repo.refreshSeq
-            // Restore the ranges synchronously from the Home snapshot before refreshing their source data.
-            hrvS.seed(cachedSeries["hrv"] ?? [:])
-            rhrS.seed(cachedSeries["rhr"] ?? [:])
-            respS.seed(cachedSeries["resp_rate"] ?? [:])
-            skinS.seed(cachedSeries["skin_temp"] ?? [:])
-            async let hrv: Void = hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 30)
-            async let rhr: Void = rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 30)
-            async let respiratory: Void = respS.load(repo: repo, key: "resp_rate", source: "my-whoop", days: 30)
-            async let skin: Void = skinS.load(repo: repo, key: "skin_temp", source: "my-whoop", days: 30)
-            _ = await (hrv, rhr, respiratory, skin)
-            guard !Task.isCancelled, repo.refreshSeq == requestedRefreshSeq else { return }
-            onSeriesChange([
-                "hrv": hrvS.byDay,
-                "rhr": rhrS.byDay,
-                "resp_rate": respS.byDay,
-                "skin_temp": skinS.byDay
-            ])
+        .onChange(of: cachedSeries) { _, values in
+            // The Home model publishes this dictionary only after all four source reads finish.
+            hrvS.replace(values["hrv"] ?? [:])
+            rhrS.replace(values["rhr"] ?? [:])
+            respS.replace(values["resp_rate"] ?? [:])
+            skinS.replace(values["skin_temp"] ?? [:])
         }
     }
 
