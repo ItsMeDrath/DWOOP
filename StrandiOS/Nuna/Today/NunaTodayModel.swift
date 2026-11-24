@@ -18,6 +18,10 @@ final class NunaTodayModel: ObservableObject {
     @Published var dayOffset = 0 { didSet {
         if dayOffset != oldValue {
             stressLoaded = false
+            stress = nil
+            stressCurve = nil
+            stressBaseline = nil
+            stressWhoop = nil
             selectCachedSleepNight()
         }
     } }
