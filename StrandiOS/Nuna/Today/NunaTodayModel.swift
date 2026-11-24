@@ -34,6 +34,8 @@ final class NunaTodayModel: ObservableObject {
     /// Latest value of the slower-moving metrics the Your Cards section can show.
     @Published private(set) var extras: [String: Double] = [:]
     @Published private(set) var loaded = false
+    /// Stress has its own readiness: it can be shown as soon as its independent calculation finishes.
+    @Published private(set) var stressLoaded = false
     /// The one-line readiness read the Default Today synthesis uses, so both experiences say the same thing.
     @Published private(set) var readiness: ReadinessEngine.Readiness?
     /// Today's hourly stress curve (nil on past days or when it could not be scored).
@@ -102,14 +104,27 @@ final class NunaTodayModel: ObservableObject {
     func seedStress(repo: Repository) -> Bool {
         guard let hit = Self.stressCache[stressCacheKey(repo)] else { return false }
         applyStress(hit.whoop, status: hit.status, today: isToday, remember: nil)
-        loaded = true
         return true
+    }
+
+    /// Synchronous first paint from data already in memory. Never show a sleep score from a previous repository revision.
+    func seedFromMemory(repo: Repository) {
+        applyDaily(repo: repo)
+        let expected = NunaSleepModel.loadKey(seq: repo.refreshSeq)
+        if sleepModel.loaded, sleepModel.loadedKey == expected {
+            selectCachedSleepNight()
+            sleepLoadKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
+        } else {
+            rest = nil
+        }
+        _ = seedStress(repo: repo)
     }
 
     /// Takes a reading (or none, while calibrating) and sets every stress field from it.
     private func applyStress(_ w: WhoopStress.Result?, status: StressStatus, today: Bool, remember repo: Repository? = nil) {
         if let repo { Self.stressCache[stressCacheKey(repo)] = (status, w) }
         stressStatus = status
+        stressLoaded = true
         stressWhoop = w
         guard let w else { stressCurve = nil; stress = nil; stressBaseline = nil; return }
         stressCurve = WhoopStress.daytimeResult(w, tzOffsetSeconds: TimeZone.current.secondsFromGMT())
@@ -195,59 +210,79 @@ final class NunaTodayModel: ObservableObject {
     func load(repo: Repository, profile: ProfileStore) async {
         let (key, today, row) = applyDaily(repo: repo)
 
+        // Start independent dashboard reads together. The previous sequence waited for live HR, then sleep history,
+        // then each metric series one by one, keeping otherwise-ready tiles empty.
+        let curveNow = today ? Date() : (cal.date(byAdding: .second, value: -1, to: cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart) ?? dayStart)
+        let sleepKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
+        let needsSleepReload = !sleepModel.loaded || sleepLoadKey != sleepKey
+        if needsSleepReload { rest = nil }
+
+        let sleepTask = Task { @MainActor in
+            if needsSleepReload {
+                await sleepModel.load(repo: repo)
+                sleepLoadKey = sleepKey
+            }
+        }
+        let stressTask = Task { @MainActor in
+            let status = await StressEngine.shared.status(repo: repo)
+            let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
+            return (status, whoop)
+        }
+        let hrTask = today ? Task { await repo.hrSamples(from: from, to: to, limit: 200_000) } : nil
+        let stepsTask = Task { await repo.exploreSeries(key: "steps_est", source: "my-whoop") }
+        let appleTask = Task { await repo.appleDailyRows() }
+        let workoutsTask = Task { await repo.workoutRows() }
+        let kcalTask = Task { await repo.exploreSeries(key: "energy_kcal", source: "my-whoop", days: 30) }
+        let bodyAgeTask = Task { await repo.exploreSeries(key: "body_age", source: "my-whoop", days: 60) }
+        let vo2Task = Task { await repo.exploreSeries(key: "vo2max_est", source: "my-whoop", days: 60) }
+        let skinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 60) }
+        let weightsTask = Task { await repo.exploreSeries(key: "weight", source: "apple-health", days: 90) }
+
         // Live Effort for today over midnight..now, stored Effort otherwise.
-        var live: Double?
-        let cal = Calendar.current
-        let dayStart = cal.startOfDay(for: selectedLogicalDay)
-        let from = Int(dayStart.timeIntervalSince1970)
-        let to: Int = today ? Int(Date().timeIntervalSince1970)
-                            : Int((cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart).timeIntervalSince1970)
-        if today {
-            let hr = await repo.hrSamples(from: from, to: to, limit: 200_000)
+        let live: Double?
+        if let hrTask {
+            let hr = await hrTask.value
             let maxHR = profile.age > 0 ? StrainScorer.tanakaHRmax(age: Double(profile.age)) : nil
             let restHR = row?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR
             live = StrainScorer.strain(hr, maxHR: maxHR, restingHR: restHR, method: PuffinExperiment.effortMethod, sex: profile.sex)
+        } else {
+            live = nil
         }
         effort = StrainScorer.effectiveEffort(live: live, stored: row?.strain)
         effortKey = key
         if let effort { Self.lastEffort[key] = effort }
 
-        async let stepsA = repo.exploreSeries(key: "steps_est", source: "my-whoop")
-        async let appleA = repo.appleDailyRows()
-        async let workoutsA = repo.workoutRows()
+        // Stress is independent of sleep-history and activity-series loading; publish it as soon as its own read finishes.
+        let (stressState, whoop) = await stressTask.value
+        applyStress(whoop, status: stressState, today: today, remember: repo)
 
-        let sleepKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
-        if !sleepModel.loaded || sleepLoadKey != sleepKey {
-            await sleepModel.load(repo: repo)
-            sleepLoadKey = sleepKey
-        }
+        // The sleep model selects and scores the night only after its full source data is ready.
+        await sleepTask.value
         let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
         sleepModel.index = pickedNight ?? 0
         rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
 
-
         // Steps and calories: measured on the strap first, then Apple Health, then the on-device estimate.
-        let stepsSeries = await stepsA
+        let stepsSeries = await stepsTask.value
         let stepsByDay = Dictionary(stepsSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
         let estSteps = stepsByDay[key] ?? (today ? stepsSeries.last?.value : nil)
         let appleKey = TodayView.appleHealthDayKey(selectedDayKey: key, localDayKey: Repository.localDayKey(Date()), isToday: today)
-        let apple = await appleA
+        let apple = await appleTask.value
         let appleSteps = apple.filter { $0.day == appleKey }.compactMap { $0.steps }.max()
         let appleKcal = apple.filter { $0.day == appleKey }.compactMap { $0.activeKcal }.max()
         steps = row?.steps.map(Double.init) ?? appleSteps.map(Double.init) ?? estSteps
         // The calories page reads the stored `energy_kcal` series first, so the card does too (the latest day for today, as the steps do).
-        let kcalSeries = (await repo.exploreSeries(key: "energy_kcal", source: "my-whoop", days: 30)).filter { $0.value > 0 }
+        let kcalSeries = (await kcalTask.value).filter { $0.value > 0 }
         let kcalByDay = Dictionary(kcalSeries.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
         calories = kcalByDay[key] ?? appleKcal ?? row?.activeKcalEst ?? (today ? kcalSeries.last?.value : nil)
 
         var ex: [String: Double] = [:]
         var prev: [String: Double] = [:]
-        for k in ["body_age", "vo2max_est", "skin_temp"] {
-            let points = await repo.exploreSeries(key: k, source: "my-whoop", days: 60)
+        for (k, points) in [("body_age", await bodyAgeTask.value), ("vo2max_est", await vo2Task.value), ("skin_temp", await skinTask.value)] {
             if let v = points.last?.value { ex[k] = v }
             if points.count >= 2 { prev[k] = points[points.count - 2].value }
         }
-        let weights = await repo.exploreSeries(key: "weight", source: "apple-health", days: 90)
+        let weights = await weightsTask.value
         if let w = weights.last?.value { ex["weight"] = w }
         if weights.count >= 2 { prev["weight"] = weights[weights.count - 2].value }
         extras = ex
@@ -261,13 +296,8 @@ final class NunaTodayModel: ObservableObject {
         if let c = kcalByDay[prevKey] ?? apple.filter({ $0.day == prevKey }).compactMap({ $0.activeKcal }).max() ?? prevDay?.activeKcalEst { prev["calories"] = c }
         if let m = repo.days.last(where: { $0.day < key && $0.totalSleepMin != nil })?.totalSleepMin { prev["sleep"] = m }
         previous = prev
-        // The curve is scored as of "now" for today and as of the end of the day for a past day.
-        let curveNow = today ? Date() : (cal.date(byAdding: .second, value: -1, to: cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart) ?? dayStart)
-        let stressState = await StressEngine.shared.status(repo: repo)
-        let whoop = stressState.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
-        applyStress(whoop, status: stressState, today: today, remember: repo)
-
-        workouts = (await workoutsA).filter { $0.startTs >= from && $0.startTs < to }
+        // Workout rows were fetched alongside the other dashboard reads.
+        workouts = workoutsTask.value == nil ? [] : (await workoutsTask.value).filter { $0.startTs >= from && $0.startTs < to }
         loaded = true
         if today {
             // After the screen is up: it reads four earlier days of heart rate, once a day.
