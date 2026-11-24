@@ -102,6 +102,9 @@ struct LiftSessionEditSheet: View {
         .keyboardDoneToolbar($focused)
         .dismissesKeyboardOnTap($focused)
         .onAppear(perform: fill)
+        // The exercise picker can finish dismissing after this sheet has appeared. Keep the
+        // pending exercises in sync instead of relying only on the one-time onAppear snapshot.
+        .onChange(of: startingSets) { _ in appendStartingSets(startingSets) }
     }
 
     private var sessionRpeCard: some View {
@@ -254,15 +257,26 @@ struct LiftSessionEditSheet: View {
     }
 
     private func fill() {
-        guard form.isEmpty else { return }
-        for row in sets { form[row.id] = Self.form(for: row, system: unitSystem) }
-        original = form
-        sessionRpeText = session.sessionRpe.map { LiftFormat.trim($0) } ?? ""
-        originalSessionRpe = sessionRpeText
-        // An exercise already in the session is matched by name, ignoring case, so a set added to it joins its card.
-        for seed in startingSets {
+        if form.isEmpty {
+            for row in sets { form[row.id] = Self.form(for: row, system: unitSystem) }
+            original = form
+            sessionRpeText = session.sessionRpe.map { LiftFormat.trim($0) } ?? ""
+            originalSessionRpe = sessionRpeText
+        }
+        appendStartingSets(startingSets)
+    }
+
+    /// Add picker results whether they arrived before or after this sheet's first appearance.
+    /// Matching is case-insensitive so repeated SwiftUI updates cannot create duplicate blank sets.
+    private func appendStartingSets(_ seeds: [NewSetSeed]) {
+        for seed in seeds where !newSets.contains(where: {
+            $0.seed.exercise.caseInsensitiveCompare(seed.exercise) == .orderedSame
+        }) {
+            // An exercise already in the session is matched by name, ignoring case, so its new set joins that card.
             let match = sets.first { $0.exercise.caseInsensitiveCompare(seed.exercise) == .orderedSame }
-            let resolved = match.map { NewSetSeed(exercise: $0.exercise, primaryMuscle: $0.primaryMuscle, secondaryMuscles: $0.secondaryMuscles) } ?? seed
+            let resolved = match.map {
+                NewSetSeed(exercise: $0.exercise, primaryMuscle: $0.primaryMuscle, secondaryMuscles: $0.secondaryMuscles)
+            } ?? seed
             newSets.append(NewSet(seed: resolved))
         }
     }
