@@ -13,6 +13,7 @@ final class NunaKeySparkModel: ObservableObject {
     func load(repo: Repository, metrics: [KeyMetric], days: Int,
               seed: [String: [Double]] = [:],
               onChange: (([String: [Double]]) -> Void)? = nil) async {
+        let requestedRefreshSeq = repo.refreshSeq
         // Keep the last detailed tiles visible while the current repository values are refreshed.
         if values.isEmpty, !seed.isEmpty { values = seed }
         let cal = Calendar.current
@@ -39,6 +40,7 @@ final class NunaKeySparkModel: ObservableObject {
             case .charge, .effort: break
             }
         }
+        guard !Task.isCancelled, repo.refreshSeq == requestedRefreshSeq else { return }
         values = out
         onChange?(out)
     }
