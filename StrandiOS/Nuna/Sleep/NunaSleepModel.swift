@@ -472,6 +472,14 @@ final class NunaSleepModel: ObservableObject {
         else if let selectIndex, selectIndex > 0, selectIndex < out.count { index = selectIndex }
         nights = out
 
+        // Stress history and calibration are independent of the nine metric-series reads.
+        let stressHistoryTask = Task { @MainActor in
+            let history = NunaStressHistory()
+            await history.ensure(days: out.map(\.wakeDate), repo: repo)
+            return history
+        }
+        let stressStatusTask = Task { @MainActor in await StressEngine.shared.status(repo: repo) }
+
         // These history series are independent database reads. Fetch them together instead of making Today
         // wait through nine serial round trips before it can publish the Sleep score.
         async let performanceA = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: historyDays)
@@ -502,15 +510,14 @@ final class NunaSleepModel: ObservableObject {
         strainByDay = calculations.mapValues { $0.strainMin }
         debtByDay = calculations.mapValues { $0.debtMin }
         ledger = nil
-        let stressHistory = NunaStressHistory()
-        await stressHistory.ensure(days: out.map(\.wakeDate), repo: repo)
+        let stressHistory = await stressHistoryTask.value
         var highStress: [String: Double] = [:]
         for night in out {
             if let zones = stressHistory.entries[night.dayKey]?.zones(.sleep), zones.total > 0 {
                 highStress[night.dayKey] = zones.high / zones.total * 100
             }
         }
-        let stressStatus = await StressEngine.shared.status(repo: repo)
+        let stressStatus = await stressStatusTask.value
         if stressStatus.isReady, let todayNight = out.first(where: { Calendar.current.isDateInToday($0.wakeDate) }) {
             let start = Calendar.current.startOfDay(for: todayNight.wakeDate)
             if let result = await StressEngine.shared.day(repo: repo, from: Int(start.timeIntervalSince1970), to: Int(Date().timeIntervalSince1970)), result.sleep.total > 0 {
