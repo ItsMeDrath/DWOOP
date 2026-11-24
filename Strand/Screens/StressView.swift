@@ -83,10 +83,13 @@ struct StressView: View {
     }
 
     private func load() async {
+        // Start the shared intraday stress read immediately. The historical trend model
+        // and its stored-series query are independent, so neither should hold up the graph.
+        async let timelineLoad: Void = loadDaytime()
         storedSeries = await repo.series(key: "stress", source: "my-whoop")
         loaded = true
         rebuildModelIfNeeded()
-        await loadDaytime()
+        await timelineLoad
     }
 
     /// Reuse the exact WHOOP-reference result already used by the Home stress card.
