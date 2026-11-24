@@ -13,6 +13,8 @@ import WhoopStore
 @MainActor
 final class NunaTodayModel: ObservableObject {
     private static let homeSnapshotKey = "nuna.home.snapshot.v1"
+    /// Keep restored same-day values visible until their fresh independent reads settle.
+    private var restoredHomeSnapshot = false
 
     /// One compact, date-scoped copy of the values needed to paint the Home metrics immediately.
     /// Historical samples and chart series remain in their existing stores.
@@ -83,6 +85,7 @@ final class NunaTodayModel: ObservableObject {
               let snapshot = try? JSONDecoder().decode(HomeSnapshot.self, from: data),
               snapshot.version == 1,
               snapshot.dayKey == Repository.localDayKey(Date()) else { return }
+        restoredHomeSnapshot = true
         switch snapshot.chargeKind {
         case "scored": charge = .scored(pct: snapshot.chargeValue ?? 0)
         case "carried": charge = .carried(pct: snapshot.chargeValue ?? 0, caption: snapshot.chargeCaption ?? "")
@@ -441,7 +444,7 @@ final class NunaTodayModel: ObservableObject {
             // Keep the persisted completed-night score visible while the current inputs are validated.
             rest = NunaSleepModel.cachedSleepScore(dayKey: key)
         }
-        if Self.stressCache[stressCacheKey(repo)] == nil {
+        if Self.stressCache[stressCacheKey(repo)] == nil && !restoredHomeSnapshot {
             stressLoaded = false
             stress = nil
             stressCurve = nil
