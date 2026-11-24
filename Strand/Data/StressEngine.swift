@@ -184,15 +184,16 @@ final class StressEngine {
         // `to` is rounded to a 5-minute epoch: for today it is "now", and the data's own fingerprint already says whether anything arrived.
         let key = "\(from)-\(to / 300)-\(fp.count)-\(fp.maxTs)-\(cal.newestNight)"
         if let hit = dayMemo[key] { return hit }
-        // These reads are independent store queries. Start them together so opening the
-        // Stress Monitor does not pay the full HR → RR → gravity → sessions → workouts round-trip.
-        async let hrRead = repo.hrSamples(from: from - 600, to: to, limit: 200_000)
+        let hr = await repo.hrSamples(from: from - 600, to: to, limit: 200_000)
+        guard !hr.isEmpty else { return nil }
+
+        // The remaining reads are independent. Run them together rather than serially
+        // round-tripping the store for RR, gravity, sleep sessions and workouts.
         async let rrRead = repo.rrIntervals(from: from - 600, to: to, limit: 200_000)
         async let gravityRead = repo.gravitySamplesUnion(from: from - 600, to: to, limit: 200_000)
         async let sessionsRead = repo.allSleepSessions(days: 4000)
         async let workoutsRead = repo.workoutRows(days: 4000)
-        let (hr, rr, g, sessions, workoutRows) = await (hrRead, rrRead, gravityRead, sessionsRead, workoutsRead)
-        guard !hr.isEmpty else { return nil }
+        let (rr, g, sessions, workoutRows) = await (rrRead, gravityRead, sessionsRead, workoutsRead)
         let sleeps = sessions.filter { $0.endTs - $0.effectiveStartTs >= 20 * 60 }.map { $0.effectiveStartTs...$0.endTs }
         let works = workoutRows.filter { $0.endTs > $0.startTs }.map { $0.startTs...$0.endTs }
         let tuning = cal.tuning, baseline = cal.baseline
