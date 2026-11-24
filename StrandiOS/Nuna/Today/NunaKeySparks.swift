@@ -10,7 +10,11 @@ import WhoopStore
 final class NunaKeySparkModel: ObservableObject {
     @Published private(set) var values: [String: [Double]] = [:]
 
-    func load(repo: Repository, metrics: [KeyMetric], days: Int) async {
+    func load(repo: Repository, metrics: [KeyMetric], days: Int,
+              seed: [String: [Double]] = [:],
+              onChange: (([String: [Double]]) -> Void)? = nil) async {
+        // Keep the last detailed tiles visible while the current repository values are refreshed.
+        if values.isEmpty, !seed.isEmpty { values = seed }
         let cal = Calendar.current
         let keys: [String] = (0..<days).reversed().map { Repository.localDayKey(cal.date(byAdding: .day, value: -$0, to: Date()) ?? Date()) }
         let daily = Dictionary(repo.days.map { ($0.day, $0) }, uniquingKeysWith: { _, last in last })
@@ -36,6 +40,7 @@ final class NunaKeySparkModel: ObservableObject {
             }
         }
         values = out
+        onChange?(out)
     }
 }
 #endif
