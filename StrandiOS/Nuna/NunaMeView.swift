@@ -32,7 +32,7 @@ struct NunaMeView: View {
                     NunaSettingsLink(route: .feedback, icon: "bubble.left.and.bubble.right", title: "Feedback", subtitle: "Tell us what you think")
                     NunaSettingsLink(route: .about, icon: NunaIcons.about, title: "About")
                 }
-                Text(verbatim: NunaAppVersion.text).font(.nuna(size: 13, weight: .semibold)).tracking(0).foregroundStyle(NunaPalette.textMuted).textCase(nil)
+                Text(verbatim: AppVersion.installed).font(.nuna(size: 13, weight: .semibold)).tracking(0).foregroundStyle(NunaPalette.textMuted).textCase(nil)
                     .frame(maxWidth: .infinity).padding(.top, 30)
             }
             .padding(.horizontal, 20).padding(.top, 14).padding(.bottom, 130)
