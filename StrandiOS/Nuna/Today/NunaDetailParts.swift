@@ -874,6 +874,12 @@ final class NunaSeriesModel: ObservableObject {
         loaded = true
     }
 
+    /// Replace the monitor's seeded range when the owning Home model completes a fresh load.
+    func replace(_ values: [String: Double]) {
+        byDay = values.filter { $0.value.isFinite }
+        loaded = true
+    }
+
     /// `also` is a second source merged on top (a value typed in by hand wins over the imported one for that day).
     /// `cached`: take the series from the last read when the data has not changed since (and show it at once while a changed one is read again).
     func load(repo: Repository, key: String, source: String, days: Int = 190, also: String? = nil, cached: Bool = false) async {
