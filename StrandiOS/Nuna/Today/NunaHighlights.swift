@@ -284,6 +284,8 @@ struct NunaHighlightsCard: View {
     /// The baselines still being built, with the nights read so far.
     let calibrating: [NunaCalibrationStage]
     @ObservedObject var feed: NunaHighlightsFeed
+    /// Recent nap summaries restored with the Home snapshot while the sleep-session read catches up.
+    var cachedNaps: [NunaHighlightNap] = []
     let onBreathe: () -> Void
     let onWindDown: () -> Void
     let onOutlook: () -> Void
@@ -362,9 +364,11 @@ struct NunaHighlightsCard: View {
                                  strain: w.strain.map { UnitFormatter.effortDisplay($0, scale: scale) },
                                  manual: WorkoutSource.classify(w.source) == .manual)
         }
-        let freshNaps = feed.naps.filter { $0.end <= nowDate && nowDate.timeIntervalSince($0.end) <= 3 * 3600 }.map {
+        let liveNaps = feed.naps.filter { $0.end <= nowDate && nowDate.timeIntervalSince($0.end) <= 3 * 3600 }.map {
             NunaHighlightNap(id: "nap-\(Int($0.start.timeIntervalSince1970))", duration: NunaHighlightEngine.hm($0.asleepMin))
         }
+        var seenNapIds = Set<String>()
+        let freshNaps = (cachedNaps + liveNaps).filter { seenNapIds.insert($0.id).inserted }
         let hour = Calendar.current.component(.hour, from: nowDate)
         let slept: (duration: String, score: Int?)? = (hour < 14 && (sleepMinutes ?? 0) >= 60)
             ? (NunaHighlightEngine.hm(sleepMinutes ?? 0), rest.map { Int($0.rounded()) }) : nil
@@ -625,12 +629,15 @@ struct NunaHighlightsTracker: View {
     let loaded: Bool
     let workouts: [WorkoutRow]
     let calibrating: [NunaCalibrationStage]
+    let onNapsChange: ([NunaNap]) -> Void
     @EnvironmentObject private var repo: Repository
 
     var body: some View {
         Color.clear.frame(width: 0, height: 0)
             .task(id: "\(repo.refreshSeq)-\(loaded)-\(workouts.count)-\(calibrating.map(\.id).joined())") {
                 await feed.update(repo: repo, loaded: loaded, workouts: workouts, calibrating: calibrating.map(\.id))
+                guard !Task.isCancelled else { return }
+                onNapsChange(feed.naps)
             }
     }
 }
