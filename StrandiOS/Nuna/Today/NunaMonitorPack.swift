@@ -22,10 +22,30 @@ struct NunaMonitorPackCard: View {
     var onSeriesChange: ([String: [String: Double]]) -> Void = { _ in }
 
     @EnvironmentObject private var repo: Repository
-    @StateObject private var hrvS = NunaSeriesModel()
-    @StateObject private var rhrS = NunaSeriesModel()
-    @StateObject private var respS = NunaSeriesModel()
-    @StateObject private var skinS = NunaSeriesModel()
+    @StateObject private var hrvS: NunaSeriesModel
+    @StateObject private var rhrS: NunaSeriesModel
+    @StateObject private var respS: NunaSeriesModel
+    @StateObject private var skinS: NunaSeriesModel
+
+    init(hrv: Double?, restingHr: Double?, spo2: Double?, respiratory: Double?, skinTemp: Double?,
+         stress: Double?, stressCurve: DaytimeStress.Result?, stressNights: Int? = nil,
+         cachedSeries: [String: [String: Double]] = [:],
+         onSeriesChange: @escaping ([String: [String: Double]]) -> Void = { _ in }) {
+        self.hrv = hrv
+        self.restingHr = restingHr
+        self.spo2 = spo2
+        self.respiratory = respiratory
+        self.skinTemp = skinTemp
+        self.stress = stress
+        self.stressCurve = stressCurve
+        self.stressNights = stressNights
+        self.cachedSeries = cachedSeries
+        self.onSeriesChange = onSeriesChange
+        _hrvS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["hrv"] ?? [:]))
+        _rhrS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["rhr"] ?? [:]))
+        _respS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["resp_rate"] ?? [:]))
+        _skinS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["skin_temp"] ?? [:]))
+    }
 
     /// The vital signs the tile watches: HRV, resting heart rate, blood oxygen, respiratory rate and skin temperature. The count is
     /// always out of these, so a vital with no reading shows up as a missing one ("4/5") and not as a smaller total ("4/4").
