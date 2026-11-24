@@ -16,6 +16,10 @@ struct NunaMonitorPackCard: View {
     let stressCurve: DaytimeStress.Result?
     /// Nights read so far while the stress reading is still calibrating; nil once it is ready. Then the stress tile says so instead of a figure.
     var stressNights: Int?
+    /// The last complete monitor histories, supplied by the single Home snapshot.
+    var cachedSeries: [String: [String: Double]] = [:]
+    /// Called once the four independent history reads have settled.
+    var onSeriesChange: ([String: [String: Double]]) -> Void = { _ in }
 
     @EnvironmentObject private var repo: Repository
     @StateObject private var hrvS = NunaSeriesModel()
@@ -64,11 +68,22 @@ struct NunaMonitorPackCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .task(id: repo.refreshSeq) {
+            // Restore the ranges synchronously from the Home snapshot before refreshing their source data.
+            hrvS.seed(cachedSeries["hrv"] ?? [:])
+            rhrS.seed(cachedSeries["rhr"] ?? [:])
+            respS.seed(cachedSeries["resp_rate"] ?? [:])
+            skinS.seed(cachedSeries["skin_temp"] ?? [:])
             async let hrv: Void = hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 30)
             async let rhr: Void = rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 30)
             async let respiratory: Void = respS.load(repo: repo, key: "resp_rate", source: "my-whoop", days: 30)
             async let skin: Void = skinS.load(repo: repo, key: "skin_temp", source: "my-whoop", days: 30)
             _ = await (hrv, rhr, respiratory, skin)
+            onSeriesChange([
+                "hrv": hrvS.byDay,
+                "rhr": rhrS.byDay,
+                "resp_rate": respS.byDay,
+                "skin_temp": skinS.byDay
+            ])
         }
     }
 
