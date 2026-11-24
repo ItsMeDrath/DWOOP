@@ -109,7 +109,7 @@ enum NunaMeSettingsIndex {
         .init(route: .data, title: "Workout file (GPX, TCX, FIT)", note: "One workout from another brand"),
         .init(route: .data, title: "Export data", note: "Every metric as CSV, only when you ask"),
         .init(route: .data, title: "Backup and restore", note: ""),
-        .init(route: .backup, title: "Automatic backup", note: "Every 6 hours when NOOP is opened"),
+        .init(route: .backup, title: "Automatic backup", note: "When NOOP opens, if 6 hours have passed"),
         .init(route: .backup, title: "Saved backups", note: ""),
         .init(route: .backup, title: "Backup folder", note: ""),
         .init(route: .backup, title: "Change folder", note: "Pick one in Files or iCloud Drive"),
