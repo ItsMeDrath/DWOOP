@@ -231,7 +231,10 @@ final class NunaTodayModel: ObservableObject {
         let curveNow = today ? Date() : (cal.date(byAdding: .second, value: -1, to: cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart) ?? dayStart)
         let sleepKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
         let needsSleepReload = !sleepModel.loaded || sleepLoadKey != sleepKey
-        if needsSleepReload { rest = nil }
+        if needsSleepReload {
+            // Keep the persisted completed-night score visible while the current inputs are validated.
+            rest = NunaSleepModel.cachedSleepScore(dayKey: key)
+        }
         if Self.stressCache[stressCacheKey(repo)] == nil {
             stressLoaded = false
             stress = nil
