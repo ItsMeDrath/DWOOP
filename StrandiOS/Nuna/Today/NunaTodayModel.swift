@@ -27,6 +27,10 @@ final class NunaTodayModel: ObservableObject {
         let effort, rest, stress, hrv, restingHr, respiratory, spo2, steps, calories, sleepMinutes: Double?
         let extras, previous: [String: Double]
         let stressLoaded: Bool
+        /// Bounded daily history used by the Health monitor's personal ranges.
+        let monitorSeries: [String: [String: Double]]?
+        /// Bounded display points for optional Detailed Key Metrics tiles.
+        let keySparkSeries: [String: [Double]]?
     }
 
     private func restoreHomeSnapshot() {
@@ -53,6 +57,8 @@ final class NunaTodayModel: ObservableObject {
         extras = snapshot.extras
         previous = snapshot.previous
         stressLoaded = snapshot.stressLoaded
+        monitorSeries = snapshot.monitorSeries ?? [:]
+        keySparkSeries = snapshot.keySparkSeries ?? [:]
     }
 
     private func persistHomeSnapshot(dayKey: String) {
@@ -71,9 +77,39 @@ final class NunaTodayModel: ObservableObject {
             chargeKind: kind, chargeValue: value, chargeCaption: caption, chargeNights: nights,
             effort: effort, rest: rest, stress: stress, hrv: hrv, restingHr: restingHr,
             respiratory: respiratory, spo2: spo2, steps: steps, calories: calories,
-            sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded)
+            sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
+            monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries))
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
+    }
+
+    /// Keep the monitor history in the same single Home snapshot as the score values.
+    /// At most 30 daily readings per monitored vital are retained.
+    private static func boundedMonitorSeries(_ input: [String: [String: Double]]) -> [String: [String: Double]] {
+        var result: [String: [String: Double]] = [:]
+        for (metric, values) in input {
+            let valid = values.filter { $0.value.isFinite }.sorted { $0.key < $1.key }.suffix(30)
+            if !valid.isEmpty { result[metric] = Dictionary(uniqueKeysWithValues: valid.map { ($0.key, $0.value) }) }
+        }
+        return result
+    }
+
+    /// Detailed tiles can show up to six months; cap each metric at 180 values.
+    private static func boundedSparkSeries(_ input: [String: [Double]]) -> [String: [Double]] {
+        input.reduce(into: [:]) { result, entry in
+            let values = entry.value.filter(\.isFinite).suffix(180)
+            if !values.isEmpty { result[entry.key] = Array(values) }
+        }
+    }
+
+    func updateMonitorSeries(_ values: [String: [String: Double]]) {
+        monitorSeries = Self.boundedMonitorSeries(values)
+        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
+    }
+
+    func updateKeySparkSeries(_ values: [String: [Double]]) {
+        keySparkSeries = Self.boundedSparkSeries(values)
+        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
 
     init() {
@@ -110,6 +146,9 @@ final class NunaTodayModel: ObservableObject {
     @Published private(set) var workouts: [WorkoutRow] = []
     /// Latest value of the slower-moving metrics the Your Cards section can show.
     @Published private(set) var extras: [String: Double] = [:]
+    /// Small, date-scoped histories restored with the Home snapshot.
+    @Published private(set) var monitorSeries: [String: [String: Double]] = [:]
+    @Published private(set) var keySparkSeries: [String: [Double]] = [:]
     @Published private(set) var loaded = false
     /// Stress has its own readiness: it can be shown as soon as its independent calculation finishes.
     @Published private(set) var stressLoaded = false
