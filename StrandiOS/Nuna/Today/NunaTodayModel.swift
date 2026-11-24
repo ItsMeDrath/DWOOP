@@ -15,7 +15,12 @@ final class NunaTodayModel: ObservableObject {
     /// 0 = today, 1 = yesterday, ...
     /// Picking another day moves the Sleep score at once from the nights already loaded, the way Charge and Effort follow the day, instead of
     /// waiting for the reload that follows.
-    @Published var dayOffset = 0 { didSet { if dayOffset != oldValue { selectCachedSleepNight() } } }
+    @Published var dayOffset = 0 { didSet {
+        if dayOffset != oldValue {
+            stressLoaded = false
+            selectCachedSleepNight()
+        }
+    } }
 
     @Published private(set) var day: DailyMetric?
     @Published private(set) var charge: LiquidTodayView.ChargeDisplay = .noData
@@ -221,6 +226,11 @@ final class NunaTodayModel: ObservableObject {
         let sleepKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"
         let needsSleepReload = !sleepModel.loaded || sleepLoadKey != sleepKey
         if needsSleepReload { rest = nil }
+        if Self.stressCache[stressCacheKey(repo)] == nil {
+            stressLoaded = false
+            stress = nil
+            stressCurve = nil
+        }
 
         let sleepTask = Task { @MainActor in
             if needsSleepReload {
