@@ -524,7 +524,7 @@ struct NunaTodayView: View {
             ZStack {
                 dayNav
                 HStack(spacing: 8) {
-                NunaTodayProfileBadge()
+                NunaTodayProfileBadge(cachedStreak: model.streakCurrent)
                 Spacer(minLength: 0)
                 // Pushed into the page's own stack like every other page, so the way back and the tab bar behave as they do elsewhere.
                 Button { pushMe(.devices) } label: {
