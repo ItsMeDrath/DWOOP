@@ -437,8 +437,23 @@ final class NunaSleepModel: ObservableObject {
     func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil,
               historyDays: Int = 60, includeMotion: Bool = true) async {
         let keyAtStart = Self.loadKey(seq: repo.refreshSeq, historyDays: historyDays, includeMotion: includeMotion)
-        let hab = await repo.habitualMidsleepSec()
-        let sessions = await repo.allSleepSessions(days: historyDays)
+
+        // Sleep sessions, habitual timing and the independent daily metric series can all start
+        // together. Previously the score waited for the first three reads before even starting
+        // the metric history needed by its calculation.
+        async let habTask = repo.habitualMidsleepSec()
+        async let sessionsTask = repo.allSleepSessions(days: historyDays)
+        async let performanceA = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: historyDays)
+        async let needA = repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: historyDays)
+        async let debtA = repo.exploreSeries(key: "sleep_debt_min", source: "my-whoop", days: historyDays)
+        async let hoursA = repo.exploreSeries(key: "hours_vs_needed_pct", source: "my-whoop", days: historyDays)
+        async let strainA = repo.exploreSeries(key: "strain", source: "my-whoop", days: historyDays)
+        async let consistencyA = repo.exploreSeries(key: "sleep_consistency", source: "my-whoop", days: historyDays)
+        async let restorativePctA = repo.exploreSeries(key: "restorative_pct", source: "my-whoop", days: historyDays)
+        async let efficiencyA = repo.exploreSeries(key: "sleep_efficiency", source: "my-whoop", days: historyDays)
+        async let restorativeMinA = repo.exploreSeries(key: "restorative_min", source: "my-whoop", days: historyDays)
+
+        let (hab, sessions) = await (habTask, sessionsTask)
         let motions = includeMotion ? await repo.sessionMotions(sessions: sessions) : [:]
         var daily: [String: DailyMetric] = [:]
         for d in repo.days { daily[d.day] = d }
@@ -532,17 +547,7 @@ final class NunaSleepModel: ObservableObject {
         }
         let stressStatusTask = Task { @MainActor in await StressEngine.shared.status(repo: repo) }
 
-        // These history series are independent database reads. Fetch them together instead of making Today
-        // wait through nine serial round trips before it can publish the Sleep score.
-        async let performanceA = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: historyDays)
-        async let needA = repo.exploreSeries(key: "sleep_need_min", source: "my-whoop", days: historyDays)
-        async let debtA = repo.exploreSeries(key: "sleep_debt_min", source: "my-whoop", days: historyDays)
-        async let hoursA = repo.exploreSeries(key: "hours_vs_needed_pct", source: "my-whoop", days: historyDays)
-        async let strainA = repo.exploreSeries(key: "strain", source: "my-whoop", days: historyDays)
-        async let consistencyA = repo.exploreSeries(key: "sleep_consistency", source: "my-whoop", days: historyDays)
-        async let restorativePctA = repo.exploreSeries(key: "restorative_pct", source: "my-whoop", days: historyDays)
-        async let efficiencyA = repo.exploreSeries(key: "sleep_efficiency", source: "my-whoop", days: historyDays)
-        async let restorativeMinA = repo.exploreSeries(key: "restorative_min", source: "my-whoop", days: historyDays)
+        // All nine series were already fetching while the night sessions and motion were prepared.
         let loadedSeries = await (performanceA, needA, debtA, hoursA, strainA, consistencyA, restorativePctA, efficiencyA, restorativeMinA)
         var all: [String: [String: Double]] = [:]
         for (key, points) in zip(Self.keys, [loadedSeries.0, loadedSeries.1, loadedSeries.2, loadedSeries.3, loadedSeries.4,
