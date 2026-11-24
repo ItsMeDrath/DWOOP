@@ -122,7 +122,7 @@ final class NunaTodayModel: ObservableObject {
     /// Synchronous first paint from data already in memory. Never show a sleep score from a previous repository revision.
     func seedFromMemory(repo: Repository) {
         applyDaily(repo: repo)
-        let expected = NunaSleepModel.loadKey(seq: repo.refreshSeq)
+        let expected = NunaSleepModel.loadKey(repo: repo)
         if sleepModel.loaded, sleepModel.loadedKey == expected {
             selectCachedSleepNight()
             sleepLoadKey = "\(repo.refreshSeq)-\(NunaNapPrefs.autoDetect)"

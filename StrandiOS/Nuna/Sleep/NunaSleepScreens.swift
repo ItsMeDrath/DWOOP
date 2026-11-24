@@ -297,10 +297,10 @@ private struct NunaNapContent: View {
     var body: some View {
         Group { content }
             .onAppear { select() }
-            .sheet(isPresented: $showAdd) { NunaAddNapSheet(day: night?.wakeDate ?? Date()) { await repo.refresh(); await model.load(repo: repo) } }
+            .sheet(isPresented: $showAdd) { NunaAddNapSheet(day: night?.wakeDate ?? Date()) { await repo.refresh(); await model.load(repo: repo, force: true) } }
             .sheet(isPresented: $showCoach) { NunaAnyaSheet(context: "nap") }
-            .sheet(item: $edit) { NunaSleepTimeSheet(target: $0) { snap in await model.load(repo: repo); if let snap { undo = snap } } }
-            .nunaSleepUndo($undo) { await model.load(repo: repo) }
+            .sheet(item: $edit) { NunaSleepTimeSheet(target: $0) { snap in await model.load(repo: repo, force: true); if let snap { undo = snap } } }
+            .nunaSleepUndo($undo) { await model.load(repo: repo, force: true) }
     }
 
     @ViewBuilder private var content: some View {

@@ -87,7 +87,7 @@ extension WidgetSnapshot {
         // `sleep_performance` series this used to read is the older formula, so the widget disagreed with the app. The model is
         // reloaded only when what it holds is not current for this data (Today normally has it loaded already).
         let sleepModel = NunaSleepModel.shared
-        if sleepModel.loadedKey != NunaSleepModel.loadKey(seq: model.repo.refreshSeq) {
+        if sleepModel.loadedKey != NunaSleepModel.loadKey(repo: model.repo) {
             await sleepModel.load(repo: model.repo)
         }
         let restByDay = sleepModel.scoresByDay()

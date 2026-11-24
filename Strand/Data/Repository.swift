@@ -202,6 +202,28 @@ final class Repository: ObservableObject {
     /// date string within a day and would freeze e.g. the Today HR trend until the date rolls over.
     @Published private(set) var refreshSeq = 0
 
+    private var sleepSignatureMemo: (seq: Int, value: String)?
+    /// Changes only when what the Sleep Score is made of changes: the sleep sessions and their hand edits, each day's stored
+    /// sleep figures and imported need, and the strain of days that are over. `refreshSeq` moves on any refresh (live strain,
+    /// steps, freshness), so a screen keyed on it recalculated the scores every time the app opened or synced. Stable across
+    /// launches (FNV-1a, not `Hasher`).
+    func sleepSignature() -> String {
+        if let memo = sleepSignatureMemo, memo.seq == refreshSeq { return memo.value }
+        var h: UInt64 = 14695981039346656037
+        func mix(_ s: String) { for b in s.utf8 { h = (h ^ UInt64(b)) &* 1099511628211 } }
+        for s in sleeps {
+            mix("\(s.startTs)|\(s.endTs)|\(s.userEdited)|\(s.startTsAdjusted ?? 0)|\(s.efficiency ?? -1);")
+        }
+        let todayKey = Repository.localDayKey(Date())
+        for d in days {
+            mix("\(d.day)|\(d.totalSleepMin ?? -1)|\(d.efficiency ?? -1)|\(d.day < todayKey ? (d.strain ?? -1) : -2);")
+        }
+        for (day, f) in importedSleep.sorted(by: { $0.key < $1.key }) { mix("\(day)|\(f.needMin ?? -1);") }
+        let value = String(h, radix: 16)
+        sleepSignatureMemo = (refreshSeq, value)
+        return value
+    }
+
     /// #989: bumped by every hydration mutation (log / edit / delete). Today's hydration card re-reads on
     /// this instead of waiting for a full `refreshSeq` data refresh, which a hydration write never causes,
     /// so the card sat stale until an unrelated sync landed. Race-free: Repository is @MainActor.

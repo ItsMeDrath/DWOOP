@@ -215,8 +215,10 @@ final class NunaSleepModel: ObservableObject {
     /// What the nights were last read for (see `loadKey`), so a caller that only needs the scores can tell whether a load is current.
     private(set) var loadedKey: String?
     /// The key a load with these settings leaves in `loadedKey`; the defaults are what Today loads with, and so what its scores are made from.
-    static func loadKey(seq: Int, historyDays: Int = 60, includeMotion: Bool = true) -> String {
-        "\(seq)-\(NunaNapPrefs.autoDetect)-\(historyDays)-\(includeMotion)"
+    /// Keyed on the repository's sleep signature, not `refreshSeq`: the scores are only recalculated when there is new
+    /// or edited sleep, not every time the app opens or any other data refreshes.
+    static func loadKey(repo: Repository, historyDays: Int = 60, includeMotion: Bool = true) -> String {
+        "\(repo.sleepSignature())-\(NunaNapPrefs.autoDetect)-\(historyDays)-\(includeMotion)"
     }
     /// Recency-weighted debt over the latest nights (same ledger the Default Sleep tab shows).
     @Published private(set) var ledger: SleepDebtLedger?
@@ -443,8 +445,14 @@ final class NunaSleepModel: ObservableObject {
     /// `selectDayKey` or `selectIndex` pick the night to stand on in the same step that the nights are stored, so there is never a moment
     /// with the new nights and the latest one selected.
     func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil,
-              historyDays: Int = 60, includeMotion: Bool = true) async {
-        let keyAtStart = Self.loadKey(seq: repo.refreshSeq, historyDays: historyDays, includeMotion: includeMotion)
+              historyDays: Int = 60, includeMotion: Bool = true, force: Bool = false) async {
+        let keyAtStart = Self.loadKey(repo: repo, historyDays: historyDays, includeMotion: includeMotion)
+        // Nothing about the sleep has changed since these nights were read: keep them and their scores as they are.
+        if !force, loaded, loadedKey == keyAtStart {
+            if let selectDayKey, let i = nights.firstIndex(where: { $0.dayKey == selectDayKey }) { index = i }
+            else if let selectIndex, selectIndex > 0, selectIndex < nights.count { index = selectIndex }
+            return
+        }
         scoresUseMotion = includeMotion
 
         // Sleep sessions, habitual timing and the independent daily metric series can all start
