@@ -848,9 +848,9 @@ final class NunaSeriesModel: ObservableObject {
     init() {}
 
     /// A Home monitor model seeded directly from the persisted snapshot before the first frame.
-    init(seeding values: [String: Double]) {
+    init(seeding values: [String: Double], loaded: Bool = false) {
         byDay = values.filter { $0.value.isFinite }
-        loaded = !byDay.isEmpty
+        self.loaded = loaded || !byDay.isEmpty
     }
 
     /// A model that starts with the last series read for this metric, when there is one, so a page showing it has its figures on the first frame.
