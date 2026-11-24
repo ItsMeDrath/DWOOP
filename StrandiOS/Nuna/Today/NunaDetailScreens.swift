@@ -1336,6 +1336,17 @@ struct NunaStressDetailView: View {
     @State private var showInfo = false
     @State private var showSettings = false
 
+    /// The chart's last drawing per day and refresh, so the screen opens with it in place and the reading then refreshes quietly.
+    private struct ChartSnapshot { var trail: WhoopStress.Result?; var workouts: [WorkoutRow]; var domain: ClosedRange<Int>?; var sleep: OverviewHRChart.SleepSpan? }
+    private static var chartCache: [String: ChartSnapshot] = [:]
+    private var chartKey: String { "\(repo.refreshSeq)-\(day.dayOffset)" }
+
+    /// Puts everything that was last drawn for this day on screen before anything is read.
+    private func applyCached() {
+        day.seedStress(repo: repo)
+        if let c = Self.chartCache[chartKey] { trail = c.trail; trailWorkouts = c.workouts; chartDomain = c.domain; sleepSpan = c.sleep }
+    }
+
     private func color(_ v: Double) -> Color { NunaStressBand.color(for: v) }
 
     /// Clock time of the latest reading on the curve, for today only.
@@ -1413,10 +1424,12 @@ struct NunaStressDetailView: View {
         }
         }
         .task(id: "\(repo.refreshSeq)-\(day.dayOffset)") {
+            applyCached()
             await day.load(repo: repo, profile: profile)
             await loadChart()
             await history.ensure(days: [selectedDate] + previousDays, repo: repo)
             await loadAnnotations()
+            Self.chartCache[chartKey] = ChartSnapshot(trail: trail, workouts: trailWorkouts, domain: chartDomain, sleep: sleepSpan)
         }
         // Follows the day: the gauge and the line are re-read every minute while this screen is up.
         .task(id: day.dayOffset) {

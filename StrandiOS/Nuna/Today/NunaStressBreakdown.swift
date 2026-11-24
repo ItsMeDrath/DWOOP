@@ -182,11 +182,16 @@ final class NunaStressHistory: ObservableObject {
     /// A new key: the zones stored by the previous formula must never be read as these.
     private static let storeKey = "stress.zones.v2"
 
+    /// Decoded once per launch and kept up to date, so opening a screen does not decode a year of days again.
+    private static var memory: [String: Entry]?
+
     init() {
+        if let m = Self.memory { entries = m; return }
         if let data = UserDefaults.standard.data(forKey: Self.storeKey),
            let stored = try? JSONDecoder().decode([String: Entry].self, from: data) {
             entries = stored
         }
+        Self.memory = entries
     }
 
     /// Scores any of `days` (earlier than today) that are not yet stored, newest first. Does nothing while calibrating.
@@ -213,7 +218,7 @@ final class NunaStressHistory: ObservableObject {
             entries[key] = entry
             changed = true
         }
-        if changed { persist() }
+        if changed { Self.memory = entries; persist() }
     }
 
     private func persist() {

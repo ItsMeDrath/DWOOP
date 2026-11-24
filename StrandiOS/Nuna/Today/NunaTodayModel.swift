@@ -90,11 +90,25 @@ final class NunaTodayModel: ObservableObject {
         guard isToday else { return }
         let status = await StressEngine.shared.status(repo: repo)
         let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: Date()) : nil
-        if whoop != stressWhoop || status != stressStatus { applyStress(whoop, status: status, today: true) }
+        if whoop != stressWhoop || status != stressStatus { applyStress(whoop, status: status, today: true, remember: repo) }
+    }
+
+    /// The last stress reading per day and refresh, so the Stress screen opens with it drawn instead of building it again.
+    private static var stressCache: [String: (status: StressStatus, whoop: WhoopStress.Result?)] = [:]
+    private func stressCacheKey(_ repo: Repository) -> String { "\(repo.refreshSeq)-\(dayOffset)" }
+
+    /// Synchronous: puts the last stress reading for this day on screen at once. True when there was one.
+    @discardableResult
+    func seedStress(repo: Repository) -> Bool {
+        guard let hit = Self.stressCache[stressCacheKey(repo)] else { return false }
+        applyStress(hit.whoop, status: hit.status, today: isToday, remember: nil)
+        loaded = true
+        return true
     }
 
     /// Takes a reading (or none, while calibrating) and sets every stress field from it.
-    private func applyStress(_ w: WhoopStress.Result?, status: StressStatus, today: Bool) {
+    private func applyStress(_ w: WhoopStress.Result?, status: StressStatus, today: Bool, remember repo: Repository? = nil) {
+        if let repo { Self.stressCache[stressCacheKey(repo)] = (status, w) }
         stressStatus = status
         stressWhoop = w
         guard let w else { stressCurve = nil; stress = nil; stressBaseline = nil; return }
@@ -251,7 +265,7 @@ final class NunaTodayModel: ObservableObject {
         let curveNow = today ? Date() : (cal.date(byAdding: .second, value: -1, to: cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart) ?? dayStart)
         let stressState = await StressEngine.shared.status(repo: repo)
         let whoop = stressState.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
-        applyStress(whoop, status: stressState, today: today)
+        applyStress(whoop, status: stressState, today: today, remember: repo)
 
         workouts = (await workoutsA).filter { $0.startTs >= from && $0.startTs < to }
         loaded = true
