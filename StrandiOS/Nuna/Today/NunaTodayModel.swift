@@ -190,6 +190,17 @@ final class NunaTodayModel: ObservableObject {
         // Calibrated reading first; then the strap's estimate (experiment on), carried a few days like the other vitals.
         spo2 = row?.spo2Pct ?? (today ? Repository.lastSpo2Day(days: repo.days, todayKey: key)?.spo2Pct : nil)
             ?? repo.spo2Estimate(dayKey: key, carry: today)
+        // Skin temperature is also a nightly reading. Seed it from the already-loaded daily rows,
+        // retaining the same absolute-vs-deviation scale rule as Repository.exploreSeries.
+        let skinRows = repo.days.compactMap { metric -> (day: String, value: Double)? in
+            metric.skinTempDevC.map { (day: metric.day, value: $0) }
+        }
+        if let skinKind = SkinTempDisplay.dominantKind(valuesAscendingByDay: skinRows.map(\\.value)),
+           let latestSkin = skinRows.last(where: { SkinTempDisplay.kind(of: $0.value) == skinKind }) {
+            extras["skin_temp"] = latestSkin.value
+        } else {
+            extras.removeValue(forKey: "skin_temp")
+        }
         sleepMinutes = row?.totalSleepMin
         readiness = ReadinessEngine.evaluate(days: repo.days, today: key)
         // Change against the night BEFORE the one the value came from. A value carried from the last
