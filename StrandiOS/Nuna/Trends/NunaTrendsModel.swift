@@ -22,6 +22,12 @@ final class NunaTrendsModel: ObservableObject {
     let todayKey = Repository.localDayKey(Date())
 
     func load(repo: Repository) async {
+        // Seed Sleep from the same persisted nightly scores as the Sleep circle; the 400-day
+        // validation below replaces these optimistic values when its current inputs are ready.
+        let cachedSleepScores = NunaSleepModel.cachedSleepScores()
+        if !cachedSleepScores.isEmpty {
+            rest = cachedSleepScores.map { (day: $0.key, value: $0.value) }.sorted { $0.day < $1.day }
+        }
         async let c = repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)
         async let e = repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)
         async let r = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: 400)
@@ -29,6 +35,11 @@ final class NunaTrendsModel: ObservableObject {
         async let k = repo.exploreSeries(key: "rhr", source: "my-whoop", days: 400)
         async let t = repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 400)
         charge = Self.clean(await c); effort = Self.clean(await e); rest = Self.clean(await r)
+        if !cachedSleepScores.isEmpty {
+            var byDay = Dictionary(rest.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
+            for (day, score) in cachedSleepScores { byDay[day] = score }
+            rest = byDay.map { (day: $0.key, value: $0.value) }.sorted { $0.day < $1.day }
+        }
         hrv = Self.clean(await h); rhr = Self.clean(await k)
         // Stress is not needed to draw the initial trend charts. Calculate it independently so
         // calibration/history work cannot hold the whole Trends screen behind its loading state.
