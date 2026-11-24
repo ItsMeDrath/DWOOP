@@ -69,6 +69,9 @@ final class NunaTodayModel: ObservableObject {
     /// keep their deltas above.
     @Published private(set) var previous: [String: Double] = [:]
     private let sleepModel = NunaSleepModel.shared
+    /// Exact per-night scores from the same model used by the Sleep screen. Other screens use this
+    /// instead of independently re-scoring the same night from long-range trend data.
+    var sleepScoresByDay: [String: Double] { sleepModel.loaded ? sleepModel.scoresByDay() : [:] }
     /// What the sleep model was last loaded for. Changing the day only picks another night out of it, so it is not read again until the data
     /// refreshes or the nap setting changes; reloading 60 days of sessions on every date change is what made the Sleep score lag behind
     /// Charge and Effort.
