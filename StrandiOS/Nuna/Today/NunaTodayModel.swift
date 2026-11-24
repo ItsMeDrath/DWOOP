@@ -50,10 +50,10 @@ final class NunaTodayModel: ObservableObject {
         }
 
         var result: DaytimeStress.Result {
-            DaytimeStress.Result(hours: hours.map(\\.point), sustainedHigh: sustainedHigh,
+            DaytimeStress.Result(hours: hours.map(\.point), sustainedHigh: sustainedHigh,
                 sustainedRun: sustainedRun, dayMean: dayMean, peak: peak?.point,
                 activityMaskedHours: activityMaskedHours, highStressMinutes: highStressMinutes,
-                hrOnlyFallback: hrOnlyFallback, timeline: timeline.map(\\.point))
+                hrOnlyFallback: hrOnlyFallback, timeline: timeline.map(\.point))
         }
     }
 
