@@ -178,7 +178,7 @@ final class NunaTodayModel: ObservableObject {
 
     func updateKeySparkSeries(_ values: [String: [Double]]) {
         keySparkSeries = Self.boundedSparkSeries(values)
-        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
+        if snapshotCoreReady { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
 
     func updateHighlightNaps(_ naps: [NunaNap]) {
@@ -187,7 +187,7 @@ final class NunaTodayModel: ObservableObject {
             .map { HighlightNapSnapshot(id: "nap-\(Int($0.start.timeIntervalSince1970))",
                                         duration: NunaHighlightEngine.hm($0.asleepMin),
                                         endTs: Int($0.end.timeIntervalSince1970)) }
-        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
+        if snapshotCoreReady { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
 
     init() {
