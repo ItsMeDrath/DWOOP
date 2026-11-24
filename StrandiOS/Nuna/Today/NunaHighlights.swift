@@ -597,7 +597,7 @@ final class NunaHighlightsFeed: ObservableObject {
         for id in ["recovery", "stress"] where defaults.string(forKey: Self.stageKey(id)) == "done:\(today)" { doneStages.insert(id) }
     }
 
-    func update(repo: Repository, loaded: Bool, workouts: [WorkoutRow], calibrating: [String]) async {
+    func update(repo: Repository, loaded: Bool, workouts: [WorkoutRow], calibrating: [String], includeNaps: Bool = true) async {
         guard loaded else { return }
         let today = Repository.localDayKey(Date())
         if baseline == nil {
@@ -616,9 +616,11 @@ final class NunaHighlightsFeed: ObservableObject {
                 doneStages.insert(id)
             }
         }
-        let start = Calendar.current.startOfDay(for: Date())
-        let found = await NunaSleepModel.naps(from: start, to: start.addingTimeInterval(86_400), repo: repo).map(\.nap)
-        if found.map(\.id) != naps.map(\.id) { naps = found }
+        if includeNaps {
+            let start = Calendar.current.startOfDay(for: Date())
+            let found = await NunaSleepModel.naps(from: start, to: start.addingTimeInterval(86_400), repo: repo).map(\.nap)
+            if found.map(\.id) != naps.map(\.id) { naps = found }
+        }
     }
 }
 
@@ -629,15 +631,13 @@ struct NunaHighlightsTracker: View {
     let loaded: Bool
     let workouts: [WorkoutRow]
     let calibrating: [NunaCalibrationStage]
-    let onNapsChange: ([NunaNap]) -> Void
     @EnvironmentObject private var repo: Repository
 
     var body: some View {
         Color.clear.frame(width: 0, height: 0)
             .task(id: "\(repo.refreshSeq)-\(loaded)-\(workouts.count)-\(calibrating.map(\.id).joined())") {
-                await feed.update(repo: repo, loaded: loaded, workouts: workouts, calibrating: calibrating.map(\.id))
-                guard !Task.isCancelled else { return }
-                onNapsChange(feed.naps)
+                await feed.update(repo: repo, loaded: loaded, workouts: workouts,
+                                  calibrating: calibrating.map(\.id), includeNaps: false)
             }
     }
 }
