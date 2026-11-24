@@ -182,7 +182,7 @@ struct NunaSleepTimeSheet: View {
         Task {
             await repo.editSleepTimes(detectedStartTs: target.detectedStartTs, oldEndTs: target.wakeTs,
                                       storedStagesJSON: target.stagesJSON, newStartTs: start, newEndTs: end)
-            await intelligence.analyzeRecent()
+            if !target.isNap { await intelligence.analyzeRecent() }
             await repo.refresh()
             await onDone(nil)
             dismiss()
@@ -193,7 +193,7 @@ struct NunaSleepTimeSheet: View {
         saving = true
         Task {
             let snapshot = await repo.deleteSleepSession(detectedStartTs: target.detectedStartTs, endTs: target.wakeTs)
-            await intelligence.analyzeRecent()
+            if !target.isNap { await intelligence.analyzeRecent() }
             await repo.refresh()
             await onDone(snapshot)
             dismiss()
@@ -204,6 +204,7 @@ struct NunaSleepTimeSheet: View {
 /// The strip shown after a delete: what was removed and an Undo that puts the sleep back where it came from.
 private struct NunaSleepUndoModifier: ViewModifier {
     @Binding var snapshot: SleepDeletionSnapshot?
+    @Binding var isNap: Bool
     let onRestored: () async -> Void
     @EnvironmentObject private var repo: Repository
     @EnvironmentObject private var intelligence: IntelligenceEngine
@@ -249,7 +250,7 @@ private struct NunaSleepUndoModifier: ViewModifier {
         timer?.cancel()
         Task {
             await repo.undoDeleteSleepSession(snap)
-            await intelligence.analyzeRecent()
+            if !isNap { await intelligence.analyzeRecent() }
             await repo.refresh()
             await onRestored()
             snapshot = nil
@@ -259,8 +260,9 @@ private struct NunaSleepUndoModifier: ViewModifier {
 
 extension View {
     /// Offers to put a just-deleted sleep back for a few seconds.
-    func nunaSleepUndo(_ snapshot: Binding<SleepDeletionSnapshot?>, onRestored: @escaping () async -> Void) -> some View {
-        modifier(NunaSleepUndoModifier(snapshot: snapshot, onRestored: onRestored))
+    func nunaSleepUndo(_ snapshot: Binding<SleepDeletionSnapshot?>, isNap: Binding<Bool>,
+                       onRestored: @escaping () async -> Void) -> some View {
+        modifier(NunaSleepUndoModifier(snapshot: snapshot, isNap: isNap, onRestored: onRestored))
     }
 }
 #endif

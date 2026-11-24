@@ -73,6 +73,39 @@ final class AnalyticsEngineProvidedSleepTests: XCTestCase {
         XCTAssertNil(omitted.daily.avgHrv)
     }
 
+    func testNapsDoNotChangeMainSleepRecoveryInputs() throws {
+        let day = "2026-07-27"
+        let dayStart = AnalyticsEngine.dayStartUtcSeconds(day)
+        let mainStart = dayStart - 4 * 3600
+        let mainEnd = mainStart + 600 * 60
+        let napStart = dayStart + 12 * 3600
+        let napEnd = napStart + 45 * 60
+
+        let main = SleepSession(start: mainStart, end: mainEnd, efficiency: 0.75,
+                                stages: hypnogram(start: mainStart), restingHR: 50, avgHRV: 20)
+        let nap = SleepSession(start: napStart, end: napEnd, efficiency: 0.95,
+                               stages: [StageSegment(start: napStart, end: napEnd, stage: "light")],
+                               restingHR: 35, avgHRV: 90)
+        let hrvBase = Baselines.foldHistory(Array(repeating: 20.0, count: 14), cfg: Baselines.hrvCfg)
+        let rhrBase = Baselines.foldHistory(Array(repeating: 50.0, count: 14), cfg: Baselines.restingHRCfg)
+        let baselines = AnalyticsEngine.ProfileBaselines(hrv: hrvBase, restingHR: rhrBase)
+
+        XCTAssertTrue(hrvBase.usable)
+        XCTAssertTrue(rhrBase.usable)
+        let mainOnly = analyzeProvided(day: day, provided: [main], baselines: baselines)
+        let withNap = analyzeProvided(day: day, provided: [main, nap], baselines: baselines)
+        XCTAssertNotNil(mainOnly.recovery, "the main sleep alone must produce a Recovery score")
+
+        XCTAssertEqual(withNap.daily.totalSleepMin, mainOnly.daily.totalSleepMin,
+                       "a nap must not be folded into the main-night sleep total")
+        XCTAssertEqual(withNap.daily.restingHr, 50,
+                       "the nap's lower resting HR must not replace the main-night value")
+        XCTAssertEqual(withNap.daily.avgHrv ?? 0, 20, accuracy: 0.001,
+                       "the nap's HRV must not be mixed into the main-night value")
+        XCTAssertEqual(try XCTUnwrap(withNap.recovery), try XCTUnwrap(mainOnly.recovery), accuracy: 1e-9,
+                       "adding a nap must not change the Recovery score")
+    }
+
     func testProvidedSessionKeepsItsOwnStoredHrvWhenPresent() {
         // A provided session that already carries restingHR/avgHRV is used verbatim (not recomputed).
         let day = "2026-07-27"
@@ -90,7 +123,8 @@ final class AnalyticsEngineProvidedSleepTests: XCTestCase {
     }
 
     /// Keep the public analyzeDay seam fully named and mirrored by the Kotlin twin.
-    private func analyzeProvided(day: String, provided: [SleepSession]) -> AnalyticsEngine.DayResult {
+    private func analyzeProvided(day: String, provided: [SleepSession],
+                                 baselines: AnalyticsEngine.ProfileBaselines = AnalyticsEngine.ProfileBaselines()) -> AnalyticsEngine.DayResult {
         AnalyticsEngine.analyzeDay(
             day: day,
             hr: [],
@@ -107,7 +141,7 @@ final class AnalyticsEngineProvidedSleepTests: XCTestCase {
             skinTempAnchorRaw: nil,
             spo2: [],
             profile: profile,
-            baselines: AnalyticsEngine.ProfileBaselines(),
+            baselines: baselines,
             maxHROverride: nil,
             tzOffsetSeconds: 0,
             wristOff: [],

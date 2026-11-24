@@ -682,36 +682,21 @@ public enum AnalyticsEngine {
             }
         }
 
-        // #525 NOTE: the sleep-DURATION figures above are main-night-only (the headline "your night"),
-        // but the physiological aggregates below (resting HR, HRV, respiration) intentionally stay over
-        // ALL matched sessions. This is deliberate, not an oversight: recovery should reflect the body's
-        // best resting physiology for the day, the main overnight dominates these anyway (it is far longer
-        // than any nap and HRV is in-bed-weighted by duration), and narrowing them to the main night would
-        // widen the change's blast radius into the recovery score right at a release boundary for a
-        // negligible shift. The Rest/sleep-quality term is main-night; the recovery physiology is
-        // day-best-resting, night-dominated. Keep these two definitions distinct on purpose.
-        // Daily resting HR = lowest per-session resting HR across matched sessions.
-        // #1801/#1884: the sessions whose PHYSIOLOGY is folded into the day's aggregates. Motion-backed
-        // sessions are PREFERRED; an HR-only night is used only when the day has no other kind.
+        // Recovery physiology is scoped to the selected MAIN-night group, just like the sleep-duration
+        // and Rest inputs above. Naps remain separate session rows and feed the sleep-debt ledger only;
+        // they must not change Recovery's HRV, resting-HR, respiration, or skin-temperature inputs.
+        // Selection uses the shared learned-midsleep scorer, so a daytime main sleep for a shift worker
+        // still qualifies. Motion-backed main-night sessions are preferred; an HR-only main night is used
+        // only when the selected group has no motion-backed session.
         //
-        // #1801 excluded HR-only nights outright, reasoning that a baseline is the one thing a false positive
-        // cannot be unwound from. #1884 narrowed that rather than reversing it: only the session BOUNDS are
-        // inferred from heart rate — each RMSSD is measured over its own 5-minute window — so excluding the
-        // night discarded a real 22-25ms HRV and left Charge with NO input instead of a slightly fuzzy one, on
-        // every scoring pass in the field log. Preferring keeps the original protection exactly where it earned its keep (a mixed
-        // day still ignores the HR-only night outright) and gives it up only where the alternative was
-        // nothing at all. The night still travels marked `hrOnly` for any consumer that wants to weigh it
-        // down; what it no longer gets is a silent delete.
-        //
-        // Named once rather than filtered at each use: the deep-window HRV pool and the SDNN index below
-        // re-derive from `rr` over each session's own stages instead of reading restingHR/avgHRV, so the
-        // only way to scope them is through the session set itself — which is precisely the "one forgotten
-        // call site" a scattered filter invites.
-        let physiologyOnly = matched.filter { !$0.hrOnly }
-        let physiologySessions = physiologyOnly.isEmpty ? matched : physiologyOnly
+        // #1801/#1884: HR-only sessions remain a fallback only when the selected main-night group has no
+        // motion-backed session. This keeps the existing protection against a false-positive HR-only night
+        // while preserving a real HRV value when the main sleep itself has only HR-based staging.
+        let physiologyOnly = mainGroup.filter { !$0.hrOnly }
+        let physiologySessions = physiologyOnly.isEmpty ? mainGroup : physiologyOnly
         let restingHRFloor = physiologySessions.compactMap { $0.restingHR }.min()
         let restingHRDaily: Int? = useSessionMeanRestingHR
-            ? (primarySessionRestingHR(sessions: matched, hr: hr).map { Int($0.rounded()) } ?? restingHRFloor)
+            ? (primarySessionRestingHR(sessions: physiologySessions, hr: hr).map { Int($0.rounded()) } ?? restingHRFloor)
             : restingHRFloor
         // Daily avg HRV = in-bed-weighted mean of per-session avg HRV.
         let avgHRVDaily: Double? = {
@@ -737,7 +722,7 @@ public enum AnalyticsEngine {
             return weight > 0 ? total / weight : nil
         }()
 
-        // Daily SDNN (ms) = the 5-min SDNN INDEX (Task Force) over the in-bed R-R across matched sessions —
+        // Daily SDNN (ms) = the 5-min SDNN INDEX (Task Force) over the in-bed R-R across selected main-night sessions —
         // the mean of per-5-min-segment SDNN, the BROAD autonomic-variability metric (both branches) and the
         // slow twin of the vagal RMSSD `avgHRVDaily` above. The index (not a single whole-night SD) is used
         // deliberately: whole-night SD is dominated by the slow HR drift across sleep stages and reads 2-3×
@@ -761,7 +746,7 @@ public enum AnalyticsEngine {
             // stager's pre-sorted rrS, so sort our own copy of the day's raw rr once here for the re-window.
             let rrSorted = rr.sortedByTsStable()
             var allWin: [SleepStager.HrvWindow] = []
-            for s in matched {
+            for s in physiologySessions {
                 let wins = SleepStager.sessionHrvWindows(start: s.start, end: s.end, rr: rrSorted, stages: s.stages)
                 if hrvWindowDetail {
                     for w in wins {
@@ -813,8 +798,8 @@ public enum AnalyticsEngine {
 
         // Nightly APPROXIMATE respiratory rate (breaths/min) from the R-R stream via
         // RSA. WHOOP5 v18 carries no raw resp ADC, so this is an on-device estimate,
-        // NOT a cloud/clinical respiration value. Per matched in-bed session, estimate
-        // over [start, end]; the night's value = median of finite per-session
+        // NOT a cloud/clinical respiration value. Per selected main-night session, estimate
+        // over [start, end]; the night's value = median of finite main-night per-session
         // estimates; nil only when no session yields a finite estimate.
         //
         // A DEVICE-MEASURED rate wins over that estimate when the night has one. `vendorResp` carries a
@@ -825,10 +810,10 @@ public enum AnalyticsEngine {
         // information at all. A WHOOP night passes no `vendorResp`, so it keeps the RSA path verbatim.
         let respRateDaily: Double? = {
             if let vendor = Self.vendorRespRateBpm(vendorResp,
-                                                   sessions: matched.map { (start: $0.start, end: $0.end) }) {
+                                                   sessions: physiologySessions.map { (start: $0.start, end: $0.end) }) {
                 return vendor
             }
-            let perSession = matched
+            let perSession = physiologySessions
                 .map { SleepStager.respRateFromRR(rr, start: $0.start, end: $0.end) }
                 .filter { $0.isFinite }
             return perSession.isEmpty ? nil : HRVAnalyzer.median(perSession)
@@ -843,7 +828,7 @@ public enum AnalyticsEngine {
         // personal baseline. In pass 1 baselines.skinTemp is nil so the deviation is nil
         // and the mean is harvested; IntelligenceEngine seeds the baseline from those means
         // and re-derives the deviation in pass 2 (mirrors avgHrv→recovery). APPROXIMATE.
-        let nightlySkinTempC = wornNightlySkinTempC(matched, hr: hr, skinTemp: skinTemp,
+        let nightlySkinTempC = wornNightlySkinTempC(physiologySessions, hr: hr, skinTemp: skinTemp,
                                                     family: skinTempFamily, anchorRaw: skinTempAnchorRaw,
                                                     wornToleranceSec: skinTempWornToleranceSec)
         let skinTempDevC: Double? = nightlySkinTempC.flatMap { (v: Double) -> Double? in

@@ -62,6 +62,7 @@ struct NunaSleepNightSections: View {
     @EnvironmentObject private var appModel: AppModel
     @State private var edit: NunaSleepEditTarget?
     @State private var undo: SleepDeletionSnapshot?
+    @State private var undoIsNap = false
 
     var body: some View {
         Group {
@@ -72,8 +73,13 @@ struct NunaSleepNightSections: View {
             if showsNeed { needCard(model, night) }
             if showsBodyClock { NunaBodyClockLink() }
         }
-        .sheet(item: $edit) { NunaSleepTimeSheet(target: $0) { snap in await repo.refresh(); if let snap { undo = snap } } }
-        .nunaSleepUndo($undo) { await repo.refresh() }
+        .sheet(item: $edit) { target in
+            NunaSleepTimeSheet(target: target) { snap in
+                await repo.refresh()
+                if let snap { undo = snap; undoIsNap = target.isNap }
+            }
+        }
+        .nunaSleepUndo($undo, isNap: $undoIsNap) { await repo.refresh() }
     }
 
     private func napCard(_ night: NunaNight) -> some View {
@@ -288,6 +294,7 @@ private struct NunaNapContent: View {
     @State private var showAdd = false
     @State private var edit: NunaSleepEditTarget?
     @State private var undo: SleepDeletionSnapshot?
+    @State private var undoIsNap = false
     @State private var showCoach = false
 
     private var night: NunaNight? { model.night }
@@ -299,8 +306,13 @@ private struct NunaNapContent: View {
             .onAppear { select() }
             .sheet(isPresented: $showAdd) { NunaAddNapSheet(day: night?.wakeDate ?? Date()) { await repo.refresh(); await model.load(repo: repo, force: true) } }
             .sheet(isPresented: $showCoach) { NunaAnyaSheet(context: "nap") }
-            .sheet(item: $edit) { NunaSleepTimeSheet(target: $0) { snap in await model.load(repo: repo, force: true); if let snap { undo = snap } } }
-            .nunaSleepUndo($undo) { await model.load(repo: repo, force: true) }
+            .sheet(item: $edit) { target in
+                NunaSleepTimeSheet(target: target) { snap in
+                    await model.load(repo: repo, force: true)
+                    if let snap { undo = snap; undoIsNap = target.isNap }
+                }
+            }
+            .nunaSleepUndo($undo, isNap: $undoIsNap) { await model.load(repo: repo, force: true) }
     }
 
     @ViewBuilder private var content: some View {

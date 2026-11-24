@@ -2167,6 +2167,15 @@ final class IntelligenceEngine: ObservableObject {
             nowLocalMidnight: nowLocalMidnight, now: now, offsetSec: tzOffset,
             maxDays: maxDays, strictCanonicalAlias: strictCanonicalAlias)
         var appliedLegacySnapshots: [String: LegacyScoreSnapshot] = [:]
+        // Recovery is a completed-main-sleep score, not a live-data score. Read the last persisted
+        // computed rows once so unchanged nights can keep the exact score already shown to the wearer.
+        // The fingerprint below deliberately excludes naps and unrelated daytime refreshes.
+        let priorComputedRows = ((try? await store.dailyMetrics(deviceId: computedId,
+                                                                 from: oldestDay, to: newestDay)) ?? [])
+        let priorComputedByDay = Dictionary(priorComputedRows.map { ($0.day, $0) },
+                                             uniquingKeysWith: { _, last in last })
+        var recoveryFingerprintsToPersist: [String: String] = [:]
+
         var paceMark = DispatchTime.now().uptimeNanoseconds
         for night in scoredNights {
             await RescoreBackgroundScheduler.paceIfBackgrounded(since: &paceMark)
@@ -2180,14 +2189,56 @@ final class IntelligenceEngine: ObservableObject {
             var daily = sleepEditedDaily(night.daily, detected: night.cachedSleep, editsByStart: editsByStart,
                                          habitualMidsleepSec: habitualMidsleepSec)
             daily = DayCycleIntelligenceIntegration.applying(physiologicalSteps, to: daily)
-            daily = Self.recomputeRecoveryDaily(daily, nightlySkinTempC: night.nightlySkin,
-                                               baselines: baselines2)
+
+            let recoveryFingerprint = Self.recoveryMainSleepFingerprint(
+                day: daily.day, detected: night.cachedSleep, editsByStart: editsByStart,
+                daily: daily, nightlySkinTempC: night.nightlySkin,
+                habitualMidsleepSec: habitualMidsleepSec, offsetSec: tzOffset)
+            let fingerprintValue = recoveryFingerprint ?? "none"
+            let fingerprintKey = Self.recoverySleepFingerprintDefaultsKey(computedId: computedId, day: daily.day)
+            let storedFingerprint = UserDefaults.standard.string(forKey: fingerprintKey)
+            let previousRecovery = priorComputedByDay[daily.day]
+            // First run after this update: adopt the existing persisted score as the baseline snapshot
+            // for this main sleep. Thereafter, only a changed main-sleep fingerprint (or explicit
+            // baseline recalibration) can produce a new Recovery score for that day.
+            let mainSleepWasEdited = night.cachedSleep.contains { detected in
+                editsByStart[detected.startTs]?.userEdited == true
+            }
+            let legacyInputsChanged: Bool = {
+                guard let previousRecovery else { return false }
+                return previousRecovery.avgHrv != daily.avgHrv
+                    || previousRecovery.restingHr != daily.restingHr
+                    || previousRecovery.respRateBpm != daily.respRateBpm
+                    || previousRecovery.totalSleepMin != daily.totalSleepMin
+                    || previousRecovery.efficiency != daily.efficiency
+                    || previousRecovery.deepMin != daily.deepMin
+                    || previousRecovery.remMin != daily.remMin
+                    || previousRecovery.lightMin != daily.lightMin
+                    || previousRecovery.skinTempC != night.nightlySkin
+            }()
+            let canAdoptLegacyScore = recoveryFingerprint != nil
+                && !mainSleepWasEdited
+                && !legacyInputsChanged
+            let keepExistingRecovery = previousRecovery != nil
+                && (storedFingerprint == fingerprintValue
+                    || (storedFingerprint == nil && canAdoptLegacyScore))
+            let skinDev = Self.recomputeSkinTempDev(night.nightlySkin, baselines2.skinTemp)
+            if keepExistingRecovery, let previousRecovery {
+                daily = daily.with(recovery: previousRecovery.recovery,
+                                   skinTempDevC: skinDev, skinTempC: night.nightlySkin)
+                if storedFingerprint == nil {
+                    recoveryFingerprintsToPersist[daily.day] = fingerprintValue
+                }
+            } else {
+                daily = Self.recomputeRecoveryDaily(daily, nightlySkinTempC: night.nightlySkin,
+                                                    baselines: baselines2)
+                recoveryFingerprintsToPersist[daily.day] = fingerprintValue
+            }
+
             let recovery = daily.recovery
-            let skinDev = daily.skinTempDevC
-            // Charge term-breakdown trace (Group G): only when the Recovery test mode is on. Emits which
-            // term moved Charge and which was nil and forced the renorm, tagged `.recovery`. The trace's
-            // score is RecoveryScorer.recovery verbatim, so the `recovery` written above is unchanged.
-            if recoveryTraceActive {
+            // Charge term-breakdown trace (Group G): only emit a fresh trace when this main sleep was
+            // actually rescored. A reused score must not be described by a newly-folded baseline trace.
+            if recoveryTraceActive && !keepExistingRecovery {
                 for line in recoveryTraceLines(daily, baselines2) { diagnosticSink?(line, .recovery) }
             }
             let source = DaySource.classify(day: daily.day, importedWhoopDays: importedWhoopDays,
@@ -2512,17 +2563,28 @@ final class IntelligenceEngine: ObservableObject {
             }
             markerSources = sourceIds
         }
-        try? await store.persistComputedScores(
-            dailyMetrics: persistedDailies,
-            metricPoints: restPoints,
-            provenance: Array(provenanceByCell.values),
-            deviceId: computedId,
-            from: oldestDay,
-            to: newestDay,
-            replaceMetricKeys: markerKeys,
-            additionalMetricPoints: markerPoints,
-            replaceMetricSourceIds: markerSources
-        )
+        do {
+            try await store.persistComputedScores(
+                dailyMetrics: persistedDailies,
+                metricPoints: restPoints,
+                provenance: Array(provenanceByCell.values),
+                deviceId: computedId,
+                from: oldestDay,
+                to: newestDay,
+                replaceMetricKeys: markerKeys,
+                additionalMetricPoints: markerPoints,
+                replaceMetricSourceIds: markerSources
+            )
+            // Advance the fingerprints only after the matching scores have been persisted. If the
+            // database write fails, the next pass retries instead of treating an old score as current.
+            for (day, fingerprint) in recoveryFingerprintsToPersist {
+                UserDefaults.standard.set(
+                    fingerprint,
+                    forKey: Self.recoverySleepFingerprintDefaultsKey(computedId: computedId, day: day))
+            }
+        } catch {
+            diagnosticSink?("re-score: computed scores could not be persisted; Recovery fingerprints unchanged", nil)
+        }
 
         // Now evict only the STALE computed rows in the window , those a prior (e.g. UTC-keyed) run left
         // behind that the current local-keyed run no longer produces. Read the window, diff against the
@@ -3201,6 +3263,63 @@ final class IntelligenceEngine: ObservableObject {
     /// baseline is usable (RecoveryScorer gates on `hrvBaseline.usable`, i.e. ≥ minNightsSeed valid
     /// nights) , so the honest null-until-4-nights cold-start is free. Mirrors AnalyticsEngine's own
     /// recovery call + Android IntelligenceEngine.recomputeRecovery. (#78)
+    /// Durable per-day key for the main-sleep fingerprint. Device-scoped so switching straps cannot
+    /// accidentally reuse a score produced from another device's night.
+    private static func recoverySleepFingerprintDefaultsKey(computedId: String, day: String) -> String {
+        "intelligence.recoveryMainSleepFingerprint.v1.\(computedId).\(day)"
+    }
+
+    /// Stable identity of the sleep inputs that are allowed to trigger a Recovery rescore.
+    ///
+    /// The selected main-night group is the SAME learned-timing / split-night group used by
+    /// AnalyticsEngine and SleepView. Twinless hand-logged rows are intentionally excluded: those are
+    /// manually added naps, and must only affect sleep debt. A daytime main sleep still qualifies because
+    /// selection is by the shared habitual-midsleep scorer, not by a fixed clock window.
+    ///
+    /// The per-night HRV / RHR / respiration / skin readings are included so a completed main-night
+    /// backfill can replace provisional readings. Baseline epochs are included so an explicit
+    /// recalibration can intentionally rebuild scores. Live strain, steps, workouts, and naps are not.
+    private static func recoveryMainSleepFingerprint(
+        day: String,
+        detected: [CachedSleepSession],
+        editsByStart: [Int: CachedSleepSession],
+        daily: DailyMetric,
+        nightlySkinTempC: Double?,
+        habitualMidsleepSec: Int?,
+        offsetSec: Int
+    ) -> String? {
+        guard !detected.isEmpty else { return nil }
+        let resolved = detected.map { editsByStart[$0.startTs] ?? $0 }
+        let blocks = resolved.map {
+            SleepStageTotals.NightBlock(start: $0.effectiveStartTs, end: $0.endTs)
+        }
+        guard let selected = SleepStageTotals.mainNightGroupIndices(
+            blocks, offsetSec: offsetSec, habitualMidsleepSec: habitualMidsleepSec),
+              !selected.isEmpty else { return nil }
+
+        var parts = [
+            "recovery-main-sleep-v1",
+            day,
+            "hrv=\(daily.avgHrv.map { String($0.bitPattern) } ?? "nil")",
+            "rhr=\(daily.restingHr.map { String($0) } ?? "nil")",
+            "resp=\(daily.respRateBpm.map { String($0.bitPattern) } ?? "nil")",
+            "skin=\(nightlySkinTempC.map { String($0.bitPattern) } ?? "nil")",
+            "hrvEpoch=\(String(describing: Baselines.hrvBaselineEpoch()))",
+            "recoveryEpoch=\(String(describing: Baselines.recoveryBaselineEpoch()))"
+        ]
+        for index in selected.sorted(by: { resolved[$0].effectiveStartTs < resolved[$1].effectiveStartTs }) {
+            let session = resolved[index]
+            parts.append("\(session.startTs)|\(session.effectiveStartTs)|\(session.endTs)|"
+                         + "\(session.userEdited)|\(session.stagesJSON ?? "")")
+        }
+
+        var hash: UInt64 = 14695981039346656037
+        for byte in parts.joined(separator: "|").utf8 {
+            hash = (hash ^ UInt64(byte)) &* 1099511628211
+        }
+        return String(hash, radix: 16)
+    }
+
     private static func recomputeRecovery(_ daily: DailyMetric, _ baselines: AnalyticsEngine.ProfileBaselines) -> Double? {
         guard let hrvVal = daily.avgHrv, let rhrVal = daily.restingHr, let hrvBase = baselines.hrv else { return nil }
         // Charge enrichment: feed Recovery's sleep input (÷100; hours 60, consistency 20, efficiency 10, restorative 10) as the sleep-quality term instead of raw

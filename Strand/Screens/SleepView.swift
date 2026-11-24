@@ -243,9 +243,9 @@ struct SleepView: View {
                     await repo.editSleepTimes(detectedStartTs: edit.detectedStartTs, oldEndTs: edit.wakeTs,
                                               storedStagesJSON: edit.stagesJSON,
                                               newStartTs: newBedTs, newEndTs: newWakeTs)
-                    // Re-score the day so the dashboard aggregates (Rest / recovery) honor the corrected
-                    // sleep window, not just the Sleep tab's session view; then refresh the read cache.
-                    await intelligence.analyzeRecent()
+                    // Only a main-sleep edit changes Recovery / Sleep Performance. A nap edit updates
+                    // the sleep-debt ledger and session view without rescoring the night.
+                    if !edit.isNap { await intelligence.analyzeRecent() }
                     await repo.refresh()
                 }, onDelete: {
                     // Delete = the edit path minus the re-insert: drop this session so every metric
@@ -255,11 +255,13 @@ struct SleepView: View {
                     // deleted row into its ORIGINAL namespace and lifts the tombstone.
                     let snapshot = await repo.deleteSleepSession(detectedStartTs: edit.detectedStartTs,
                                                                  endTs: edit.wakeTs)
-                    await intelligence.analyzeRecent()
+                    if !edit.isNap { await intelligence.analyzeRecent() }
                     await repo.refresh()
                     // `edit.bedTs` is the effective (displayed) onset, so the banner shows the same clock
                     // time the user saw for this night.
-                    if let snapshot { presentSleepUndo(snapshot, displayStart: edit.bedTs, windowEnd: edit.wakeTs) }
+                    if let snapshot {
+                    presentSleepUndo(snapshot, displayStart: edit.bedTs, windowEnd: edit.wakeTs, isNap: edit.isNap)
+                }
                 })
             }
             // Manually add a missed nap (#508): same picker, but the chosen window is staged from raw and
@@ -277,8 +279,7 @@ struct SleepView: View {
                                 blurb: "Pick when the nap started and ended. NOOP stages it from your data as its own session, separate from the night's sleep.",
                                 bedLabel: "Nap started", wakeLabel: "Nap ended") { startTs, endTs in
                     await repo.addManualNap(startTs: startTs, endTs: endTs)
-                    // Re-score so the day's aggregates pick up the new session, exactly like an edit.
-                    await intelligence.analyzeRecent()
+                    // A nap only updates the sleep-debt ledger. It must not trigger Recovery rescoring.
                     await repo.refresh()
                 }
             }
@@ -292,11 +293,11 @@ struct SleepView: View {
     /// Show the transient UNDO banner after a suppressing delete, and arm the 7-second auto-dismiss. A
     /// second delete replaces the banner (its old auto-dismiss task is cancelled first) so only the most
     /// recent delete is undoable. Single-level and transient, matching the WorkoutsView postLogNote idiom.
-    private func presentSleepUndo(_ snapshot: SleepDeletionSnapshot, displayStart: Int, windowEnd: Int) {
+    private func presentSleepUndo(_ snapshot: SleepDeletionSnapshot, displayStart: Int, windowEnd: Int, isNap: Bool) {
         sleepUndoTask?.cancel()
         withAnimation(.easeOut(duration: 0.2)) {
             sleepUndo = SleepUndoBanner(snapshot: snapshot, identityStart: snapshot.session.startTs,
-                                        displayStart: displayStart, windowEnd: windowEnd)
+                                        displayStart: displayStart, windowEnd: windowEnd, isNap: isNap)
         }
         let armed = snapshot.session.startTs
         sleepUndoTask = Task {
@@ -316,7 +317,7 @@ struct SleepView: View {
     private func undoSleepDelete(_ banner: SleepUndoBanner) async {
         sleepUndoTask?.cancel()
         await repo.undoDeleteSleepSession(banner.snapshot)
-        await intelligence.analyzeRecent()
+        if !banner.isNap { await intelligence.analyzeRecent() }
         await repo.refresh()
         await MainActor.run { withAnimation(.easeOut(duration: 0.2)) { sleepUndo = nil } }
     }
@@ -752,7 +753,8 @@ struct SleepView: View {
                                     bedTs: nap.effectiveStartTs,
                                     wakeTs: nap.endTs,
                                     stagesJSON: nap.stagesJSON,
-                                    userEdited: true)   // a nap row is always manually added → no tombstone on delete
+                                    userEdited: true,
+                                    isNap: true)       // a nap row is always manually added → no tombstone on delete
             } label: {
                 Image(systemName: isEdited ? "pencil.circle.fill" : "pencil.circle")
                     .font(StrandFont.headline)
@@ -1274,7 +1276,8 @@ struct SleepView: View {
                                     bedTs: target.effectiveStartTs,
                                     wakeTs: target.endTs,
                                     stagesJSON: target.stagesJSON,
-                                    userEdited: isEdited)
+                                    userEdited: isEdited,
+                                    isNap: false)
             } label: {
                 Image(systemName: isEdited ? "pencil.circle.fill" : "pencil.circle")
                     .font(StrandFont.headline)
@@ -2798,6 +2801,7 @@ private struct SleepUndoBanner {
     let identityStart: Int
     let displayStart: Int
     let windowEnd: Int
+    let isNap: Bool
 }
 
 private struct WakeEdit: Identifiable {
@@ -2809,6 +2813,8 @@ private struct WakeEdit: Identifiable {
     /// never re-detected), so the editor's delete-confirm copy must NOT promise re-detection suppression
     /// for it. Mirrors the undo-banner branch (#65 banner/confirm honesty).
     let userEdited: Bool
+    /// Distinguishes a nap from a main sleep even after the main sleep itself has been hand-edited.
+    let isNap: Bool
     var id: Int { detectedStartTs }
 }
 
