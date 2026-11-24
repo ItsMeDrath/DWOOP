@@ -246,7 +246,7 @@ final class NunaTodayModel: ObservableObject {
         }
         let requestedDayOffset = dayOffset
         let requestedRefreshSeq = repo.refreshSeq
-        let stressTask = Task { @MainActor [weak self] in
+        Task { @MainActor [weak self] in
             let status = await StressEngine.shared.status(repo: repo)
             let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
             guard let self, self.dayOffset == requestedDayOffset, repo.refreshSeq == requestedRefreshSeq else { return }
