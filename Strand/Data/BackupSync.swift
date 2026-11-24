@@ -8,7 +8,7 @@ import UniformTypeIdentifiers
 
 /// Backup & Sync (folder destination) - the Apple twin of the Android `BackupSync`. Writes the full
 /// `.noopbak` snapshot (the existing `DataBackup` format) into a user-chosen folder, on demand and as
-/// an on-launch daily catch-up. Point that folder at a Google Drive / iCloud / Dropbox client and you
+/// an on-launch 6-hour catch-up. Point that folder at a Google Drive / iCloud / Dropbox client and you
 /// get automatic off-device backup with no in-app cloud account - NOOP only writes a local file; the
 /// sync client does the upload.
 ///
@@ -26,7 +26,7 @@ enum BackupSync {
 
     // MARK: - Pure helpers (unit-tested; mirror Android BackupSync)
 
-    /// Default staleness threshold (3 days). Auto-backup runs a DAILY on-launch catch-up, so a
+    /// Default staleness threshold (3 days). Auto-backup runs a 6-hour on-launch catch-up, so a
     /// *successful* backup older than this means the catch-up isn't landing — a stale/permission-lost
     /// folder bookmark, or the app simply hasn't been launched in a while. Surfaced as a warning so a
     /// silently-failing auto-backup is visible instead of only discovered when a restore is needed.
@@ -159,7 +159,13 @@ enum FolderBackup {
         }
         set { UserDefaults.standard.set(min(max(newValue, 1), 100), forKey: keepKey) }
     }
-    private static let dayMs = 24 * 60 * 60 * 1000
+    /// Minimum time between successful automatic snapshots. Checked whenever NOOP is opened.
+    static let backupIntervalMs = 6 * 60 * 60 * 1000
+
+    /// Pure due check so the six-hour boundary is covered by unit tests.
+    static func isBackupDue(lastBackupMs: Int, nowMs: Int, intervalMs: Int = backupIntervalMs) -> Bool {
+        nowMs - lastBackupMs >= intervalMs
+    }
 
     // MARK: - Persisted state
 
@@ -340,13 +346,13 @@ enum FolderBackup {
         }
     }
 
-    /// On-launch catch-up: if auto is on, a folder is set, and it's been at least a day since the last
+    /// On-launch catch-up: if auto is on, a folder is set, and at least six hours have passed since the last
     /// backup, write one. Gated entirely on the toggle being ON (must-fix #4). The caller MUST invoke
     /// this off the launch-critical path; it does no UI work and is safe to run after the first refresh.
     static func catchUpIfDue(checkpoint: @escaping () async -> Bool) async {
         guard autoEnabled, hasFolder else { return }
         let nowMs = Int(Date().timeIntervalSince1970 * 1000.0)
-        guard nowMs - lastBackupMs >= dayMs else { return }
+        guard isBackupDue(lastBackupMs: lastBackupMs, nowMs: nowMs) else { return }
         await backupNow(checkpoint: checkpoint)
     }
 
