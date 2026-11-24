@@ -170,14 +170,11 @@ final class NunaSleepHistory: ObservableObject {
     }
 
     private func loadBedTimes(hab: Int?, sessions: [CachedSleepSession], motions: [Int: [Double]]) {
-        let hab = await repo.habitualMidsleepSec()
-        let sessions = await repo.allSleepSessions(days: 400)
         var bed: [String: Double] = [:], wake: [String: Double] = [:]
         func hours(_ ts: Int) -> Double {
             let c = Calendar.current.dateComponents([.hour, .minute], from: Date(timeIntervalSince1970: TimeInterval(ts)))
             return Double(c.hour ?? 0) + Double(c.minute ?? 0) / 60
         }
-        let motions = await repo.sessionMotions(sessions: sessions)
         for group in SleepModel.navDays(navSessions: sessions) {
             let main = SleepView.mainNightGroup(group, habitualMidsleepSec: hab)
             guard let last = main.last else { continue }
