@@ -107,6 +107,9 @@ final class NunaTodayModel: ObservableObject {
         if whoop != stressWhoop || status != stressStatus { applyStress(whoop, status: status, today: true, remember: repo) }
     }
 
+    /// The last Charge scored for a day, so the ring is drawn on the first frame after a relaunch, before the history is read.
+    private static func persistedChargeKey(dayKey: String) -> String { "nuna.today.charge.last.\(dayKey)" }
+
     /// A persisted same-day fallback for the Home tile while the latest HR samples are being scored.
     private static func persistedStressKey(dayKey: String) -> String { "nuna.today.stress.last.\(dayKey)" }
 
@@ -198,14 +201,22 @@ final class NunaTodayModel: ObservableObject {
         day = row
 
         // Charge, with the same carry / calibration rules as the other Today screens.
-        let calNights = today
-            ? RecoveryScorer.calibrationNights(nightlyHrv: repo.days.map(\.avgHrv), dayKeys: repo.days.map(\.day),
-                                               hasRecovery: row?.recovery != nil)
-            : nil
-        let prior = TodayView.lastScoredRecoveryDay(days: repo.days, selectedDayKey: key, isToday: today,
-                                                    todayScored: row?.recovery != nil, isCalibrating: calNights != nil)
-        charge = LiquidTodayView.ChargeDisplay.resolve(todayRecovery: row?.recovery, priorScored: prior,
-                                                       calibrationNights: calNights, todayKey: key)
+        // Only once the history has been read: before that `repo.days` is empty, which reads as "calibrating, 0 nights" and drew a
+        // "Calibrating Recovery" card and a blank ring on every launch until the first refresh landed. Until then the last scored
+        // Charge for today (kept below) stands in, so the ring is there on the first frame.
+        if repo.loaded {
+            let calNights = today
+                ? RecoveryScorer.calibrationNights(nightlyHrv: repo.days.map(\.avgHrv), dayKeys: repo.days.map(\.day),
+                                                   hasRecovery: row?.recovery != nil)
+                : nil
+            let prior = TodayView.lastScoredRecoveryDay(days: repo.days, selectedDayKey: key, isToday: today,
+                                                        todayScored: row?.recovery != nil, isCalibrating: calNights != nil)
+            charge = LiquidTodayView.ChargeDisplay.resolve(todayRecovery: row?.recovery, priorScored: prior,
+                                                           calibrationNights: calNights, todayKey: key)
+            if today, case .scored(let p) = charge { UserDefaults.standard.set(p, forKey: Self.persistedChargeKey(dayKey: key)) }
+        } else if today, let p = UserDefaults.standard.object(forKey: Self.persistedChargeKey(dayKey: key)) as? Double {
+            charge = .scored(pct: p)
+        }
 
         // Vitals carried from the last night that has them (today only; a past day shows its own row).
         hrv = row?.avgHrv ?? (today ? Repository.lastHrvDay(days: repo.days, todayKey: key)?.avgHrv : nil)
@@ -255,6 +266,9 @@ final class NunaTodayModel: ObservableObject {
 
     func load(repo: Repository, profile: ProfileStore) async {
         let (key, today, row) = applyDaily(repo: repo)
+        // The repository has not read its history yet (a launch): every figure below would be worked out from nothing and then again a moment
+        // later. The refresh that finishes it bumps `refreshSeq`, which runs this again with the real data.
+        guard repo.loaded else { return }
         let cal = Calendar.current
         let dayStart = cal.startOfDay(for: selectedLogicalDay)
         let from = Int(dayStart.timeIntervalSince1970)

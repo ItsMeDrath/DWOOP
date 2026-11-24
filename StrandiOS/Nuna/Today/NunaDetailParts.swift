@@ -870,6 +870,9 @@ final class NunaSeriesModel: ObservableObject {
             if !loaded || hit.seq == seq { byDay = hit.byDay; loaded = true }
             if hit.seq == seq { return }
         }
+        // Before the first refresh the store has not been read into the repository, so every series is empty: that read "0 nights" and made
+        // the Health monitor say "Calibrating 0/7" for the first moments of every launch. The refresh bumps `refreshSeq`, which runs this again.
+        guard repo.loaded else { return }
         let s = await repo.exploreSeries(key: key, source: source, days: days)
         var map = Dictionary(s.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         if let also {
