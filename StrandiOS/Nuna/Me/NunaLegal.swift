@@ -8,7 +8,7 @@ import StrandDesign
 enum NunaAppVersion {
     /// "App version: 2.0.0". The build number is left out: it only repeats the version.
     static var text: String {
-        String(localized: "App version: \(UpdateWatch.installedVersion)")
+        String(localized: "App version: \(AppVersion.installed)")
     }
 }
 

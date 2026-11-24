@@ -135,9 +135,8 @@ final class UpdateStore: ObservableObject {
     }
 
     private static func isInformational(_ kind: UpdateItem.Kind) -> Bool {
-        // `.newVersion` is informational: it dedupes and is evictable like the others. It cannot spam on
-        // its own (UpdateAvailability posts once per version), but a user who ignores several releases
-        // should not have them crowd out the actionable rows.
+        // `.newVersion` is informational: it dedupes and is evictable like the others. Nothing posts one any more
+        // (the automatic update check was removed), but the kind stays so notes stored by an earlier build still decode.
         kind == .reading || kind == .whatsNew || kind == .newVersion
     }
 
@@ -172,6 +171,11 @@ final class UpdateStore: ObservableObject {
     }
 
     /// Remove one item (e.g. after restoring a dismissed card).
+    /// Drops any "a newer version is available" note an earlier build posted. Nothing posts them any more, so none should be left to linger.
+    func removeNewVersionNotes() {
+        for item in items where item.kind == .newVersion { remove(item.id) }
+    }
+
     func remove(_ id: UUID) {
         items.removeAll { $0.id == id }
     }

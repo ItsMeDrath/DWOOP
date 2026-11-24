@@ -7,7 +7,7 @@ import StrandDesign
 /// requested reference links together. The page is intentionally WHOOP-focused and does not advertise
 /// alternate wearable sources.
 struct AboutView: View {
-    private var version: String { UpdateWatch.installedVersion }
+    private var version: String { AppVersion.installed }
     private var build: String {
         (Bundle.main.infoDictionary?["CFBundleVersion"] as? String)
             .flatMap { $0.isEmpty ? nil : $0 } ?? "—"

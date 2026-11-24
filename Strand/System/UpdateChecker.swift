@@ -5,14 +5,7 @@ import WhoopProtocol
 /// version number and comparing it to the installed one. Nothing about the user is sent, and it never
 /// installs anything — on iOS no API permits that for a sideloaded app.
 ///
-/// TWO callers share this, and the distinction matters to anyone auditing what the app does on its own:
-///  - the Settings button, which runs only when tapped;
-///  - `UpdateWatch`, the #1659 daily check, which runs at most once a day after onboarding and the Terms
-///    gate. It is ON by default and switching it off in Settings stops the request entirely.
-///
-/// This header previously said the read happened ONLY on a tap. That stopped being true the moment the
-/// automatic caller was added, and a false claim here is worse than none: it is the file someone opens to
-/// answer "does this app poll?". Documented for real in docs/PRIVACY_SECURITY.md §1.1c.
+/// The only caller is the Settings button, which runs only when tapped: nothing here runs on its own (the automatic daily check was removed).
 ///
 /// (Uses the network-client entitlement, which is otherwise only for the opt-in, off-by-default AI Coach.)
 @MainActor

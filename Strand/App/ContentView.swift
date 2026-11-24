@@ -53,15 +53,8 @@ struct ContentView: View {
             // Seed the current What's New into the Updates inbox (idempotent per version) so the bell
             // collects it even if the user dismisses the auto sheet.
             UpdateStore.shared.seedWhatsNewIfNeeded()
-            // #1659: NOOP is sideloaded on every platform, so nothing else will tell you a release
-            // happened. On by default and switchable off - see UpdateAvailability.defaultEnabled.
-            //
-            // Gated on the SAME condition as showWhatsNewIfDue below, matching the iOS and Android hooks:
-            // a default-on check must not reach the network during first run, before the Terms gate has
-            // been accepted. (No sideload sentence here - macOS has no seven-day re-sign and no AltStore.)
-            if onboarded && acceptedTerms == Terms.currentVersion {
-                UpdateWatch.runIfDue(currentVersion: UpdateWatch.installedVersion, sideloadHint: false)
-            }
+            // The automatic update check is gone; drop any "new version available" note an earlier build left in the inbox.
+            UpdateStore.shared.removeNewVersionNotes()
         }
         .onChangeCompat(of: acceptedTerms) { _ in showWhatsNewIfDue() }
     }

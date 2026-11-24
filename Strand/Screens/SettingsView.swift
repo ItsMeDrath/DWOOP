@@ -341,9 +341,6 @@ struct SettingsView: View {
 
     /// User-initiated GitHub release check behind the About "Check for updates" button.
     @StateObject private var updateChecker = UpdateChecker()
-    /// #1659. Default comes from `UpdateAvailability.defaultEnabled` so the toggle and the launch check
-    /// cannot disagree about what "unset" means.
-    @AppStorage(UpdateWatch.Keys.enabled) private var autoCheckUpdates = UpdateAvailability.defaultEnabled
     @Environment(\.openURL) private var openURL
 
     /// Whether the "Advanced" disclosure (Recovery, Test Centre, experimental probes, Backup &
@@ -3058,7 +3055,7 @@ struct SettingsView: View {
     /// project.yml MARKETING_VERSION), so the About pill can never go stale the way a hand-edited
     /// Swift constant can. Mirrors how Android's pill reads BuildConfig.VERSION_NAME. Falls back to
     /// the hand-maintained changelog version only if the Info.plist key is somehow missing.
-    private var bundleVersionString: String { UpdateWatch.installedVersion }
+    private var bundleVersionString: String { AppVersion.installed }
 
     /// The embedded build number is useful when comparing a sideloaded IPA with the source build.
     /// Read it from the bundle so the About page always describes the binary currently running.
@@ -3251,23 +3248,6 @@ struct SettingsView: View {
                         }
                         Spacer()
                     }
-
-                    // #1659: the automatic half. iOS cannot auto-update a sideloaded build at all — no API
-                    // lets an app install or re-sign an .ipa — so noticing and saying so is the whole of
-                    // what is possible. ON by default, because a sideloaded app has no store to tell the
-                    // user anything and a setting nobody finds is the feature not existing; switching it
-                    // off here stops the request entirely. See UpdateAvailability.defaultEnabled.
-                    Toggle(isOn: $autoCheckUpdates) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Check automatically")
-                                .font(StrandFont.subhead)
-                                .foregroundStyle(StrandPalette.textPrimary)
-                            Text("Once a day, NOOP asks GitHub for the latest version number and puts a note in Updates if there's a newer one. Nothing about you is sent, and it never installs anything.")
-                                .font(StrandFont.footnote)
-                                .foregroundStyle(StrandPalette.textSecondary)
-                        }
-                    }
-                    .tint(StrandPalette.accent)
 
                     // Update available: show what's new, with a download straight to the release.
                     if case .available(let v, let url, let notes) = updateChecker.state {
