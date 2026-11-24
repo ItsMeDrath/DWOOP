@@ -22,7 +22,7 @@ struct WhoopOpeningSplashView: View {
         .background(Color.black)
         .ignoresSafeArea()
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) {
                 onFinished()
             }
         }
