@@ -94,7 +94,7 @@ struct NunaScoreRings: View {
     @ViewBuilder private func item(_ kind: Kind) -> some View {
         let v = values(kind)
         let t = min(max(collapse, 0), 1)
-        let size = lerp(92, 32)
+        let size = lerp(92, 30)
         ringLink(v.route) {
             NunaScoreItemLayout(t: t) {
                 ringView(v, size: size)
@@ -107,7 +107,7 @@ struct NunaScoreRings: View {
                 .opacity(Double(max(0, 1 - t / 0.35)))
                 .accessibilityHidden(t > 0.35)
                 // The name beside the small ring, in over the last quarter.
-                Text(verbatim: englishName(kind)).font(.nuna(size: 14, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                Text(verbatim: englishName(kind)).font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     .foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.7)
                     .opacity(Double(min(max((t - 0.75) / 0.25, 0), 1)))
                     .accessibilityHidden(t < 0.75)
@@ -196,7 +196,7 @@ struct NunaScoreRings: View {
 /// 12 pt below it; the name beside it is never nearer than 8 pt to the ring's edge, so it slides out from behind the ring and cannot overlap it.
 private struct NunaScoreItemLayout: Layout {
     var t: CGFloat
-    private let fullRing: CGFloat = 92, smallRing: CGFloat = 32, gap: CGFloat = 12, side: CGFloat = 8
+    private let fullRing: CGFloat = 92, smallRing: CGFloat = 30, gap: CGFloat = 12, side: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let ring = subviews[0].sizeThatFits(.unspecified)
