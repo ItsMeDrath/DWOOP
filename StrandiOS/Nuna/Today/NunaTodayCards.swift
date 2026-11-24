@@ -94,7 +94,7 @@ struct NunaScoreRings: View {
     @ViewBuilder private func item(_ kind: Kind) -> some View {
         let v = values(kind)
         let t = min(max(collapse, 0), 1)
-        let size = lerp(92, 26)
+        let size = lerp(92, 32)
         ringLink(v.route) {
             NunaScoreItemLayout(t: t) {
                 ringView(v, size: size)
@@ -196,7 +196,7 @@ struct NunaScoreRings: View {
 /// 12 pt below it; the name beside it is never nearer than 8 pt to the ring's edge, so it slides out from behind the ring and cannot overlap it.
 private struct NunaScoreItemLayout: Layout {
     var t: CGFloat
-    private let fullRing: CGFloat = 92, smallRing: CGFloat = 26, gap: CGFloat = 12, side: CGFloat = 8
+    private let fullRing: CGFloat = 92, smallRing: CGFloat = 32, gap: CGFloat = 12, side: CGFloat = 8
 
     func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
         let ring = subviews[0].sizeThatFits(.unspecified)
