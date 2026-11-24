@@ -209,6 +209,11 @@ final class NunaTodayModel: ObservableObject {
 
     func load(repo: Repository, profile: ProfileStore) async {
         let (key, today, row) = applyDaily(repo: repo)
+        let cal = Calendar.current
+        let dayStart = cal.startOfDay(for: selectedLogicalDay)
+        let from = Int(dayStart.timeIntervalSince1970)
+        let to: Int = today ? Int(Date().timeIntervalSince1970)
+                            : Int((cal.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart).timeIntervalSince1970)
 
         // Start independent dashboard reads together. The previous sequence waited for live HR, then sleep history,
         // then each metric series one by one, keeping otherwise-ready tiles empty.
@@ -297,7 +302,7 @@ final class NunaTodayModel: ObservableObject {
         if let m = repo.days.last(where: { $0.day < key && $0.totalSleepMin != nil })?.totalSleepMin { prev["sleep"] = m }
         previous = prev
         // Workout rows were fetched alongside the other dashboard reads.
-        workouts = workoutsTask.value == nil ? [] : (await workoutsTask.value).filter { $0.startTs >= from && $0.startTs < to }
+        workouts = (await workoutsTask.value).filter { $0.startTs >= from && $0.startTs < to }
         loaded = true
         if today {
             // After the screen is up: it reads four earlier days of heart rate, once a day.
