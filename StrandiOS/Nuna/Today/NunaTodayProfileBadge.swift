@@ -33,12 +33,13 @@ struct NunaProfileAvatar: View {
 /// says there are unread updates (their inbox lives on the profile page).
 struct NunaTodayProfileBadge: View {
     @EnvironmentObject private var repo: Repository
+    let cachedStreak: Int?
     @EnvironmentObject private var updateStore: UpdateStore
     @Environment(\.nunaPushMe) private var pushMe
     private static let avatar: CGFloat = 32
 
     var body: some View {
-        let streak = NunaStreak.compute(days: repo.days).current
+        let streak = cachedStreak ?? NunaStreak.compute(days: repo.days).current
         ZStack(alignment: .leading) {
             Button { pushMe(.dayStreak) } label: {
                 HStack(spacing: 10) {
