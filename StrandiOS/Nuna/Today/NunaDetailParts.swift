@@ -946,6 +946,18 @@ final class NunaSeriesModel: ObservableObject {
         return VitalRange.band(history: v).map { VitalRange.verdict(value, in: $0, floor: floor) }
     }
 
+    /// Whether a reading counts as fine: in the usual range, or outside it on the side that is good news (`aboveIsGood` for HRV, `belowIsGood` for
+    /// resting heart rate and respiratory rate). Nil while there is no range yet. The Health monitor page's pills, the Health card and the Today
+    /// tile all use this, so a reading that shows a green check on the page is never counted as out of range on the cards.
+    func isFine(_ value: Double, floor: Double, aboveIsGood: Bool = false, belowIsGood: Bool = false) -> Bool? {
+        guard let v = verdict(value, floor: floor) else { return nil }
+        switch v {
+        case .inRange: return true
+        case .above: return aboveIsGood
+        case .below: return belowIsGood
+        }
+    }
+
     /// Skin temperature against the person's own nights: the readings are deviations in degrees (a stored value of 20 or more is an absolute
     /// temperature from an import and is left out), judged like the other vitals but never tighter than `VitalRange.skinTempFloor`.
     func skinVerdict(_ value: Double) -> VitalRange.Verdict? {
