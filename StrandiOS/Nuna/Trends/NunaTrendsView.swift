@@ -79,8 +79,12 @@ struct NunaTrendsView: View {
         .nunaTrendsDestinations()
         .nunaTodayDestinations()
         .task(id: repo.refreshSeq) {
-            await m.load(repo: repo)
-            await sleep.load(repo: repo, historyDays: 400, includeMotion: false)
+            // The general trend series and the exact Sleep-score history are independent reads.
+            // Start both together so the Sleep charts don't wait for the rest of Trends (or vice versa).
+            async let trendsLoad: Void = m.load(repo: repo)
+            async let sleepLoad: Void = sleep.load(repo: repo, historyDays: 400, includeMotion: false)
+            _ = await (trendsLoad, sleepLoad)
+            guard !Task.isCancelled else { return }
             m.applySleepScores(from: sleep)
         }
         .sheet(isPresented: $showReport) { NunaTrendsReportSheet(days: repo.days).environmentObject(repo) }
