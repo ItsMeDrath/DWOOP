@@ -313,6 +313,22 @@ final class NunaSleepModel: ObservableObject {
         UserDefaults.standard.object(forKey: "nuna.sleepScore.v1.\(dayKey).score") as? Double
     }
 
+    /// All previously scored nights, so long-range charts can draw their last known values immediately
+    /// and replace them after the current sleep inputs have been validated.
+    static func cachedSleepScores() -> [String: Double] {
+        let prefix = "nuna.sleepScore.v1."
+        let suffix = ".score"
+        var result: [String: Double] = [:]
+        for (key, value) in UserDefaults.standard.dictionaryRepresentation() {
+            guard key.hasPrefix(prefix), key.hasSuffix(suffix),
+                  let score = value as? Double else { continue }
+            let day = String(key.dropFirst(prefix.count).dropLast(suffix.count))
+            guard day.count == 10 else { continue }
+            result[day] = score
+        }
+        return result
+    }
+
     /// The agreed 60/20/10/10 Sleep Score. Missing data earns neutral half-credit, never a fabricated perfect score.
     /// The durable snapshot is reused only while every score input is unchanged; a corrected night, changed
     /// need/consistency, or updated sleep-stress result naturally produces a new fingerprint and score.
