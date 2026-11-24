@@ -184,13 +184,17 @@ final class StressEngine {
         // `to` is rounded to a 5-minute epoch: for today it is "now", and the data's own fingerprint already says whether anything arrived.
         let key = "\(from)-\(to / 300)-\(fp.count)-\(fp.maxTs)-\(cal.newestNight)"
         if let hit = dayMemo[key] { return hit }
-        let hr = await repo.hrSamples(from: from - 600, to: to, limit: 200_000)
+        // These reads are independent store queries. Start them together so opening the
+        // Stress Monitor does not pay the full HR → RR → gravity → sessions → workouts round-trip.
+        async let hrRead = repo.hrSamples(from: from - 600, to: to, limit: 200_000)
+        async let rrRead = repo.rrIntervals(from: from - 600, to: to, limit: 200_000)
+        async let gravityRead = repo.gravitySamplesUnion(from: from - 600, to: to, limit: 200_000)
+        async let sessionsRead = repo.allSleepSessions(days: 4000)
+        async let workoutsRead = repo.workoutRows(days: 4000)
+        let (hr, rr, g, sessions, workoutRows) = await (hrRead, rrRead, gravityRead, sessionsRead, workoutsRead)
         guard !hr.isEmpty else { return nil }
-        let rr = await repo.rrIntervals(from: from - 600, to: to, limit: 200_000)
-        let g = await repo.gravitySamplesUnion(from: from - 600, to: to, limit: 200_000)
-        let sessions = await repo.allSleepSessions(days: 4000)
         let sleeps = sessions.filter { $0.endTs - $0.effectiveStartTs >= 20 * 60 }.map { $0.effectiveStartTs...$0.endTs }
-        let works = await repo.workoutRows(days: 4000).filter { $0.endTs > $0.startTs }.map { $0.startTs...$0.endTs }
+        let works = workoutRows.filter { $0.endTs > $0.startTs }.map { $0.startTs...$0.endTs }
         let tuning = cal.tuning, baseline = cal.baseline
         let result = await Task.detached(priority: .utility) {
             WhoopStress.analyze(hr: hr, rr: rr, gravity: g, sleep: sleeps, activities: works, baseline: baseline, from: from, to: to, tuning: tuning)
