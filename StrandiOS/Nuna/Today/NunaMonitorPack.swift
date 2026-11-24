@@ -64,10 +64,11 @@ struct NunaMonitorPackCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .task(id: repo.refreshSeq) {
-            await hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 400)
-            await rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 400)
-            await respS.load(repo: repo, key: "resp_rate", source: "my-whoop")
-            await skinS.load(repo: repo, key: "skin_temp", source: "my-whoop")
+            async let hrv: Void = hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 400)
+            async let rhr: Void = rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 400)
+            async let respiratory: Void = respS.load(repo: repo, key: "resp_rate", source: "my-whoop")
+            async let skin: Void = skinS.load(repo: repo, key: "skin_temp", source: "my-whoop")
+            _ = await (hrv, rhr, respiratory, skin)
         }
     }
 
