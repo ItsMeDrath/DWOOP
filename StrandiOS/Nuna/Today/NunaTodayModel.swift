@@ -244,10 +244,13 @@ final class NunaTodayModel: ObservableObject {
                 sleepLoadKey = sleepKey
             }
         }
-        let stressTask = Task { @MainActor in
+        let requestedDayOffset = dayOffset
+        let requestedRefreshSeq = repo.refreshSeq
+        let stressTask = Task { @MainActor [weak self] in
             let status = await StressEngine.shared.status(repo: repo)
             let whoop = status.isReady ? await StressDayCurve.whoopToday(repo: repo, now: curveNow) : nil
-            return (status, whoop)
+            guard let self, self.dayOffset == requestedDayOffset, repo.refreshSeq == requestedRefreshSeq else { return }
+            self.applyStress(whoop, status: status, today: today, remember: repo)
         }
         let hrTask = today ? Task { await repo.hrSamples(from: from, to: to, limit: 200_000) } : nil
         let stepsTask = Task { await repo.exploreSeries(key: "steps_est", source: "my-whoop") }
@@ -259,10 +262,8 @@ final class NunaTodayModel: ObservableObject {
         let skinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 60) }
         let weightsTask = Task { await repo.exploreSeries(key: "weight", source: "apple-health", days: 90) }
 
-        // Stress and sleep publish independently of the large live-HR query and the other metric series.
-        let (stressState, whoop) = await stressTask.value
-        applyStress(whoop, status: stressState, today: today, remember: repo)
-
+        // Stress publishes itself as soon as its independent calculation finishes.
+        // Sleep can now finish without waiting for live HR, and stress never waits for the sleep history.
         await sleepTask.value
         let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
         sleepModel.index = pickedNight ?? 0
