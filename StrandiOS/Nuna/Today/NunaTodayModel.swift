@@ -83,6 +83,7 @@ final class NunaTodayModel: ObservableObject {
         let stressStatusReady: Bool?
         let stressStatusNights: Int?
         let stressBaseline: Double?
+        let stressTypicalMin: Int?
         let stressCurve: StressCurveSnapshot?
         let highlightNaps: [HighlightNapSnapshot]?
     }
@@ -116,6 +117,7 @@ final class NunaTodayModel: ObservableObject {
         keySparkSeries = snapshot.keySparkSeries ?? [:]
         stressStatus = snapshot.stressStatusReady == true ? .ready : .calibrating(nights: snapshot.stressStatusNights ?? 0)
         stressBaseline = snapshot.stressBaseline
+        stressTypicalMin = snapshot.stressTypicalMin
         stressCurve = snapshot.stressCurve?.result
         highlightNaps = snapshot.highlightNaps ?? []
     }
@@ -139,8 +141,8 @@ final class NunaTodayModel: ObservableObject {
             sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
             monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
             stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
-            stressBaseline: stressBaseline, stressCurve: stressCurve.map(StressCurveSnapshot.init),
-            highlightNaps: highlightNaps)
+            stressBaseline: stressBaseline, stressTypicalMin: stressTypicalMin,
+            stressCurve: stressCurve.map(StressCurveSnapshot.init), highlightNaps: highlightNaps)
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
     }
@@ -569,9 +571,12 @@ final class NunaTodayModel: ObservableObject {
         if today {
             // After the screen is up: it reads four earlier days of heart rate, once a day.
             stressTypicalMin = StressTypical.cached()
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 let typical = await StressTypical.load(repo: repo)
-                self?.stressTypicalMin = typical
+                guard let self, self.dayOffset == requestedDayOffset,
+                      repo.refreshSeq == requestedRefreshSeq else { return }
+                self.stressTypicalMin = typical
+                if self.loaded { self.persistHomeSnapshot(dayKey: key) }
             }
         } else {
             stressTypicalMin = nil
