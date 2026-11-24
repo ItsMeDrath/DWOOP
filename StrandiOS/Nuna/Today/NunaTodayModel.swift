@@ -195,7 +195,7 @@ final class NunaTodayModel: ObservableObject {
         let skinRows = repo.days.compactMap { metric -> (day: String, value: Double)? in
             metric.skinTempDevC.map { (day: metric.day, value: $0) }
         }
-        if let skinKind = SkinTempDisplay.dominantKind(valuesAscendingByDay: skinRows.map(\\.value)),
+        if let skinKind = SkinTempDisplay.dominantKind(valuesAscendingByDay: skinRows.map(\.value)),
            let latestSkin = skinRows.last(where: { SkinTempDisplay.kind(of: $0.value) == skinKind }) {
             extras["skin_temp"] = latestSkin.value
         } else {
