@@ -234,6 +234,8 @@ final class NunaTodayModel: ObservableObject {
             stressLoaded = false
             stress = nil
             stressCurve = nil
+            stressBaseline = nil
+            stressWhoop = nil
         }
 
         let sleepTask = Task { @MainActor in
@@ -257,6 +259,15 @@ final class NunaTodayModel: ObservableObject {
         let skinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 60) }
         let weightsTask = Task { await repo.exploreSeries(key: "weight", source: "apple-health", days: 90) }
 
+        // Stress and sleep publish independently of the large live-HR query and the other metric series.
+        let (stressState, whoop) = await stressTask.value
+        applyStress(whoop, status: stressState, today: today, remember: repo)
+
+        await sleepTask.value
+        let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
+        sleepModel.index = pickedNight ?? 0
+        rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
+
         // Live Effort for today over midnight..now, stored Effort otherwise.
         let live: Double?
         if let hrTask {
@@ -270,16 +281,6 @@ final class NunaTodayModel: ObservableObject {
         effort = StrainScorer.effectiveEffort(live: live, stored: row?.strain)
         effortKey = key
         if let effort { Self.lastEffort[key] = effort }
-
-        // Stress is independent of sleep-history and activity-series loading; publish it as soon as its own read finishes.
-        let (stressState, whoop) = await stressTask.value
-        applyStress(whoop, status: stressState, today: today, remember: repo)
-
-        // The sleep model selects and scores the night only after its full source data is ready.
-        await sleepTask.value
-        let pickedNight = sleepModel.nights.firstIndex(where: { $0.dayKey == key })
-        sleepModel.index = pickedNight ?? 0
-        rest = pickedNight.flatMap { sleepModel.sleepScore(sleepModel.nights[$0]) }
 
         // Steps and calories: measured on the strap first, then Apple Health, then the on-device estimate.
         let stepsSeries = await stepsTask.value
