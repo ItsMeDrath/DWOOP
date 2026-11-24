@@ -59,6 +59,12 @@ final class NunaTodayModel: ObservableObject {
         }
     }
 
+    private struct HighlightNapSnapshot: Codable {
+        let id: String
+        let duration: String
+        let endTs: Int
+    }
+
     private struct HomeSnapshot: Codable {
         let version: Int
         let dayKey: String
@@ -78,6 +84,7 @@ final class NunaTodayModel: ObservableObject {
         let stressStatusNights: Int?
         let stressBaseline: Double?
         let stressCurve: StressCurveSnapshot?
+        let highlightNaps: [HighlightNapSnapshot]?
     }
 
     private func restoreHomeSnapshot() {
@@ -110,6 +117,7 @@ final class NunaTodayModel: ObservableObject {
         stressStatus = snapshot.stressStatusReady == true ? .ready : .calibrating(nights: snapshot.stressStatusNights ?? 0)
         stressBaseline = snapshot.stressBaseline
         stressCurve = snapshot.stressCurve?.result
+        highlightNaps = snapshot.highlightNaps ?? []
     }
 
     private func persistHomeSnapshot(dayKey: String) {
@@ -131,7 +139,8 @@ final class NunaTodayModel: ObservableObject {
             sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
             monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
             stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
-            stressBaseline: stressBaseline, stressCurve: stressCurve.map(StressCurveSnapshot.init))
+            stressBaseline: stressBaseline, stressCurve: stressCurve.map(StressCurveSnapshot.init),
+            highlightNaps: highlightNaps)
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
     }
@@ -162,6 +171,15 @@ final class NunaTodayModel: ObservableObject {
 
     func updateKeySparkSeries(_ values: [String: [Double]]) {
         keySparkSeries = Self.boundedSparkSeries(values)
+        if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
+    }
+
+    func updateHighlightNaps(_ naps: [NunaNap]) {
+        let now = Date()
+        highlightNaps = naps.filter { $0.end <= now && now.timeIntervalSince($0.end) <= 3 * 3600 }
+            .map { HighlightNapSnapshot(id: "nap-\(Int($0.start.timeIntervalSince1970))",
+                                        duration: NunaHighlightEngine.hm($0.asleepMin),
+                                        endTs: Int($0.end.timeIntervalSince1970)) }
         if loaded { persistHomeSnapshot(dayKey: Repository.localDayKey(Date())) }
     }
 
@@ -202,6 +220,7 @@ final class NunaTodayModel: ObservableObject {
     /// Small, date-scoped histories restored with the Home snapshot.
     @Published private(set) var monitorSeries: [String: [String: Double]] = [:]
     @Published private(set) var keySparkSeries: [String: [Double]] = [:]
+    @Published private(set) var highlightNaps: [HighlightNapSnapshot] = []
     @Published private(set) var loaded = false
     /// Stress has its own readiness: it can be shown as soon as its independent calculation finishes.
     @Published private(set) var stressLoaded = false
