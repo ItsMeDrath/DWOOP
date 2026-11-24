@@ -130,11 +130,11 @@ enum BackupSync {
 }
 
 /// The folder destination: a security-scoped bookmark of a user-chosen folder, plus write / list /
-/// restore / prune and an on-launch daily catch-up.
+/// restore / prune and an on-launch six-hour catch-up.
 ///
 /// Apple gives no reliable unattended background DB write (a whole-DB ZIP can be 100 MB+ and the OS
 /// kills long background tasks), so the "schedule" is a deferred on-launch catch-up: if auto is ON and
-/// a day has passed, the next foreground launch writes one snapshot - fully off the main thread, and
+/// six hours have passed, the next foreground launch writes one snapshot - fully off the main thread, and
 /// off the launch-critical path, so it never blocks startup (must-fix #4).
 enum FolderBackup {
     private static let bookmarkKey = "backupSync.folderBookmark"
@@ -143,7 +143,7 @@ enum FolderBackup {
     private static let keepKey = "backupSync.keepCount"
     private static let internalKey = "backupSync.useInternalFolder"   // #52 picker-free fallback
 
-    /// Default snapshots kept by prune: 7, i.e. a week of daily rollback points. (Mirrors the Android
+    /// Default snapshots kept by prune: 7 rollback points. (Mirrors the Android
     /// DEFAULT_KEEP; the Android keep-count is likewise user-adjustable.)
     static let defaultKeep = 7
 
