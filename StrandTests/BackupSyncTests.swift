@@ -37,6 +37,16 @@ final class BackupSyncTests: XCTestCase {
         XCTAssertEqual(sorted, [c, b, a])
     }
 
+    func testAutomaticBackupIntervalIsSixHours() {
+        let last = 1_782_000_000_000
+        let fiveHoursFiftyNineMinutes = last + (5 * 60 + 59) * 60 * 1000
+        let sixHours = last + 6 * 60 * 60 * 1000
+        XCTAssertEqual(FolderBackup.backupIntervalMs, 6 * 60 * 60 * 1000)
+        XCTAssertFalse(FolderBackup.isBackupDue(lastBackupMs: last, nowMs: fiveHoursFiftyNineMinutes))
+        XCTAssertTrue(FolderBackup.isBackupDue(lastBackupMs: last, nowMs: sixHours))
+        XCTAssertTrue(FolderBackup.isBackupDue(lastBackupMs: 0, nowMs: sixHours))
+    }
+
     func testIsBackupStale() {
         let last = 1_782_000_000_000
         let day = 24 * 60 * 60 * 1000
