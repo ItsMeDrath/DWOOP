@@ -88,6 +88,7 @@ struct NunaMonitorPackCard: View {
         }
         .fixedSize(horizontal: false, vertical: true)
         .task(id: repo.refreshSeq) {
+            let requestedRefreshSeq = repo.refreshSeq
             // Restore the ranges synchronously from the Home snapshot before refreshing their source data.
             hrvS.seed(cachedSeries["hrv"] ?? [:])
             rhrS.seed(cachedSeries["rhr"] ?? [:])
@@ -98,6 +99,7 @@ struct NunaMonitorPackCard: View {
             async let respiratory: Void = respS.load(repo: repo, key: "resp_rate", source: "my-whoop", days: 30)
             async let skin: Void = skinS.load(repo: repo, key: "skin_temp", source: "my-whoop", days: 30)
             _ = await (hrv, rhr, respiratory, skin)
+            guard !Task.isCancelled, repo.refreshSeq == requestedRefreshSeq else { return }
             onSeriesChange([
                 "hrv": hrvS.byDay,
                 "rhr": rhrS.byDay,
