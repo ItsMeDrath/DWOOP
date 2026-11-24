@@ -208,6 +208,10 @@ final class NunaSleepModel: ObservableObject {
     @Published private(set) var series: [String: [String: Double]] = [:]
     @Published private(set) var sleepStressHighPct: [String: Double] = [:]
     @Published private(set) var loaded = false
+    /// Only a load that read motion trims each night's silent tail (wake time, hence consistency), so only its
+    /// scores are the real ones. A motion-less load (Trends, Profile, Tonight) reads the persisted score and never
+    /// writes one; otherwise the last screen to load would decide whether a night shows 97 or 96.
+    private var scoresUseMotion = true
     /// What the nights were last read for (see `loadKey`), so a caller that only needs the scores can tell whether a load is current.
     private(set) var loadedKey: String?
     /// The key a load with these settings leaves in `loadedKey`; the defaults are what Today loads with, and so what its scores are made from.
@@ -358,9 +362,13 @@ final class NunaSleepModel: ObservableObject {
            let cached = defaults.object(forKey: scoreKey) as? Double {
             return cached
         }
+        // Motion-less loads keep the score the full load persisted, when there is one, and never overwrite it.
+        if !scoresUseMotion, let persisted = defaults.object(forKey: scoreKey) as? Double { return persisted }
         let score = ((0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100).rounded()
-        defaults.set(fingerprint, forKey: fingerprintKey)
-        defaults.set(score, forKey: scoreKey)
+        if scoresUseMotion {
+            defaults.set(fingerprint, forKey: fingerprintKey)
+            defaults.set(score, forKey: scoreKey)
+        }
         return score
     }
 
@@ -437,6 +445,7 @@ final class NunaSleepModel: ObservableObject {
     func load(repo: Repository, selectDayKey: String? = nil, selectIndex: Int? = nil,
               historyDays: Int = 60, includeMotion: Bool = true) async {
         let keyAtStart = Self.loadKey(seq: repo.refreshSeq, historyDays: historyDays, includeMotion: includeMotion)
+        scoresUseMotion = includeMotion
 
         // Sleep sessions, habitual timing and the independent daily metric series can all start
         // together. Previously the score waited for the first three reads before even starting
