@@ -88,28 +88,29 @@ struct NunaScoreRings: View {
         .clipped()
     }
 
+    /// One score. Nothing here switches at a threshold: the ring slides and shrinks from the middle of its third to its place at the left, the name under
+    /// it follows the ring down and fades out, and the name beside the small ring slides out from the ring's edge and fades in at the end. At both
+    /// ends (`collapse` 0 and 1) it is the layout it always was; only the way between them is continuous, so nothing snaps partway.
     @ViewBuilder private func item(_ kind: Kind) -> some View {
         let v = values(kind)
+        let t = min(max(collapse, 0), 1)
         let size = lerp(92, 26)
         ringLink(v.route) {
-            Group {
-                if collapse < 0.55 {
-                    VStack(spacing: 12) {
-                        ringView(v, size: size)
-                        // The name with a chevron after it: the ring opens its page.
-                        HStack(spacing: 4) {
-                            Text(verbatim: englishName(kind)).font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
-                            Image(systemName: "chevron.right").font(.nuna(size: 9.5, weight: .heavy))
-                        }
-                        .foregroundStyle(NunaPalette.textPrimary)
-                    }
-                } else {
-                    HStack(spacing: 8) {
-                        ringView(v, size: size)
-                        Text(verbatim: englishName(kind)).font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
-                            .foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.7)
-                    }
+            NunaScoreItemLayout(t: t) {
+                ringView(v, size: size)
+                // The name with a chevron after it: the ring opens its page. Gone by a third of the way.
+                HStack(spacing: 4) {
+                    Text(verbatim: englishName(kind)).font(.nuna(size: 13, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                    Image(systemName: "chevron.right").font(.nuna(size: 9.5, weight: .heavy))
                 }
+                .foregroundStyle(NunaPalette.textPrimary)
+                .opacity(Double(max(0, 1 - t / 0.35)))
+                .accessibilityHidden(t > 0.35)
+                // The name beside the small ring, in over the last quarter.
+                Text(verbatim: englishName(kind)).font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                    .foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.7)
+                    .opacity(Double(min(max((t - 0.75) / 0.25, 0), 1)))
+                    .accessibilityHidden(t < 0.75)
             }
             .frame(maxWidth: .infinity)
         }
@@ -125,7 +126,9 @@ struct NunaScoreRings: View {
 
     private func ringView(_ v: RingValues, size: CGFloat) -> some View {
         NunaRingGauge(fraction: v.fraction, color: v.color, gradient: v.gradient, target: v.target, size: size, lineWidth: max(3.5, size * 0.09)) {
-            if size >= 60 {
+            // The figure fades out as the ring shrinks (full at 76 pt, gone at 44) instead of vanishing at one size.
+            let figure = min(max((size - 44) / 32, 0), 1)
+            if figure > 0.01 {
                 HStack(alignment: .firstTextBaseline, spacing: 1) {
                     Text(verbatim: v.number).font(.nuna(size: numberSize(size), weight: .bold, design: NunaType.design))
                         .tracking(nunaTrackingNumber(numberSize(size))).foregroundStyle(NunaPalette.textPrimary).minimumScaleFactor(0.6).lineLimit(1)
@@ -133,6 +136,7 @@ struct NunaScoreRings: View {
                         Text(verbatim: v.unit).font(.nuna(size: numberSize(size) * 0.68, weight: .bold)).foregroundStyle(NunaPalette.textPrimary.opacity(0.85))
                     }
                 }
+                .opacity(Double(figure))
             }
         }
     }
@@ -184,6 +188,35 @@ struct NunaScoreRings: View {
                               number: rest.map { "\(Int($0.rounded()))" } ?? "–", unit: "%",
                               label: "Sleep", state: state, route: HeroRingMetric.rest)
         }
+    }
+}
+
+/// Places one score's three parts for a collapse of `t` (0 full, 1 small): the ring, the name that sits under it, and the name that sits beside the
+/// small ring. The ring's centre runs from the middle of the item to where the ring-and-name pair sits when centred; the name under the ring stays
+/// 12 pt below it; the name beside it is never nearer than 8 pt to the ring's edge, so it slides out from behind the ring and cannot overlap it.
+private struct NunaScoreItemLayout: Layout {
+    var t: CGFloat
+    private let fullRing: CGFloat = 92, smallRing: CGFloat = 26, gap: CGFloat = 12, side: CGFloat = 8
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let ring = subviews[0].sizeThatFits(.unspecified)
+        let under = subviews[1].sizeThatFits(.unspecified)
+        return CGSize(width: proposal.width ?? max(ring.width, under.width), height: ring.height + (1 - t) * (gap + under.height))
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let w = bounds.width
+        let ring = subviews[0].sizeThatFits(.unspecified)
+        let under = subviews[1].sizeThatFits(.unspecified)
+        let beside = subviews[2].sizeThatFits(ProposedViewSize(width: max(w - smallRing - side, 0), height: nil))
+        // Where the small ring and its name sit as a pair, centred in the item.
+        let pairLeft = (w - (smallRing + side + beside.width)) / 2
+        let ringCentreX = bounds.minX + w / 2 + (pairLeft + smallRing / 2 - w / 2) * t
+        subviews[0].place(at: CGPoint(x: ringCentreX - ring.width / 2, y: bounds.minY), anchor: .topLeading, proposal: .unspecified)
+        subviews[1].place(at: CGPoint(x: ringCentreX - under.width / 2, y: bounds.minY + ring.height + gap), anchor: .topLeading, proposal: .unspecified)
+        let besideLeft = max(bounds.minX + pairLeft + smallRing + side, ringCentreX + ring.width / 2 + side)
+        subviews[2].place(at: CGPoint(x: besideLeft, y: bounds.minY + ring.height / 2 - beside.height / 2), anchor: .topLeading,
+                          proposal: ProposedViewSize(width: max(w - smallRing - side, 0), height: nil))
     }
 }
 
