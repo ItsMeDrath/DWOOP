@@ -95,6 +95,13 @@ struct NunaPctTrendView: View {
         }
         .environment(\.nunaDetailSwitch, nil)
         .task(id: repo.refreshSeq) { await history.load(repo: repo) }
+        // When the shared Sleep model finishes validating today's night, refresh the trend from
+        // the same persisted score used by the Sleep ring (instead of its long-history estimate).
+        .onReceive(NunaSleepModel.shared.$loaded) { isLoaded in
+            if isLoaded, name == "Sleep performance" {
+                history.refreshAuthoritativePerformance()
+            }
+        }
         .onChange(of: range) { _, _ in picked = nil }
         .onChange(of: page) { _, _ in picked = nil }
     }

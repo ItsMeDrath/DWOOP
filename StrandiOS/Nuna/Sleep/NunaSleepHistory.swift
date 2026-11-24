@@ -71,6 +71,16 @@ final class NunaSleepHistory: ObservableObject {
         inflight = nil
     }
 
+    /// Reapply scores produced by the shared Sleep model after its background load finishes.
+    /// The long-range trend may calculate older dates itself, but must not replace the ring's score.
+    func refreshAuthoritativePerformance() {
+        let cached = NunaSleepModel.cachedSleepScores()
+        guard !cached.isEmpty else { return }
+        var merged = performance
+        for (day, score) in cached { merged[day] = score }
+        if merged != performance { performance = merged }
+    }
+
     /// The need used for a night with no stored one: the same fallback the sleep model uses.
 
     func load(repo: Repository) async {
@@ -170,6 +180,7 @@ final class NunaSleepHistory: ObservableObject {
             computedPerformance[day] = (0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100
         }
         performance = computedPerformance
+        refreshAuthoritativePerformance()
         loaded = true
     }
 
