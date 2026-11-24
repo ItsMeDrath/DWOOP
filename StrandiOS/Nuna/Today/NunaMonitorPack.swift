@@ -18,6 +18,7 @@ struct NunaMonitorPackCard: View {
     var stressNights: Int?
     /// The last complete monitor histories, supplied by the single Home snapshot.
     var cachedSeries: [String: [String: Double]] = [:]
+    var seriesLoaded = false
     @StateObject private var hrvS: NunaSeriesModel
     @StateObject private var rhrS: NunaSeriesModel
     @StateObject private var respS: NunaSeriesModel
@@ -25,7 +26,7 @@ struct NunaMonitorPackCard: View {
 
     init(hrv: Double?, restingHr: Double?, spo2: Double?, respiratory: Double?, skinTemp: Double?,
          stress: Double?, stressCurve: DaytimeStress.Result?, stressNights: Int? = nil,
-         cachedSeries: [String: [String: Double]] = [:]) {
+         cachedSeries: [String: [String: Double]] = [:], seriesLoaded: Bool = false) {
         self.hrv = hrv
         self.restingHr = restingHr
         self.spo2 = spo2
@@ -35,10 +36,11 @@ struct NunaMonitorPackCard: View {
         self.stressCurve = stressCurve
         self.stressNights = stressNights
         self.cachedSeries = cachedSeries
-        _hrvS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["hrv"] ?? [:]))
-        _rhrS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["rhr"] ?? [:]))
-        _respS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["resp_rate"] ?? [:]))
-        _skinS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["skin_temp"] ?? [:]))
+        self.seriesLoaded = seriesLoaded
+        _hrvS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["hrv"] ?? [:], loaded: seriesLoaded))
+        _rhrS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["rhr"] ?? [:], loaded: seriesLoaded))
+        _respS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["resp_rate"] ?? [:], loaded: seriesLoaded))
+        _skinS = StateObject(wrappedValue: NunaSeriesModel(seeding: cachedSeries["skin_temp"] ?? [:], loaded: seriesLoaded))
     }
 
     /// The vital signs the tile watches: HRV, resting heart rate, blood oxygen, respiratory rate and skin temperature. The count is
@@ -87,6 +89,14 @@ struct NunaMonitorPackCard: View {
             rhrS.replace(values["rhr"] ?? [:])
             respS.replace(values["resp_rate"] ?? [:])
             skinS.replace(values["skin_temp"] ?? [:])
+        }
+        .onChange(of: seriesLoaded) { _, loaded in
+            if loaded {
+                hrvS.replace(cachedSeries["hrv"] ?? [:])
+                rhrS.replace(cachedSeries["rhr"] ?? [:])
+                respS.replace(cachedSeries["resp_rate"] ?? [:])
+                skinS.replace(cachedSeries["skin_temp"] ?? [:])
+            }
         }
     }
 
