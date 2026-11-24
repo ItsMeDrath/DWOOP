@@ -107,7 +107,7 @@ struct NunaScoreRings: View {
                 .opacity(Double(max(0, 1 - t / 0.35)))
                 .accessibilityHidden(t > 0.35)
                 // The name beside the small ring, in over the last quarter.
-                Text(verbatim: englishName(kind)).font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                Text(verbatim: englishName(kind)).font(.nuna(size: 14, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     .foregroundStyle(NunaPalette.textPrimary).lineLimit(1).minimumScaleFactor(0.7)
                     .opacity(Double(min(max((t - 0.75) / 0.25, 0), 1)))
                     .accessibilityHidden(t < 0.75)
@@ -570,7 +570,7 @@ struct NunaStressCard: View {
             NunaCard {
                 VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        Text("Stress monitor").font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel)
+                        Text("Stress monitor").font(.nuna(size: 14, weight: .heavy)).tracking(nunaTrackingLabel)
                             .textCase(.uppercase).foregroundStyle(NunaPalette.textPrimary)
                         Spacer(minLength: 8)
                         Image(systemName: "chevron.right").font(.nuna(size: 13, weight: .bold)).foregroundStyle(NunaPalette.textSecondary)
@@ -1094,7 +1094,7 @@ struct NunaJournalWeekCard: View {
             VStack(alignment: .leading, spacing: 0) {
                 Button(action: onOpen) {
                     HStack {
-                        Text("My journal").font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                        Text("My journal").font(.nuna(size: 14, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                             .foregroundStyle(Color(red: 0.92, green: 0.92, blue: 0.925))
                         Spacer()
                         Image(systemName: "chevron.right").font(.nuna(size: 13, weight: .semibold)).foregroundStyle(grey)
@@ -1119,7 +1119,7 @@ struct NunaJournalWeekCard: View {
                 NavigationLink(value: NunaTodayRoute.behaviorInsights) {
                     HStack(spacing: 9) {
                         NunaTracedIconView(icon: NunaTracedIcon.bulb)
-                        Text("Behavior insights").font(.nuna(size: 11.5, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
+                        Text("Behavior insights").font(.nuna(size: 14, weight: .heavy)).tracking(nunaTrackingLabel).textCase(.uppercase)
                     }
                     .foregroundStyle(.white).frame(maxWidth: .infinity).frame(height: 40)
                     .background(buttonFill, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
