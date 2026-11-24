@@ -108,16 +108,17 @@ struct NunaChargeDetailView: View {
             day.dayOffset = router.todayDayOffset
             // The ring and the vitals are already in memory: draw them before any read, not after the last one.
             day.applyDaily(repo: repo)
-            // Then what the four rows are compared with, the cheap series first and the long sleep history after them; the slow, rarely
-            // needed rest (extras, steps, stress) comes last in `day.load`.
-            await hrvSeries.load(repo: repo, key: "hrv", source: "my-whoop", cached: true)
-            await rhrSeries.load(repo: repo, key: "rhr", source: "my-whoop", cached: true)
-            await respSeries.load(repo: repo, key: "resp_rate", source: "my-whoop", cached: true)
-            await series.load(repo: repo, key: "recovery", source: "my-whoop", cached: true)
-            await sleepPerformanceHistory.ensureLoaded(repo: repo)
-            await restSeries.load(repo: repo, key: "sleep_performance", source: "my-whoop", cached: true)
-            await skinSeries.load(repo: repo, key: "skin_temp", source: "my-whoop", cached: true)
-            await day.load(repo: repo, profile: profile)
+            // These readings do not depend on one another. Start the comparison series, long Sleep
+            // history and the detail model together instead of serially waiting on each read.
+            async let hrvLoad: Void = hrvSeries.load(repo: repo, key: "hrv", source: "my-whoop", cached: true)
+            async let rhrLoad: Void = rhrSeries.load(repo: repo, key: "rhr", source: "my-whoop", cached: true)
+            async let respLoad: Void = respSeries.load(repo: repo, key: "resp_rate", source: "my-whoop", cached: true)
+            async let recoveryLoad: Void = series.load(repo: repo, key: "recovery", source: "my-whoop", cached: true)
+            async let sleepHistoryLoad: Void = sleepPerformanceHistory.ensureLoaded(repo: repo)
+            async let restLoad: Void = restSeries.load(repo: repo, key: "sleep_performance", source: "my-whoop", cached: true)
+            async let skinLoad: Void = skinSeries.load(repo: repo, key: "skin_temp", source: "my-whoop", cached: true)
+            async let dayLoad: Void = day.load(repo: repo, profile: profile)
+            _ = await (hrvLoad, rhrLoad, respLoad, recoveryLoad, sleepHistoryLoad, restLoad, skinLoad, dayLoad)
         }
         // Anya floats over the page and reads it as it opens; her line speaks of today, so on another day she is only the button.
         .nunaAnyaFloating(context: "Recovery", line: router.todayDayOffset == 0 ? anyaLine : nil, analyses: router.todayDayOffset == 0)
