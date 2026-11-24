@@ -524,8 +524,9 @@ final class NunaTodayModel: ObservableObject {
         let monitorRhrTask = Task { await repo.exploreSeries(key: "rhr", source: "my-whoop", days: 30) }
         let monitorRespTask = Task { await repo.exploreSeries(key: "resp_rate", source: "my-whoop", days: 30) }
         let monitorSkinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 30) }
+        let napDayStart = Calendar.current.startOfDay(for: Date())
         let highlightNapsTask = Task {
-            await NunaSleepModel.naps(from: dayStart, to: dayStart.addingTimeInterval(86_400), repo: repo).map(\.nap)
+            await NunaSleepModel.naps(from: napDayStart, to: napDayStart.addingTimeInterval(86_400), repo: repo).map(\.nap)
         }
 
         // Live Effort for today over midnight..now, stored Effort otherwise.
