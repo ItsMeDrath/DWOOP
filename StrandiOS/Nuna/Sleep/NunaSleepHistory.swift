@@ -76,35 +76,58 @@ final class NunaSleepHistory: ObservableObject {
     func load(repo: Repository) async {
         let seqAtStart = repo.refreshSeq
         defer { loadedSeq = seqAtStart }
+
         var a: [String: Double] = [:], d: [String: Double] = [:], r: [String: Double] = [:]
         for row in repo.days {
             guard let t = row.totalSleepMin, t > 0 else { continue }
             a[row.day] = t
             if let deep = row.deepMin, let rem = row.remMin { d[row.day] = deep; r[row.day] = rem }
         }
-        let strainScores = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+
+        // Independent history reads start together instead of waiting through serial database round trips.
+        async let strainTask = repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)
+        async let efficiencyTask = repo.exploreSeries(key: "sleep_efficiency", source: "my-whoop", days: 400)
+        async let appleTask = repo.appleDailyRows()
+        async let caloriesTask = repo.exploreSeries(key: "energy_kcal", source: "my-whoop", days: 400)
+        async let whoopStepsTask = repo.exploreSeries(key: "steps", source: "my-whoop", days: 400)
+        async let combinedStepsTask = repo.exploreSeries(key: "steps", source: MetricCatalog.combinedStepsSource, days: 400)
+        async let estimatedStepsTask = repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 400)
+        async let recoveryTask = repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)
+        async let habitualTask = repo.habitualMidsleepSec()
+        async let sessionsTask = repo.allSleepSessions(days: 400)
+
+        let (strainPoints, efficiencyPoints, appleRows, caloriePoints, whoopSteps, combinedSteps,
+             estimatedSteps, recoveryPoints, hab, sessions) =
+            await (strainTask, efficiencyTask, appleTask, caloriesTask, whoopStepsTask, combinedStepsTask,
+                   estimatedStepsTask, recoveryTask, habitualTask, sessionsTask)
+        let motions = await repo.sessionMotions(sessions: sessions)
+
+        let strainScores = Dictionary(strainPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
         importedNeed = repo.importedSleep.compactMapValues { $0.needMin }
-         asleepMin = a; deepMin = d; remMin = r
+        asleepMin = a; deepMin = d; remMin = r
+
         // Efficiency is stored as a fraction on some rows and a percentage on others; the series, when there is one, wins.
         var eff: [String: Double] = [:]
         for row in repo.days { if let e = row.efficiency, e > 0 { eff[row.day] = e <= 1 ? e * 100 : e } }
-        for point in await repo.exploreSeries(key: "sleep_efficiency", source: "my-whoop", days: 400) { eff[point.day] = point.value <= 1 ? point.value * 100 : point.value }
+        for point in efficiencyPoints { eff[point.day] = point.value <= 1 ? point.value * 100 : point.value }
         efficiency = eff
+
         var kcal: [String: Double] = [:]
-        for r in await repo.appleDailyRows() { if let k = r.activeKcal, k > 0 { kcal[r.day] = k } }
-        for p in await repo.exploreSeries(key: "energy_kcal", source: "my-whoop", days: 400) where p.value > 0 { kcal[p.day] = p.value }
+        for row in appleRows { if let k = row.activeKcal, k > 0 { kcal[row.day] = k } }
+        for point in caloriePoints where point.value > 0 { kcal[point.day] = point.value }
         calories = kcal
+
         var st: [String: Double] = [:]
-        for source in ["my-whoop", MetricCatalog.combinedStepsSource] {
-            for p in await repo.exploreSeries(key: "steps", source: source, days: 400) where p.value > 0 { st[p.day] = p.value }
-        }
-        for p in await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 400) where p.value > 0 && st[p.day] == nil { st[p.day] = p.value }
+        for point in whoopSteps where point.value > 0 { st[point.day] = point.value }
+        for point in combinedSteps where point.value > 0 { st[point.day] = point.value }
+        for point in estimatedSteps where point.value > 0 && st[point.day] == nil { st[point.day] = point.value }
         steps = st
-        effort = Dictionary((await repo.exploreSeries(key: "strain", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-         charge = Dictionary((await repo.exploreSeries(key: "recovery", source: "my-whoop", days: 400)).map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
-        await loadBedTimes(repo: repo)
-        let hab = await repo.habitualMidsleepSec()
-        let sessions = await repo.allSleepSessions(days: 400)
+        effort = strainScores
+        charge = Dictionary(recoveryPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, l in l })
+
+        // Reuse the sessions and motion data above; the old path fetched all 400 nights and their motion a second time.
+        loadBedTimes(hab: hab, sessions: sessions, motions: motions)
+
         let napByDay = SleepModel.napSleepMinutesByDay(navDays: SleepModel.navDays(navSessions: sessions), habitualMidsleepSec: hab)
         let calculations = NunaSleepNeedCalculation.calculate(
             sleep: a.keys.sorted().compactMap { day in
@@ -116,13 +139,13 @@ final class NunaSleepHistory: ObservableObject {
         needMin = calculations.mapValues { $0.needMin }
         strainMin = calculations.mapValues { $0.strainMin }
         debtMin = calculations.mapValues { $0.debtMin }
+
         let nightKeys = bedHour.keys.filter { wakeHour[$0] != nil }.sorted()
         var fiveNightConsistency: [String: Double] = [:]
         if nightKeys.count >= NunaSleepConsistency.windowNights {
             for i in (NunaSleepConsistency.windowNights - 1)..<nightKeys.count {
                 let window = Array(nightKeys[(i - NunaSleepConsistency.windowNights + 1)...i])
-                // `score` measures the spread in minutes (a 90 minute spread is 0%), and these are hours: passing them straight in made every
-                // week read about 99%, while the Sleep tab's card, which works in minutes, showed the real figure.
+                // Consistency expects minutes, not hours; keep this aligned with the Sleep screen.
                 if let value = NunaSleepConsistency.score(bedTimes: window.compactMap { bedHour[$0].map { $0 * 60 } },
                                                           wakeTimes: window.compactMap { wakeHour[$0].map { $0 * 60 } }) {
                     fiveNightConsistency[nightKeys[i]] = value
@@ -134,10 +157,10 @@ final class NunaSleepHistory: ObservableObject {
         await stressHistory.ensure(days: nightKeys.compactMap { NunaDayFormat.parse($0) }, repo: repo)
         var computedPerformance: [String: Double] = [:]
         for day in nightKeys {
-            guard let asleep = a[day], let eff = eff[day], asleep > 0 else { continue }
+            guard let asleep = a[day], let efficiencyValue = eff[day], asleep > 0 else { continue }
             let durationPoints = min(max(asleep / max(need(day), 1), 0), 1)
             let consistencyPoints = min(max((fiveNightConsistency[day] ?? 45) / 90, 0), 1)
-            let efficiencyPoints = min(max(eff / 90, 0), 1)
+            let efficiencyPoints = min(max(efficiencyValue / 90, 0), 1)
             let highStressPercent = stressHistory.entries[day]?.zones(.sleep).flatMap { $0.total > 0 ? $0.high / $0.total * 100 : nil }
             let stressPoints = NunaSleepStressScoring.points(highPercent: highStressPercent)
             computedPerformance[day] = (0.60 * durationPoints + 0.20 * consistencyPoints + 0.10 * efficiencyPoints + 0.10 * stressPoints) * 100
@@ -146,7 +169,7 @@ final class NunaSleepHistory: ObservableObject {
         loaded = true
     }
 
-    private func loadBedTimes(repo: Repository) async {
+    private func loadBedTimes(hab: Int?, sessions: [CachedSleepSession], motions: [Int: [Double]]) {
         let hab = await repo.habitualMidsleepSec()
         let sessions = await repo.allSleepSessions(days: 400)
         var bed: [String: Double] = [:], wake: [String: Double] = [:]
