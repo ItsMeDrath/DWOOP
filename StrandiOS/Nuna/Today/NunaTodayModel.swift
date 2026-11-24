@@ -514,6 +514,12 @@ final class NunaTodayModel: ObservableObject {
         let vo2Task = Task { await repo.exploreSeries(key: "vo2max_est", source: "my-whoop", days: 60) }
         let skinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 60) }
         let weightsTask = Task { await repo.exploreSeries(key: "weight", source: "apple-health", days: 90) }
+        // These four bounded histories determine the Health monitor's personal ranges.
+        // Load them with the other Home reads so the snapshot barrier includes the monitor.
+        let monitorHrvTask = Task { await repo.exploreSeries(key: "hrv", source: "my-whoop", days: 30) }
+        let monitorRhrTask = Task { await repo.exploreSeries(key: "rhr", source: "my-whoop", days: 30) }
+        let monitorRespTask = Task { await repo.exploreSeries(key: "resp_rate", source: "my-whoop", days: 30) }
+        let monitorSkinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 30) }
 
         // Live Effort for today over midnight..now, stored Effort otherwise.
         // This is intentionally allowed to finish independently of the Sleep model above.
@@ -551,6 +557,15 @@ final class NunaTodayModel: ObservableObject {
             if points.count >= 2 { prev[k] = points[points.count - 2].value }
         }
         let weights = await weightsTask.value
+        let (monitorHrv, monitorRhr, monitorResp, monitorSkin) = await (
+            monitorHrvTask.value, monitorRhrTask.value, monitorRespTask.value, monitorSkinTask.value)
+        guard dayOffset == requestedDayOffset, repo.refreshSeq == requestedRefreshSeq else { return }
+        monitorSeries = [
+            "hrv": Dictionary(monitorHrv.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            "rhr": Dictionary(monitorRhr.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            "resp_rate": Dictionary(monitorResp.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            "skin_temp": Dictionary(monitorSkin.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
+        ]
         if let w = weights.last?.value { ex["weight"] = w }
         if weights.count >= 2 { prev["weight"] = weights[weights.count - 2].value }
         extras = ex
