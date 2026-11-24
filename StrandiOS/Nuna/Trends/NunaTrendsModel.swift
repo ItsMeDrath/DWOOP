@@ -27,20 +27,21 @@ final class NunaTrendsModel: ObservableObject {
         async let r = repo.exploreSeries(key: "sleep_performance", source: "my-whoop", days: 400)
         async let h = repo.exploreSeries(key: "hrv", source: "my-whoop", days: 400)
         async let k = repo.exploreSeries(key: "rhr", source: "my-whoop", days: 400)
-        async let s = repo.exploreSeries(key: "stress", source: "my-whoop", days: 400)
         async let t = repo.exploreSeries(key: "steps_est", source: "my-whoop", days: 400)
         charge = Self.clean(await c); effort = Self.clean(await e); rest = Self.clean(await r)
         hrv = Self.clean(await h); rhr = Self.clean(await k)
-        _ = await s
-        // Stress comes from the WHOOP-reference reading and only once it is calibrated: the mean waking level of each of the last 30 days,
-        // from the same stored daily history the Stress monitor's trend view reads. Before that, Trends has no stress to show.
+        // Stress is not needed to draw the initial trend charts. Calculate it independently so
+        // calibration/history work cannot hold the whole Trends screen behind its loading state.
         stress = []
-        if await StressEngine.shared.status(repo: repo).isReady {
+        let requestedRefreshSeq = repo.refreshSeq
+        Task { @MainActor [weak self] in
+            guard let self, await StressEngine.shared.status(repo: repo).isReady else { return }
             let cal = Calendar.current
             let days = (1...30).compactMap { cal.date(byAdding: .day, value: -$0, to: cal.startOfDay(for: Date())) }
             let history = NunaStressHistory()
             await history.ensure(days: days, repo: repo)
-            stress = days.sorted().compactMap { d in
+            guard repo.refreshSeq == requestedRefreshSeq else { return }
+            self.stress = days.sorted().compactMap { d in
                 let key = Repository.localDayKey(d)
                 return history.entries[key]?.mean.map { (day: key, value: $0) }
             }
