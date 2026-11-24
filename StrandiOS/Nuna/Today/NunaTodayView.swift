@@ -916,8 +916,7 @@ struct NunaTodayView: View {
                 .background {
                     if model.isToday {
                         NunaIllnessNotifier()
-                        NunaHighlightsTracker(feed: highlightsFeed, loaded: model.loaded, workouts: model.workouts, calibrating: calibrationStages,
-                                                 onNapsChange: { model.updateHighlightNaps($0) })
+                        NunaHighlightsTracker(feed: highlightsFeed, loaded: model.loaded, workouts: model.workouts, calibrating: calibrationStages)
                     }
                 }
         case .stateChips:
