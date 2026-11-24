@@ -16,6 +16,47 @@ final class NunaTodayModel: ObservableObject {
 
     /// One compact, date-scoped copy of the values needed to paint the Home metrics immediately.
     /// Historical samples and chart series remain in their existing stores.
+    private struct StressPointSnapshot: Codable {
+        let hour, startTs: Int
+        let level, meanHR, rmssd: Double?
+        let maskedForActivity: Bool
+
+        init(_ point: DaytimeStress.HourPoint) {
+            hour = point.hour; startTs = point.startTs; level = point.level
+            meanHR = point.meanHR; rmssd = point.rmssd; maskedForActivity = point.maskedForActivity
+        }
+
+        var point: DaytimeStress.HourPoint {
+            DaytimeStress.HourPoint(hour: hour, startTs: startTs, level: level, meanHR: meanHR,
+                                    rmssd: rmssd, maskedForActivity: maskedForActivity)
+        }
+    }
+
+    private struct StressCurveSnapshot: Codable {
+        let hours, timeline: [StressPointSnapshot]
+        let sustainedHigh: Bool
+        let sustainedRun, activityMaskedHours, highStressMinutes: Int
+        let dayMean: Double?
+        let peak: StressPointSnapshot?
+        let hrOnlyFallback: Bool
+
+        init(_ result: DaytimeStress.Result) {
+            hours = result.hours.map(StressPointSnapshot.init)
+            timeline = result.timeline.map(StressPointSnapshot.init)
+            sustainedHigh = result.sustainedHigh; sustainedRun = result.sustainedRun
+            activityMaskedHours = result.activityMaskedHours; highStressMinutes = result.highStressMinutes
+            dayMean = result.dayMean; peak = result.peak.map(StressPointSnapshot.init)
+            hrOnlyFallback = result.hrOnlyFallback
+        }
+
+        var result: DaytimeStress.Result {
+            DaytimeStress.Result(hours: hours.map(\\.point), sustainedHigh: sustainedHigh,
+                sustainedRun: sustainedRun, dayMean: dayMean, peak: peak?.point,
+                activityMaskedHours: activityMaskedHours, highStressMinutes: highStressMinutes,
+                hrOnlyFallback: hrOnlyFallback, timeline: timeline.map(\\.point))
+        }
+    }
+
     private struct HomeSnapshot: Codable {
         let version: Int
         let dayKey: String
@@ -31,6 +72,10 @@ final class NunaTodayModel: ObservableObject {
         let monitorSeries: [String: [String: Double]]?
         /// Bounded display points for optional Detailed Key Metrics tiles.
         let keySparkSeries: [String: [Double]]?
+        let stressStatusReady: Bool?
+        let stressStatusNights: Int?
+        let stressBaseline: Double?
+        let stressCurve: StressCurveSnapshot?
     }
 
     private func restoreHomeSnapshot() {
@@ -59,6 +104,9 @@ final class NunaTodayModel: ObservableObject {
         stressLoaded = snapshot.stressLoaded
         monitorSeries = snapshot.monitorSeries ?? [:]
         keySparkSeries = snapshot.keySparkSeries ?? [:]
+        stressStatus = snapshot.stressStatusReady == true ? .ready : .calibrating(nights: snapshot.stressStatusNights ?? 0)
+        stressBaseline = snapshot.stressBaseline
+        stressCurve = snapshot.stressCurve?.result
     }
 
     private func persistHomeSnapshot(dayKey: String) {
@@ -78,7 +126,9 @@ final class NunaTodayModel: ObservableObject {
             effort: effort, rest: rest, stress: stress, hrv: hrv, restingHr: restingHr,
             respiratory: respiratory, spo2: spo2, steps: steps, calories: calories,
             sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
-            monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries))
+            monitorSeries: Self.boundedMonitorSeries(monitorSeries), keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
+            stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
+            stressBaseline: stressBaseline, stressCurve: stressCurve.map(StressCurveSnapshot.init))
         guard let data = try? JSONEncoder().encode(snapshot) else { return }
         UserDefaults.standard.set(data, forKey: Self.homeSnapshotKey)
     }
