@@ -957,8 +957,7 @@ struct NunaTodayView: View {
             NunaMonitorPackCard(hrv: model.hrv, restingHr: model.restingHr, spo2: model.spo2, respiratory: model.respiratory,
                                 skinTemp: model.extras["skin_temp"], stress: model.stress, stressCurve: model.stressCurve,
                                 stressNights: model.stressStatus.isReady || !model.stressLoaded ? nil : model.stressStatus.nights,
-                                cachedSeries: model.monitorSeries,
-                                onSeriesChange: { model.updateMonitorSeries($0) })
+                                cachedSeries: model.monitorSeries)
         case .keyMetrics:
             let tiles = metricTiles
             if !tiles.isEmpty {
