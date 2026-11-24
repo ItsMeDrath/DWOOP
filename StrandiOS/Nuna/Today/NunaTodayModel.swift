@@ -520,6 +520,9 @@ final class NunaTodayModel: ObservableObject {
         let monitorRhrTask = Task { await repo.exploreSeries(key: "rhr", source: "my-whoop", days: 30) }
         let monitorRespTask = Task { await repo.exploreSeries(key: "resp_rate", source: "my-whoop", days: 30) }
         let monitorSkinTask = Task { await repo.exploreSeries(key: "skin_temp", source: "my-whoop", days: 30) }
+        let highlightNapsTask = Task {
+            await NunaSleepModel.naps(from: dayStart, to: dayStart.addingTimeInterval(86_400), repo: repo).map(\.nap)
+        }
 
         // Live Effort for today over midnight..now, stored Effort otherwise.
         // This is intentionally allowed to finish independently of the Sleep model above.
@@ -559,7 +562,9 @@ final class NunaTodayModel: ObservableObject {
         let weights = await weightsTask.value
         let (monitorHrv, monitorRhr, monitorResp, monitorSkin) = await (
             monitorHrvTask.value, monitorRhrTask.value, monitorRespTask.value, monitorSkinTask.value)
+        let recentNaps = await highlightNapsTask.value
         guard dayOffset == requestedDayOffset, repo.refreshSeq == requestedRefreshSeq else { return }
+        updateHighlightNaps(recentNaps)
         monitorSeries = [
             "hrv": Dictionary(monitorHrv.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
             "rhr": Dictionary(monitorRhr.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
