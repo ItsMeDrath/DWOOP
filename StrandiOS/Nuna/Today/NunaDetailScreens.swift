@@ -39,14 +39,21 @@ struct NunaChargeDetailView: View {
     /// The day picked on Today: nil for today; else the day key the readings below are cut at, so a past day shows its own figures.
     private var cutoff: String? { router.todayDayOffset == 0 ? nil : NunaSelectedDay.key(offset: router.todayDayOffset) }
 
-    /// The mean of the last 30 calculated Sleep Performance nights before the selected day.
+    /// The selected night's value must be the exact score shown on the Sleep screen.
+    /// Prefer the shared nightly scorer; the long-range history is only a fallback for older nights
+    /// that are outside the Sleep model's loaded window.
     private var selectedSleepPerformance: Double? {
-        sleepPerformanceHistory.performance[cutoff ?? Repository.localDayKey(Date())]
+        let key = cutoff ?? Repository.localDayKey(Date())
+        return day.rest ?? day.sleepScoresByDay[key] ?? sleepPerformanceHistory.performance[key]
     }
 
     private func averageSleepPerformance30() -> Double? {
         let before = cutoff ?? Repository.localDayKey(Date())
-        let values = sleepPerformanceHistory.performance
+        // Overlay the shared Sleep-screen scores on the long-range history wherever both have a night.
+        // This prevents the Recovery comparison/trend from mixing two versions of Sleep Performance.
+        var performance = sleepPerformanceHistory.performance
+        for (key, score) in day.sleepScoresByDay { performance[key] = score }
+        let values = performance
             .filter { $0.key < before }
             .sorted { $0.key < $1.key }
             .suffix(30)
