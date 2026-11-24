@@ -59,7 +59,7 @@ final class NunaTodayModel: ObservableObject {
         }
     }
 
-    private struct HighlightNapSnapshot: Codable {
+    struct HighlightNapSnapshot: Codable {
         let id: String
         let duration: String
         let endTs: Int
