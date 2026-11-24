@@ -310,7 +310,7 @@ final class NunaSleepModel: ObservableObject {
     /// A previously calculated score for instant first paint. The score is shown optimistically until
     /// the current night is loaded and its input fingerprint is checked.
     static func cachedSleepScore(dayKey: String) -> Double? {
-        UserDefaults.standard.object(forKey: "nuna.sleepScore.v1.\\(dayKey).score") as? Double
+        UserDefaults.standard.object(forKey: "nuna.sleepScore.v1.\(dayKey).score") as? Double
     }
 
     /// The agreed 60/20/10/10 Sleep Score. Missing data earns neutral half-credit, never a fabricated perfect score.
@@ -335,8 +335,8 @@ final class NunaSleepModel: ObservableObject {
             String(n.onset.timeIntervalSince1970),
             String(n.wake.timeIntervalSince1970)
         ].joined(separator: "|")
-        let fingerprintKey = "nuna.sleepScore.v1.\\(n.dayKey).fingerprint"
-        let scoreKey = "nuna.sleepScore.v1.\\(n.dayKey).score"
+        let fingerprintKey = "nuna.sleepScore.v1.\(n.dayKey).fingerprint"
+        let scoreKey = "nuna.sleepScore.v1.\(n.dayKey).score"
         let defaults = UserDefaults.standard
         if defaults.string(forKey: fingerprintKey) == fingerprint,
            let cached = defaults.object(forKey: scoreKey) as? Double {
