@@ -46,7 +46,9 @@ final class NunaTrendsModel: ObservableObject {
         stress = []
         let requestedRefreshSeq = repo.refreshSeq
         Task { @MainActor [weak self] in
-            guard let self, await StressEngine.shared.status(repo: repo).isReady else { return }
+            guard let self else { return }
+            let status = await StressEngine.shared.status(repo: repo)
+            guard status.isReady else { return }
             let cal = Calendar.current
             let days = (1...30).compactMap { cal.date(byAdding: .day, value: -$0, to: cal.startOfDay(for: Date())) }
             let history = NunaStressHistory()
