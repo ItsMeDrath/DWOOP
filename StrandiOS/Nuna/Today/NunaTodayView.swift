@@ -310,7 +310,7 @@ struct NunaTodayView: View {
                                 if model.isToday && section == myDayAnchor {
                                     myDayRow
                                     // Under "My Day", close to it: once there are enough days of data to know the person's habits.
-                                    if NunaOutlookGate.ready(repo.days) { NunaDailyOutlookCard(review: NunaReviewGate.isEvening()) { showOutlook = true }.padding(.top, -NunaSpacing.section + 12) }
+                                    if model.outlookReady { NunaDailyOutlookCard(review: NunaReviewGate.isEvening()) { showOutlook = true }.padding(.top, -NunaSpacing.section + 12) }
                                 }
                             }
                             customizeButton
