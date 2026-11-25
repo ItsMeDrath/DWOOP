@@ -168,6 +168,9 @@ struct NunaHealthView: View {
             let cached = await repo.loadNunaHealthMonitorSeries(for: signature)
             if let cached, repo.healthMainSleepSignature() == signature {
                 applyHealthMonitorSeries(cached)
+            } else if appliedMainSleepSignature == signature {
+                // Let the next appearance/refresh retry if the repository changed during the read.
+                appliedMainSleepSignature = nil
             }
             if loadingMainSleepSignature == signature { loadingMainSleepSignature = nil }
         }
