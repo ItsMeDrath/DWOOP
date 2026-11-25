@@ -207,7 +207,8 @@ struct RootTabView: View {
             // Install the same iOS Coach context in the classic shell too: WHOOP Age, its factor
             // breakdown, sleep context and the other live day data must not depend on the selected UI.
             NunaAnyaDayContext.install(on: model.coach, repo: model.repo, profile: model.profile)
-            await repo.refresh()
+            let refreshSucceeded = await repo.refresh()
+            guard refreshSucceeded else { return }
             // Backup & Sync: on-launch catch-up (see RootView). Detached + utility priority so a
             // 100MB+ whole-DB ZIP never blocks startup; gated on the auto toggle (default OFF). (Must-fix #4.)
             let backupRepo = repo

@@ -983,8 +983,12 @@ final class Repository: ObservableObject {
     var loadFireCounts: [String: Int] = [:]
     #endif
 
-    func refresh(days nDays: Int = 4000) async {
-        guard let store = await ensureStore() else { return }
+    /// Refreshes the repository caches. Returns false only when the store could not be opened or
+    /// this refresh was superseded by a newer overlapping refresh. Callers that need to sequence
+    /// work after a successful refresh (such as the automatic backup) can rely on this result.
+    @discardableResult
+    func refresh(days nDays: Int = 4000) async -> Bool {
+        guard let store = await ensureStore() else { return false }
         refreshGen &+= 1
         let myGen = refreshGen
         let now = Date()
@@ -1048,7 +1052,7 @@ final class Repository: ObservableObject {
 
         // Generation guard (#review): if a newer refresh() started while this one merged off-actor, drop
         // this now-stale result so it can't clobber the newer caches or re-fire loadAll out of order.
-        guard myGen == refreshGen else { return }
+        guard myGen == refreshGen else { return false }
 
         // DIFF before publishing (FIX 3): if this refresh produced byte-identical caches AND we've already
         // loaded once, skip the re-publish and the `refreshSeq` bump entirely , assigning an equal value to
@@ -1062,7 +1066,7 @@ final class Repository: ObservableObject {
             && merged.freshness == freshness
             && restSnapshot == lastComputedRest
             && spo2Snapshot == spo2Estimates
-        guard !unchanged else { return }
+        guard !unchanged else { return true }
         lastComputedRest = restSnapshot
         self.spo2Estimates = spo2Snapshot
 
@@ -1086,6 +1090,7 @@ final class Repository: ObservableObject {
         // and an appended line after the bump is how that invariant quietly stops being true.
         self.exploreAllCache = nil
         self.refreshSeq += 1
+        return true
     }
 
     /// Per-source coverage counts for the Freshness Pipeline card. Pure over the rows already read.

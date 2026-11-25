@@ -302,7 +302,8 @@ struct RootView: View {
             .background(StrandPalette.surfaceBase.ignoresSafeArea())
         }
         .task {
-            await repo.refresh()
+            let refreshSucceeded = await repo.refresh()
+            guard refreshSucceeded else { return }
             // Backup & Sync: on-launch catch-up. Gated on the auto toggle being ON (default OFF). A
             // whole-DB ZIP can be 100MB+, so it must never block startup: fire it in a DETACHED,
             // utility-priority task AFTER the launch-critical refresh, fully off the main actor (the
