@@ -268,7 +268,6 @@ final class Repository: ObservableObject {
     /// the result is committed only if the repository still represents the same sleep data afterward.
     func loadNunaHealthMonitorSeries(for signature: String) async -> NunaHealthMonitorSeriesCache? {
         if let cached = cachedNunaHealthMonitorSeries(for: signature) { return cached }
-        let requestedRefresh = refreshSeq
         async let hrvRead = exploreSeries(key: "hrv", source: "my-whoop", days: 400)
         async let rhrRead = exploreSeries(key: "rhr", source: "my-whoop", days: 400)
         async let spo2Read = exploreSeries(key: "spo2", source: "my-whoop")
@@ -283,7 +282,7 @@ final class Repository: ObservableObject {
             for point in candidates where spo2[point.day] == nil { spo2[point.day] = point.value }
         }
 
-        guard requestedRefresh == refreshSeq, signature == healthMainSleepSignature() else { return nil }
+        guard signature == healthMainSleepSignature() else { return nil }
         let snapshot = NunaHealthMonitorSeriesCache(
             sleepSignature: signature,
             hrv: Dictionary(hrvPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
