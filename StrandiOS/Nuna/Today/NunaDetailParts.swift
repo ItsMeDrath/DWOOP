@@ -471,8 +471,13 @@ struct NunaExpandRow: View {
 
 // MARK: - Charts
 
-/// Charge zone colour: green 67+, yellow 34 to 66, red 0 to 33.
-func nunaChargeColor(_ v: Double) -> Color { NunaScoreStyle.chargeColor(v) }
+/// The dashboard's canonical displayed Recovery value: cap the display at 99, then round before classifying its zone.
+func nunaChargeDisplayValue(_ v: Double) -> Double {
+    Double(Int(UnitFormatter.recoveryDisplayValue(v).rounded()))
+}
+
+/// Charge zone colour: use the same rounded, displayed percentage as the dashboard.
+func nunaChargeColor(_ v: Double) -> Color { NunaScoreStyle.chargeColor(nunaChargeDisplayValue(v)) }
 
 /// The same three zones for text.
 func nunaChargeTextColor(_ v: Double) -> Color { nunaChargeColor(v) }
