@@ -366,10 +366,10 @@ public enum WhoopStress {
 
     // MARK: - The shape the existing screens read
 
-    /// A reading in the shape the existing stress surfaces already draw (`DaytimeStress.Result`): hourly and half-hourly points, the
-    /// minutes in the High band, the day's mean and peak. Every epoch counts, asleep and in motion included, which is the Total day reading;
-    /// the three categories stay on the `Result` itself. A half-hour line point may use one valid 5-minute epoch: each epoch has already
-    /// passed the HR/HRV quality gates, and retaining it avoids leaving a visible gap when only one epoch in that bucket is scorable.
+    /// A reading in the shape the existing stress surfaces already draw (`DaytimeStress.Result`): hourly summary points and a 5-minute
+    /// display timeline, plus the minutes in the High band, the day's mean and peak. Every epoch counts, asleep and in motion included,
+    /// which is the Total day reading; the three categories stay on the `Result` itself. Each valid 5-minute epoch remains its own line
+    /// point so neither Home nor Stress Monitor smooths away short-term changes by averaging adjacent readings.
     public static func daytimeResult(_ r: Result, tzOffsetSeconds: Int = 0) -> DaytimeStress.Result {
         func floorDiv(_ a: Int, _ b: Int) -> Int { let q = a / b, m = a % b; return (m != 0 && (m < 0) != (b < 0)) ? q - 1 : q }
         func points(_ width: Int, minimum: Int) -> [DaytimeStress.HourPoint] {
@@ -386,9 +386,9 @@ public enum WhoopStress {
             }
         }
         let hours = points(3_600, minimum: 3)
-        // Keep every quality-gated epoch represented on the finer display line; the hourly summary
+        // Keep every quality-gated 5-minute epoch as its own display point. The hourly summary
         // remains stricter so a single short window cannot skew the day's totals.
-        let timeline = points(1_800, minimum: 1)
+        let timeline = points(WhoopStress.Tuning().epochSeconds, minimum: 1)
         let scored = hours.compactMap { h in h.level.map { (h, $0) } }
         var run = 0
         for (_, l) in scored.reversed() { if l >= DaytimeStress.highBandFloor { run += 1 } else { break } }
