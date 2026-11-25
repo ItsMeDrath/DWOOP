@@ -30,8 +30,6 @@ import WhoopStore
 struct StressView: View {
     @EnvironmentObject var repo: Repository
 
-    /// The stored 0–3 stress series ("my-whoop"), oldest→newest. Empty → derive.
-    @State private var storedSeries: [(day: String, value: Double)] = []
     @State private var loaded = false
     /// Trend window for the chart (W/M/3M/6M/1Y/ALL).
     @State private var range: ExploreRange = .month
@@ -52,12 +50,8 @@ struct StressView: View {
     /// Frequency-domain HRV bands (LF / HF / LF-HF / total power).
     @State private var freqHRV: HRVFreqDomain.Bands?
 
-    /// Cached StressModel + the input signature it was built from. Rebuilding the
-    /// model is expensive (z-score derivation + per-day date parsing over the full
-    /// history), so we recompute it only when its inputs actually change — NOT on
-    /// every body re-eval (hover / animation / 1 Hz HR ticks).
+    /// Restored from Repository's long-lived cache on page entry for immediate graph display.
     @State private var model: StressModel?
-    @State private var modelSignature: StressInputs?
 
     var body: some View {
         ScreenScaffold(title: "Stress", subtitle: "Autonomic load from HRV and resting heart rate",
@@ -77,18 +71,27 @@ struct StressView: View {
                 emptyState
             }
         }
-        .onAppear { rebuildModelIfNeeded() }
-        .onChangeCompat(of: repo.days) { _ in rebuildModelIfNeeded() }
+        .onAppear { restoreCachedModelIfAvailable() }
         .task(id: repo.refreshSeq) { await load() }
     }
 
-    private func load() async {
-        // Start the shared intraday stress read immediately. The historical trend model
-        // and its stored-series query are independent, so neither should hold up the graph.
-        async let timelineLoad: Void = loadDaytime()
-        storedSeries = await repo.series(key: "stress", source: "my-whoop")
+    private func restoreCachedModelIfAvailable() {
+        guard let cached = repo.stressLoadCache,
+              cached.refreshSeq == repo.refreshSeq,
+              cached.dayKey == Repository.localDayKey(Date()),
+              cached.days == repo.days else { return }
+        model = cached.model
         loaded = true
-        rebuildModelIfNeeded()
+    }
+
+    private func load() async {
+        // Intraday stress remains independent. Historical data restores from Repository's
+        // cache on a same-state page reopen, without another SQLite query or model rebuild.
+        async let timelineLoad: Void = loadDaytime()
+        let snapshot = await repo.performStressLoad()
+        guard !Task.isCancelled else { return }
+        model = snapshot.model
+        loaded = true
         await timelineLoad
     }
 
@@ -122,16 +125,6 @@ struct StressView: View {
         }
         stressIndex = advanced.index
         freqHRV = advanced.freq
-    }
-
-    /// Recompute the cached `StressModel` only when (repo.days, storedSeries)
-    /// actually changed since the last build. Equality is an O(n) value compare,
-    /// far cheaper than the model rebuild it guards.
-    private func rebuildModelIfNeeded() {
-        let signature = StressInputs(days: repo.days, stored: storedSeries)
-        guard signature != modelSignature else { return }
-        modelSignature = signature
-        model = StressModel(days: repo.days, stored: storedSeries)
     }
 
     // MARK: Loaded content
@@ -697,27 +690,6 @@ enum StressRamp {
     /// Sample the ramp at a 0–3 stress score.
     static func color(_ score: Double) -> Color {
         StrandPalette.sample(stops: stops, at: min(max(score / 3.0, 0), 1))
-    }
-}
-
-// MARK: - Stress model inputs (cache key)
-
-/// An `Equatable` snapshot of everything `StressModel.init` reads, used to decide
-/// when the cached model must be rebuilt. `DailyMetric` is already `Equatable`;
-/// the stored series is a tuple array (not `Equatable`), so we mirror it into an
-/// `Equatable` shape. Comparison is O(n) — cheap versus rebuilding the model.
-private struct StressInputs: Equatable {
-    let days: [DailyMetric]
-    let stored: [StoredPoint]
-
-    struct StoredPoint: Equatable {
-        let day: String
-        let value: Double
-    }
-
-    init(days: [DailyMetric], stored: [(day: String, value: Double)]) {
-        self.days = days
-        self.stored = stored.map { StoredPoint(day: $0.day, value: $0.value) }
     }
 }
 
