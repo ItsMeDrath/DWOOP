@@ -71,7 +71,10 @@ struct StressView: View {
                 emptyState
             }
         }
-        .onAppear { restoreCachedModelIfAvailable() }
+        .onAppear {
+            restoreCachedModelIfAvailable()
+            restoreCachedDaytimeIfAvailable()
+        }
         .task(id: repo.refreshSeq) { await load() }
     }
 
@@ -100,6 +103,21 @@ struct StressView: View {
         let saved = PersistedStressModel(model)
         guard let data = try? JSONEncoder().encode(saved) else { return }
         UserDefaults.standard.set(data, forKey: Self.persistedStressModelKey)
+    }
+
+    private static let persistedDaytimeKey = "stress-monitor.persisted-daytime.v1"
+
+    private func restoreCachedDaytimeIfAvailable() {
+        guard let data = UserDefaults.standard.data(forKey: Self.persistedDaytimeKey),
+              let saved = try? JSONDecoder().decode(PersistedStressDaytime.self, from: data),
+              saved.dayKey == Repository.localDayKey(Date()) else { return }
+        daytime = saved.makeResult()
+    }
+
+    private func persistDaytime(_ result: DaytimeStress.Result) {
+        let saved = PersistedStressDaytime(result, dayKey: Repository.localDayKey(Date()))
+        guard let data = try? JSONEncoder().encode(saved) else { return }
+        UserDefaults.standard.set(data, forKey: Self.persistedDaytimeKey)
     }
 
     private func load() async {
@@ -133,8 +151,13 @@ struct StressView: View {
             freqHRV = nil
             return
         }
-        // Publish the shared timeline before doing anything for the optional Advanced HRV card.
-        daytime = shared.result
+        // Publish and persist the shared timeline before doing anything for the optional
+        // Advanced HRV card. This is the five-minute graph the user should see immediately
+        // after reopening, while the current day's missing intervals are recalculated.
+        withAnimation(.easeInOut(duration: 0.35)) {
+            daytime = shared.result
+        }
+        persistDaytime(shared.result)
 
         // This RR read is deliberately after publication: it must not compete with the shared
         // StressEngine read or hold the graph behind the advanced frequency-domain calculation.
@@ -716,6 +739,72 @@ enum StressRamp {
 }
 
 // MARK: - Stress model (transparent: stored value OR z-score derivation)
+
+/// Disk representation of the intraday stress curve. Kept separately from the daily model
+/// because the five-minute timeline can refresh independently of the historical daily trend.
+private struct PersistedStressDaytime: Codable {
+    let dayKey: String
+    let hours: [PersistedStressHour]
+    let timeline: [PersistedStressHour]
+    let sustainedHigh: Bool
+    let sustainedRun: Int
+    let dayMean: Double?
+    let peak: PersistedStressHour?
+    let activityMaskedHours: Int
+    let highStressMinutes: Int
+    let hrOnlyFallback: Bool
+
+    init(_ result: DaytimeStress.Result, dayKey: String) {
+        self.dayKey = dayKey
+        hours = result.hours.map(PersistedStressHour.init)
+        timeline = result.timeline.map(PersistedStressHour.init)
+        sustainedHigh = result.sustainedHigh
+        sustainedRun = result.sustainedRun
+        dayMean = result.dayMean
+        peak = result.peak.map(PersistedStressHour.init)
+        activityMaskedHours = result.activityMaskedHours
+        highStressMinutes = result.highStressMinutes
+        hrOnlyFallback = result.hrOnlyFallback
+    }
+
+    func makeResult() -> DaytimeStress.Result {
+        DaytimeStress.Result(
+            hours: hours.map(\.makePoint),
+            sustainedHigh: sustainedHigh,
+            sustainedRun: sustainedRun,
+            dayMean: dayMean,
+            peak: peak?.makePoint,
+            activityMaskedHours: activityMaskedHours,
+            highStressMinutes: highStressMinutes,
+            hrOnlyFallback: hrOnlyFallback,
+            timeline: timeline.map(\.makePoint)
+        )
+    }
+}
+
+private struct PersistedStressHour: Codable {
+    let hour: Int
+    let startTs: Int
+    let level: Double?
+    let meanHR: Double?
+    let rmssd: Double?
+    let maskedForActivity: Bool
+
+    init(_ point: DaytimeStress.HourPoint) {
+        hour = point.hour
+        startTs = point.startTs
+        level = point.level
+        meanHR = point.meanHR
+        rmssd = point.rmssd
+        maskedForActivity = point.maskedForActivity
+    }
+
+    var makePoint: DaytimeStress.HourPoint {
+        DaytimeStress.HourPoint(hour: hour, startTs: startTs, level: level,
+                                meanHR: meanHR, rmssd: rmssd,
+                                maskedForActivity: maskedForActivity)
+    }
+}
 
 /// Small, versioned-by-key disk representation of the Stress Monitor model. The chart points
 /// are copied into a local Codable type because the shared TrendPoint is intentionally not Codable.
