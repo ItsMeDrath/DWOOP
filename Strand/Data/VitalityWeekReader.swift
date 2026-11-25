@@ -77,22 +77,17 @@ enum VitalityWeekReader {
         data.restingHRs = sorted.compactMap { $0.restingHr }.map(Double.init)
         data.sleepNights = sorted.compactMap { $0.totalSleepMin }.map { $0 / 60 }.filter { $0 > 0 }
 
-        // Use the exact same full-history consistency series as the Sleep tab's
-        // trend tile, then take its latest seven available points for this week.
-        // Do not rebuild/import/fallback the metric independently here: that caused
-        // WHOOP Age to diverge from the Sleep trend (for example, showing 3% vs 72%).
-        // Repository daily rows are not guaranteed to be chronological. The SleepModel
-        // imported-series gate checks days.last, so pass ascending days to ensure it
-        // sees the actual latest date (Nov 25 here) and uses imported WHOOP scores,
-        // rather than silently falling back to the approximate bedtime-spread series.
-        let chronologicalDays = repo.days.sorted { $0.day < $1.day }
+        // Use the exact Sleep-tab consistency derivation, but constrain it to THIS
+        // seven-day Body Age window. Passing the full repository history and then
+        // taking suffix(7) is unsafe: compactMap omits dates without imported scores,
+        // so suffix(7) can pull older dates into this week's average.
+        // sorted is the same ascending seven-day window supplied to this reader.
         let sleepTrendConsistency = SleepModel.consistencySeries(
-            days: chronologicalDays, sleeps: repo.sleeps, importedSleep: repo.importedSleep
+            days: sorted, sleeps: repo.sleeps, importedSleep: repo.importedSleep
         ).series
-        let latestWeekConsistency = Array(sleepTrendConsistency.suffix(7))
-        let sleepConsistency = latestWeekConsistency.isEmpty
+        let sleepConsistency = sleepTrendConsistency.isEmpty
             ? nil
-            : latestWeekConsistency.reduce(0, +) / Double(latestWeekConsistency.count)
+            : sleepTrendConsistency.reduce(0, +) / Double(sleepTrendConsistency.count)
         data.storedConsistency = sleepConsistency.map { [$0] } ?? []
 
         let estimated = Dictionary((await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: lookback)).map { ($0.day, $0.value) },
