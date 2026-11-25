@@ -36,7 +36,8 @@ struct NunaHealthView: View {
     @State private var showCoach = false
     @State private var showSleepCoach = false
     @State private var showReport = false
-    @State private var loadedMainSleepSignature: String?
+    @State private var appliedMainSleepSignature: String?
+    @State private var loadingMainSleepSignature: String?
 
     private enum Legacy: String, Identifiable { case appleHealth, live, mood, cycle, breathing; var id: String { rawValue } }
 
@@ -148,39 +149,38 @@ struct NunaHealthView: View {
     /// calibrating, so the banner and the "Calibrating range" pills stay out instead of flashing for the first moment of every visit.
     private var rangeKnown: Bool { hrvS.loaded && rhrS.loaded }
 
-    /// Refreshes the full monitor only when the canonical main-sleep data changes. The repository
-    /// already owns the loaded daily rows, so this is synchronous and never performs per-visit reads.
+    /// Restore the full page from the repository's persistent snapshot. A store read is started
+    /// only when the canonical main-sleep signature has changed or no matching snapshot exists.
     private func refreshVitalsIfMainSleepChanged() {
         guard repo.loaded else { return }
         let signature = repo.healthMainSleepSignature()
-        guard loadedMainSleepSignature != signature else { return }
-        loadedMainSleepSignature = signature
+        guard appliedMainSleepSignature != signature else { return }
+        appliedMainSleepSignature = signature
         day.seedFromMemory(repo: repo)
-        seedSeriesFromMemory()
+
+        if let cached = repo.cachedNunaHealthMonitorSeries(for: signature) {
+            applyHealthMonitorSeries(cached)
+            return
+        }
+        guard loadingMainSleepSignature != signature else { return }
+        loadingMainSleepSignature = signature
+        Task { @MainActor in
+            let cached = await repo.loadNunaHealthMonitorSeries(for: signature)
+            if let cached, repo.healthMainSleepSignature() == signature {
+                applyHealthMonitorSeries(cached)
+            }
+            if loadingMainSleepSignature == signature { loadingMainSleepSignature = nil }
+        }
     }
 
-    /// Puts the histories the range is worked out from on screen at once, from the daily rows the repository already holds. Same
-    /// per-day columns `Repository.exploreSeries` starts from; the store read in `.task` then replaces them. Does nothing before the repository's
-    /// first read (the rows are empty then) or once a series is already loaded.
-    private func seedSeriesFromMemory() {
-        guard repo.loaded else { return }
-        let cutoff = Repository.localDayKey(Date().addingTimeInterval(-400 * 86_400))
-        func values(_ key: String) -> [String: Double] {
-            var out: [String: Double] = [:]
-            for d in repo.days where d.day >= cutoff {
-                if let v = Repository.dailyColumn(key: key, day: d), v.isFinite { out[d.day] = v }
-            }
-            return out
-        }
-        hrvS.seed(values("hrv"))
-        rhrS.seed(values("rhr"))
-        respS.seed(values("resp_rate"))
-        // Skin temperature is bimodal (absolute °C from imports, deviations from the strap): keep the one scale, as `exploreSeries` does.
-        var skin = values("skin_temp")
-        if let kind = SkinTempDisplay.dominantKind(valuesAscendingByDay: skin.sorted { $0.key < $1.key }.map(\.value)) {
-            skin = skin.filter { SkinTempDisplay.kind(of: $0.value) == kind }
-        }
-        skinS.seed(skin)
+    /// Publish all five histories from one complete snapshot, keeping the charts and calibration
+    /// range in sync instead of exposing a partially seeded range.
+    private func applyHealthMonitorSeries(_ cached: NunaHealthMonitorSeriesCache) {
+        hrvS.replace(cached.hrv)
+        rhrS.replace(cached.rhr)
+        spo2S.replace(cached.spo2)
+        respS.replace(cached.respiration)
+        skinS.replace(cached.skinTemperature)
     }
 
     /// The purple band over the tiles while the range is still being built: calibrating (no range yet, seven nights), then learning (a range
