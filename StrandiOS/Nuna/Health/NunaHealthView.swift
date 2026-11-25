@@ -36,6 +36,7 @@ struct NunaHealthView: View {
     @State private var showCoach = false
     @State private var showSleepCoach = false
     @State private var showReport = false
+    @State private var loadedMainSleepSignature: String?
 
     private enum Legacy: String, Identifiable { case appleHealth, live, mood, cycle, breathing; var id: String { rawValue } }
 
@@ -44,24 +45,19 @@ struct NunaHealthView: View {
         .nunaTodayDestinations()
         .nunaWorkoutDestinations()
         .onAppear {
-            // The overnight vitals already live in the local daily-metrics store. Seed them before
-            // any asynchronous history/series reads so the monitor's first frame has real values.
-            if vitalsOnly { day.seedFromMemory(repo: repo); seedSeriesFromMemory() }
-        }
-        .task(id: repo.refreshSeq) {
             if vitalsOnly {
-                // Also seed on repository refreshes; load() then refreshes the same values and histories.
-                day.seedFromMemory(repo: repo)
-                seedSeriesFromMemory()
-                await day.load(repo: repo, profile: profile)
-                await hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 400)
-                await rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 400)
-                await spo2S.load(repo: repo, key: "spo2", source: "my-whoop")
-                await respS.load(repo: repo, key: "resp_rate", source: "my-whoop")
-                await skinS.load(repo: repo, key: "skin_temp", source: "my-whoop")
-            } else {
-                await sleep.load(repo: repo)
+                // Paint from the repository's already-loaded nightly rows. No database/history
+                // reads are needed when the page opens or is reopened.
+                refreshVitalsIfMainSleepChanged()
             }
+        }
+        .onChange(of: repo.refreshSeq) { _ in
+            // refreshSeq also changes for unrelated syncs. Only a changed canonical main-night
+            // signature is allowed to refresh this page; naps and other data leave it untouched.
+            if vitalsOnly { refreshVitalsIfMainSleepChanged() }
+        }
+        .task {
+            if !vitalsOnly { await sleep.load(repo: repo) }
         }
         .sheet(item: $legacy) { which in
             NavigationStack {
@@ -151,6 +147,17 @@ struct NunaHealthView: View {
     /// Whether the nightly histories the range comes from have been read. Until then there are "0 nights", which is not the same as
     /// calibrating, so the banner and the "Calibrating range" pills stay out instead of flashing for the first moment of every visit.
     private var rangeKnown: Bool { hrvS.loaded && rhrS.loaded }
+
+    /// Refreshes the full monitor only when the canonical main-sleep data changes. The repository
+    /// already owns the loaded daily rows, so this is synchronous and never performs per-visit reads.
+    private func refreshVitalsIfMainSleepChanged() {
+        guard repo.loaded else { return }
+        let signature = repo.healthMainSleepSignature()
+        guard loadedMainSleepSignature != signature else { return }
+        loadedMainSleepSignature = signature
+        day.seedFromMemory(repo: repo)
+        seedSeriesFromMemory()
+    }
 
     /// Puts the histories the range is worked out from on screen at once, from the daily rows the repository already holds. Same
     /// per-day columns `Repository.exploreSeries` starts from; the store read in `.task` then replaces them. Does nothing before the repository's
