@@ -146,7 +146,9 @@ struct StressView: View {
         let to = Int(now.timeIntervalSince1970)
 
         guard let shared = await StressDayCurve.today(repo: repo, now: now, calendar: cal) else {
-            daytime = .empty
+            // Keep a restored same-day curve visible if the fresh calculation is not ready yet.
+            // Only use the empty state when there is no persisted curve to show.
+            if daytime == nil { daytime = .empty }
             stressIndex = nil
             freqHRV = nil
             return
