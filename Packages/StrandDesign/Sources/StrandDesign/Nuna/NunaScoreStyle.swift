@@ -14,9 +14,10 @@ public enum NunaScoreStyle {
     public static var pairGrey: Color { Color(light: "#4C565E", dark: "#B7C0C8") }
     public static var pairBlue: Color { Color(light: "#1F6FE5", dark: "#4DA3FF") }
 
-    /// Charge: green from 67, yellow from 34, red below.
+    /// Charge: classify the rounded displayed percentage, matching the dashboard's Recovery ring.
     public static func chargeColor(_ v: Double) -> Color {
-        v >= 67 ? NunaPalette.scoreHigh : (v >= 34 ? NunaPalette.scoreMid : NunaPalette.scoreLow)
+        let displayed = Int(v.rounded())
+        return displayed >= 67 ? NunaPalette.scoreHigh : (displayed >= 34 ? NunaPalette.scoreMid : NunaPalette.scoreLow)
     }
 
     /// Effort on the stored 0-100 axis: dark blue below 33, blue below 66, light blue above.
