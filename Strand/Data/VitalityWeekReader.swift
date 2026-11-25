@@ -77,9 +77,13 @@ enum VitalityWeekReader {
         data.restingHRs = sorted.compactMap { $0.restingHr }.map(Double.init)
         data.sleepNights = sorted.compactMap { $0.totalSleepMin }.map { $0 / 60 }.filter { $0 > 0 }
 
-        let consistency = Dictionary((await repo.exploreSeries(key: "sleep_consistency", source: "my-whoop", days: lookback)).map { ($0.day, $0.value) },
-                                     uniquingKeysWith: { _, l in l })
-        data.storedConsistency = sorted.compactMap { consistency[$0.day] }
+        // Healthspan must use the exact same consistency metric and averaging window as the Sleep tab.
+        // This preserves its imported-WHOOP preference and its bedtime-spread fallback, rather than
+        // averaging only the latest week's raw import rows.
+        let sleepConsistency = SleepModel.consistencySeries(
+            days: repo.days, sleeps: repo.sleeps, importedSleep: repo.importedSleep
+        ).typical
+        data.storedConsistency = sleepConsistency.map { [$0] } ?? []
 
         let estimated = Dictionary((await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: lookback)).map { ($0.day, $0.value) },
                                    uniquingKeysWith: { _, l in l })
