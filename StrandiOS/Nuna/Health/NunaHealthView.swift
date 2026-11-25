@@ -46,12 +46,13 @@ struct NunaHealthView: View {
         .onAppear {
             // The overnight vitals already live in the local daily-metrics store. Seed them before
             // any asynchronous history/series reads so the monitor's first frame has real values.
-            if vitalsOnly { day.seedFromMemory(repo: repo) }
+            if vitalsOnly { day.seedFromMemory(repo: repo); seedSeriesFromMemory() }
         }
         .task(id: repo.refreshSeq) {
             if vitalsOnly {
                 // Also seed on repository refreshes; load() then refreshes the same values and histories.
                 day.seedFromMemory(repo: repo)
+                seedSeriesFromMemory()
                 await day.load(repo: repo, profile: profile)
                 await hrvS.load(repo: repo, key: "hrv", source: "my-whoop", days: 400)
                 await rhrS.load(repo: repo, key: "rhr", source: "my-whoop", days: 400)
@@ -147,9 +148,40 @@ struct NunaHealthView: View {
     /// Nights with a sleep reading, which the range and its stages go by.
     private var rangePhase: VitalRange.Phase { VitalRange.phase(nights: max(hrvS.nights, rhrS.nights)) }
 
+    /// Whether the nightly histories the range comes from have been read. Until then there are "0 nights", which is not the same as
+    /// calibrating, so the banner and the "Calibrating range" pills stay out instead of flashing for the first moment of every visit.
+    private var rangeKnown: Bool { hrvS.loaded && rhrS.loaded }
+
+    /// Puts the histories the range is worked out from on screen at once, from the daily rows the repository already holds. Same
+    /// per-day columns `Repository.exploreSeries` starts from; the store read in `.task` then replaces them. Does nothing before the repository's
+    /// first read (the rows are empty then) or once a series is already loaded.
+    private func seedSeriesFromMemory() {
+        guard repo.loaded else { return }
+        let cutoff = Repository.localDayKey(Date().addingTimeInterval(-400 * 86_400))
+        func values(_ key: String) -> [String: Double] {
+            var out: [String: Double] = [:]
+            for d in repo.days where d.day >= cutoff {
+                if let v = Repository.dailyColumn(key: key, day: d), v.isFinite { out[d.day] = v }
+            }
+            return out
+        }
+        hrvS.seed(values("hrv"))
+        rhrS.seed(values("rhr"))
+        respS.seed(values("resp_rate"))
+        // Skin temperature is bimodal (absolute °C from imports, deviations from the strap): keep the one scale, as `exploreSeries` does.
+        var skin = values("skin_temp")
+        if let kind = SkinTempDisplay.dominantKind(valuesAscendingByDay: skin.sorted { $0.key < $1.key }.map(\.value)) {
+            skin = skin.filter { SkinTempDisplay.kind(of: $0.value) == kind }
+        }
+        skinS.seed(skin)
+    }
+
     /// The purple band over the tiles while the range is still being built: calibrating (no range yet, seven nights), then learning (a range
     /// that is still wide, fourteen nights). Gone once the range is final.
     @ViewBuilder private var rangeBanner: some View {
+        if !rangeKnown {
+            EmptyView()
+        } else {
         switch rangePhase {
         case .calibrating(let n):
             let left = VitalRange.calibrationNights - n
@@ -164,6 +196,7 @@ struct NunaHealthView: View {
         case .trusted:
             EmptyView()
         }
+        }
     }
 
     /// Respiratory, blood oxygen, resting heart rate, HRV and skin temperature, each with a pill that says where it sits against the wearer's own
@@ -171,7 +204,8 @@ struct NunaHealthView: View {
     private var vitalBento: some View {
         let hasRange = rangePhase.hasRange
         typealias Chip = (text: String, color: Color, symbol: String?)
-        let calibrating: Chip = (String(localized: "Calibrating range"), NunaPalette.textSecondary, nil)
+        // Nil (no pill at all) until the histories are read, so a page that has not got its nights yet does not say "Calibrating range".
+        let calibrating: Chip? = rangeKnown ? (String(localized: "Calibrating range"), NunaPalette.textSecondary, nil) : nil
         let ok = NunaPalette.charge, warn = NunaPalette.warning
 
         /// "within 60 - 62", "elevated > 80" or "low < 15.0" for a reading against a series' typical range. Above is only a warning when
