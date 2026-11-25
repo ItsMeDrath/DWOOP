@@ -109,6 +109,16 @@ struct HealthFitnessAgeLoadCache {
     let vo2maxEstimatorRaw: String?
 }
 
+/// Stress Monitor's prepared historical data. Held by the long-lived Repository so leaving and
+/// reopening the page reuses both the stored series and the already-built chart model.
+struct StressLoadCache {
+    let refreshSeq: Int
+    let dayKey: String
+    let days: [DailyMetric]
+    let storedSeries: [(day: String, value: Double)]
+    let model: StressModel?
+}
+
 /// A compact snapshot of how much history each source holds, fed to the Data Sources "Freshness
 /// Pipeline" card and the Android equivalent. Counts only , no per-day rows leave the refresh.
 struct RepositoryFreshness: Equatable, Sendable {
@@ -225,6 +235,8 @@ final class Repository: ObservableObject {
     /// Health Monitor auxiliary query snapshots. These survive tab changes and view reconstruction.
     var healthVitalsLoadCache: HealthVitalsLoadCache?
     var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache?
+    /// Prepared Stress Monitor history survives tab changes and view reconstruction.
+    var stressLoadCache: StressLoadCache?
     private var healthMainSleepSignatureMemo: (seq: Int, value: String)?
 
     /// Stable key for Health Monitor data: only the canonical main-night group for each local wake-day
@@ -1956,6 +1968,49 @@ final class Repository: ObservableObject {
             pts = (try? await store.metricSeries(deviceId: source, key: key, from: from, to: to)) ?? []
         }
         return pts.map { ($0.day, $0.value) }
+    }
+
+    /// Load the Stress Monitor's historical inputs once per successful repository refresh.
+    /// A page remount on the same refresh/day restores the prepared model from stressLoadCache;
+    /// only changed repository data causes another series query/build.
+    func performStressLoad() async -> StressLoadCache {
+        while !Task.isCancelled {
+            let seq = refreshSeq
+            let dayKey = Self.localDayKey(Date())
+            let inputDays = days
+            if let cached = stressLoadCache,
+               cached.refreshSeq == seq,
+               cached.dayKey == dayKey,
+               cached.days == inputDays {
+                return cached
+            }
+
+            let stored = await series(key: "stress", source: "my-whoop")
+            // This await permits actor re-entry. Do not publish a model built from a series read
+            // that raced with a newer refresh.
+            guard seq == refreshSeq,
+                  dayKey == Self.localDayKey(Date()),
+                  inputDays == days else { continue }
+
+            let snapshot = StressLoadCache(
+                refreshSeq: seq,
+                dayKey: dayKey,
+                days: inputDays,
+                storedSeries: stored,
+                model: StressModel(days: inputDays, stored: stored)
+            )
+            stressLoadCache = snapshot
+            return snapshot
+        }
+
+        // Navigation can cancel the task. Preserve a valid prior snapshot when one exists.
+        return stressLoadCache ?? StressLoadCache(
+            refreshSeq: refreshSeq,
+            dayKey: Self.localDayKey(Date()),
+            days: days,
+            storedSeries: [],
+            model: StressModel(days: days, stored: [])
+        )
     }
 
     // MARK: - Deep Timeline (full-day full-resolution viewer , #575/#574/#582)
