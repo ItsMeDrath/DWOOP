@@ -156,9 +156,9 @@ extension NunaDaysBreakdown {
     /// Charge's three zones.
     static var chargeBands: [Band] {
         [
-            Band(color: NunaPalette.scoreHigh, name: "Ready", range: "67–100%") { $0 >= 67 },
-            Band(color: NunaPalette.scoreMid, name: "Moderate", range: "34–66%") { $0 >= 34 && $0 < 67 },
-            Band(color: NunaPalette.scoreLow, name: "Low", range: "0–33%") { $0 < 34 },
+            Band(color: NunaPalette.scoreHigh, name: "Ready", range: "67–100%") { nunaChargeDisplayValue($0) >= 67 },
+            Band(color: NunaPalette.scoreMid, name: "Moderate", range: "34–66%") { let v = nunaChargeDisplayValue($0); return v >= 34 && v < 67 },
+            Band(color: NunaPalette.scoreLow, name: "Low", range: "0–33%") { nunaChargeDisplayValue($0) < 34 },
         ]
     }
 
