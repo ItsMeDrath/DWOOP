@@ -58,6 +58,19 @@ final class BackupSyncRoundTripTests: XCTestCase {
         }
         XCTAssertEqual(try deviceRows(in: liveDB), ["my-whoop", "watch"],
                        "Restored DB should hold exactly the backed-up rows")
+
+        let restoreDirectory = liveDB.deletingLastPathComponent()
+        let staleSnapshot = restoreDirectory.appendingPathComponent("whoop-replaced-2026-01-01-000000.sqlite")
+        try Data("old rollback copy".utf8).write(to: staleSnapshot)
+        let second = DataBackup.restore(from: backup, toDatabaseAt: liveDB.path)
+        guard case .imported = second else {
+            return XCTFail("Second restore should succeed, got \(second)")
+        }
+        let remaining = try FileManager.default.contentsOfDirectory(atPath: restoreDirectory.path)
+        XCTAssertFalse(remaining.contains { $0.hasPrefix("whoop-replaced-") && $0.hasSuffix(".sqlite") },
+                       "Successful restore must not leave rollback database copies behind")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: backup.path),
+                      "The selected .noopbak backup must remain untouched")
     }
 
     // MARK: - Settings round trip (#1000: restore brings back weight/height/settings)
