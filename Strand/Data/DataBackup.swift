@@ -45,8 +45,8 @@ enum DataBackup {
         /// user to confirm once. Reported at EXPORT time because the alternative is finding out during a
         /// restore, which is exactly when the original is gone. (#1807)
         case exportedOversize(URL, bytes: Int64, limit: Int64)
-        /// Import succeeded; a relaunch is required for it to take effect. `sidecar` is where the
-        /// previous database was preserved, in case the user wants to roll back.
+        /// Import succeeded; a relaunch is required for it to take effect. The temporary rollback
+        /// snapshot has been removed after the replacement passed integrity validation.
         case imported(sidecar: URL)
         /// The user dismissed the save/open panel — nothing happened, show nothing loud.
         case cancelled
@@ -540,8 +540,7 @@ enum DataBackup {
             // sidecars are laid down: a bare main file is always read-only verifiable, and WAL
             // frames carry their own checksums (SQLite validates them on the first real open), so
             // the sidecars don't need this gate. On failure, roll back to the snapshot
-            // AUTOMATICALLY and say so; the snapshot file is kept either way (same policy as a
-            // successful import: the user can always reach the pre-import bytes).
+            // AUTOMATICALLY and say so; the complete rollback snapshot is retained on failure.
             if let complaint = DatabaseIntegrity.quickCheckFailure(atPath: dbURL.path) {
                 removeIfPresent(dbURL)
                 if sidecar != dbURL, fm.fileExists(atPath: sidecar.path) {
