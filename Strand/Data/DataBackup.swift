@@ -799,7 +799,7 @@ enum DataBackup {
                           userInfo: [NSLocalizedDescriptionKey: "SQLite couldn't finish the database snapshot."])
         }
         if let complaint = DatabaseIntegrity.quickCheckFailure(atPath: destinationURL.path) {
-            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: SQLITE_CORRUPT,
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: Int(SQLITE_CORRUPT),
                           userInfo: [NSLocalizedDescriptionKey: "The rollback snapshot failed its integrity check: \(DatabaseIntegrity.readableComplaint(complaint))"])
         }
         snapshotCompleted = true
