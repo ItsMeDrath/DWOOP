@@ -75,13 +75,31 @@ struct StressView: View {
         .task(id: repo.refreshSeq) { await load() }
     }
 
+    private static let persistedStressModelKey = "stress-monitor.persisted-model.v1"
+
     private func restoreCachedModelIfAvailable() {
-        guard let cached = repo.stressLoadCache,
-              cached.refreshSeq == repo.refreshSeq,
-              cached.dayKey == Repository.localDayKey(Date()),
-              cached.days == repo.days else { return }
-        model = cached.model
+        // Prefer the in-memory repository snapshot when it matches the current data.
+        if let cached = repo.stressLoadCache,
+           cached.refreshSeq == repo.refreshSeq,
+           cached.dayKey == Repository.localDayKey(Date()),
+           cached.days == repo.days {
+            model = cached.model
+            loaded = true
+            return
+        }
+
+        // A page cache in memory disappears when iOS terminates the app. Restore the last
+        // successfully prepared model from disk so the page never opens with a blank chart.
+        guard let data = UserDefaults.standard.data(forKey: Self.persistedStressModelKey),
+              let saved = try? JSONDecoder().decode(PersistedStressModel.self, from: data) else { return }
+        model = saved.makeModel()
         loaded = true
+    }
+
+    private func persistStressModel(_ model: StressModel) {
+        let saved = PersistedStressModel(model)
+        guard let data = try? JSONEncoder().encode(saved) else { return }
+        UserDefaults.standard.set(data, forKey: Self.persistedStressModelKey)
     }
 
     private func load() async {
@@ -91,6 +109,10 @@ struct StressView: View {
         let snapshot = await repo.performStressLoad()
         guard !Task.isCancelled else { return }
         model = snapshot.model
+        if let freshModel = snapshot.model {
+            // Only replace the durable snapshot after a successful fresh calculation.
+            persistStressModel(freshModel)
+        }
         loaded = true
         await timelineLoad
     }
@@ -695,6 +717,46 @@ enum StressRamp {
 
 // MARK: - Stress model (transparent: stored value OR z-score derivation)
 
+/// Small, versioned-by-key disk representation of the Stress Monitor model. The chart points
+/// are copied into a local Codable type because the shared TrendPoint is intentionally not Codable.
+private struct PersistedStressTrendPoint: Codable {
+    let date: Date
+    let value: Double
+    let segment: String
+}
+
+private struct PersistedStressModel: Codable {
+    let score: Double
+    let explanation: String
+    let rhrToday: Int?
+    let hrvToday: Double?
+    let rhrDelta: Double?
+    let hrvDelta: Double?
+    let fullTrend: [PersistedStressTrendPoint]
+    let calmTimeValue: String
+    let calmTimeCaption: String
+    let usingStored: Bool
+
+    init(_ model: StressModel) {
+        score = model.score
+        explanation = model.explanation
+        rhrToday = model.rhrToday
+        hrvToday = model.hrvToday
+        rhrDelta = model.rhrDelta
+        hrvDelta = model.hrvDelta
+        fullTrend = model.fullTrend.map {
+            PersistedStressTrendPoint(date: $0.date, value: $0.value, segment: $0.segment)
+        }
+        calmTimeValue = model.calmTimeValue
+        calmTimeCaption = model.calmTimeCaption
+        usingStored = model.usingStored
+    }
+
+    func makeModel() -> StressModel {
+        StressModel(persisted: self)
+    }
+}
+
 struct StressModel {
     let score: Double            // 0–3 (today)
     let band: StressBand
@@ -707,6 +769,23 @@ struct StressModel {
     let calmTimeValue: String    // e.g. "58%"
     let calmTimeCaption: String  // e.g. "of last 30 days"
     let usingStored: Bool        // true when today's value came from the stored series
+
+    /// Rehydrate the complete page model from the last successful disk snapshot.
+    fileprivate init(persisted: PersistedStressModel) {
+        score = persisted.score
+        band = StressBand(score: persisted.score)
+        explanation = persisted.explanation
+        rhrToday = persisted.rhrToday
+        hrvToday = persisted.hrvToday
+        rhrDelta = persisted.rhrDelta
+        hrvDelta = persisted.hrvDelta
+        fullTrend = persisted.fullTrend.map {
+            TrendPoint(date: $0.date, value: $0.value, segment: $0.segment)
+        }
+        calmTimeValue = persisted.calmTimeValue
+        calmTimeCaption = persisted.calmTimeCaption
+        usingStored = persisted.usingStored
+    }
 
     /// Last up-to-14 trend values, for the hero tile sparkline.
     var sparkValues: [Double] { Array(fullTrend.suffix(14)).map(\.value) }
