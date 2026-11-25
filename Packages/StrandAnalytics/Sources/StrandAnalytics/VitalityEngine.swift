@@ -267,7 +267,7 @@ public enum VitalityEngine {
         public var restingHRs: [Double]
         /// Hours asleep, one per night.
         public var sleepNights: [Double]
-        /// The sleep consistency (percent, 0–100) the app stored from the timing of sleep, for the days that have it.
+        /// Sleep-tab consistency summary (percent, 0–100), supplied as a single value so Healthspan uses the same metric and averaging window.
         public var storedConsistency: [Double]
         /// Steps of each day with a count.
         public var steps: [Double]
@@ -302,7 +302,7 @@ public enum VitalityEngine {
     /// steps only from three days up, and the strength minutes only when the week was worn (zones read) or some strength was done.
     public static func weeklyInputs(_ w: WeekData) -> Inputs {
         func mean(_ xs: [Double]) -> Double? { xs.isEmpty ? nil : xs.reduce(0, +) / Double(xs.count) }
-        let consistency: Double? = w.storedConsistency.count >= 3
+        let consistency: Double? = !w.storedConsistency.isEmpty
             ? clamp((mean(w.storedConsistency) ?? 0) / 100, 0, 1)
             : sleepConsistency(nightlyHours: w.sleepNights)
         let hasZones = w.zonesLowMin != nil && w.zonesHighMin != nil
