@@ -141,6 +141,12 @@ final class VitalityEngineTests: XCTestCase {
         XCTAssertEqual(i.restingHR!, 61, accuracy: 1e-9)
         XCTAssertEqual(i.sleepHours!, 6.0375, accuracy: 1e-9)
         XCTAssertEqual(i.sleepConsistency!, 0.71, accuracy: 1e-9)
+        // The Sleep tab supplies its already-averaged consistency as one value; do not fall back
+        // to sleep-duration regularity merely because that summary contains fewer than three rows.
+        let sleepTabConsistency = VitalityEngine.weeklyInputs(.init(
+            chronoAge: 40, sex: "male", sleepNights: [6, 8, 6],
+            storedConsistency: [78]))
+        XCTAssertEqual(sleepTabConsistency.sleepConsistency!, 0.78, accuracy: 1e-9)
         XCTAssertEqual(i.steps!, 4943.333333, accuracy: 1e-3)
         XCTAssertEqual(i.expectedVO2max!, VitalityEngine.expectedVO2max(age: 36.6, sex: "male"), accuracy: 1e-9)
         XCTAssertNil(i.rmssd)
