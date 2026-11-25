@@ -506,7 +506,8 @@ enum DataBackup {
                 .appendingPathComponent("whoop-replaced-\(timestamp()).sqlite")
             if fm.fileExists(atPath: dbURL.path) {
                 if fm.fileExists(atPath: sidecar.path) { try fm.removeItem(at: sidecar) }
-                try fm.copyItem(at: dbURL, to: sidecar)
+                // SQLite's online backup API includes committed WAL pages in a consistent snapshot.
+                try makeConsistentSnapshot(from: dbURL, to: sidecar)
             } else {
                 // Nothing to preserve (fresh install); report a placeholder so the message reads sensibly.
                 sidecar = dbURL
@@ -590,6 +591,12 @@ enum DataBackup {
             if let extractedDir {
                 PHMNBackupExtras.apply(extractedDir: extractedDir, defaults: settingsDefaults, supportDirectory: restoreSupportDirectory)
             }
+
+            // The replacement passed SQLite integrity validation. The selected .noopbak remains the
+            // recovery point, so remove the temporary rollback copy and leftovers from older restores.
+            if sidecar != dbURL { removeIfPresent(sidecar) }
+            removePreviousRestoreSnapshots(in: dbURL.deletingLastPathComponent())
+
             // #57 debug: record when a restore swapped the DB, so the export can correlate a restore with a
             // later write stall (a restore not followed by a relaunch is the #57 failure).
             UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "backup.lastRestoreAt")
@@ -752,6 +759,63 @@ enum DataBackup {
         // "SQLite format 3" + NUL terminator.
         let magic: [UInt8] = Array("SQLite format 3".utf8) + [0x00]
         return Array(head) == magic
+    }
+
+    /// Make a consistent rollback snapshot of an open WAL-mode database. A plain file copy
+    /// of whoop.sqlite can omit committed pages that are still in its write-ahead log.
+    private static func makeConsistentSnapshot(from sourceURL: URL, to destinationURL: URL) throws {
+        var snapshotCompleted = false
+        defer { if !snapshotCompleted { removeIfPresent(destinationURL) } }
+        var source: OpaquePointer?
+        var destination: OpaquePointer?
+        let sourceResult = sqlite3_open_v2(sourceURL.path, &source, SQLITE_OPEN_READONLY | SQLITE_OPEN_FULLMUTEX, nil)
+        guard sourceResult == SQLITE_OK, let source else {
+            if let source { sqlite3_close(source) }
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: Int(sourceResult),
+                          userInfo: [NSLocalizedDescriptionKey: "Couldn't open the current database for a safe snapshot."])
+        }
+        defer { sqlite3_close(source) }
+        sqlite3_busy_timeout(source, 5_000)
+
+        let destinationResult = sqlite3_open_v2(destinationURL.path, &destination,
+                                                SQLITE_OPEN_READWRITE | SQLITE_OPEN_CREATE | SQLITE_OPEN_FULLMUTEX, nil)
+        guard destinationResult == SQLITE_OK, let destination else {
+            if let destination { sqlite3_close(destination) }
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: Int(destinationResult),
+                          userInfo: [NSLocalizedDescriptionKey: "Couldn't create the temporary database snapshot."])
+        }
+        defer { sqlite3_close(destination) }
+        sqlite3_busy_timeout(destination, 5_000)
+
+        guard let backup = sqlite3_backup_init(destination, "main", source, "main") else {
+            let code = sqlite3_errcode(destination)
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: Int(code),
+                          userInfo: [NSLocalizedDescriptionKey: "SQLite couldn't start the database snapshot."])
+        }
+        let stepResult = sqlite3_backup_step(backup, -1)
+        let finishResult = sqlite3_backup_finish(backup)
+        guard stepResult == SQLITE_DONE, finishResult == SQLITE_OK else {
+            let code = stepResult == SQLITE_DONE ? finishResult : stepResult
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: Int(code),
+                          userInfo: [NSLocalizedDescriptionKey: "SQLite couldn't finish the database snapshot."])
+        }
+        if let complaint = DatabaseIntegrity.quickCheckFailure(atPath: destinationURL.path) {
+            throw NSError(domain: "DataBackup.SQLiteSnapshot", code: SQLITE_CORRUPT,
+                          userInfo: [NSLocalizedDescriptionKey: "The rollback snapshot failed its integrity check: \(DatabaseIntegrity.readableComplaint(complaint))"])
+        }
+        snapshotCompleted = true
+    }
+
+    /// Remove only timestamped rollback snapshots created by this restore flow.
+    /// Normal .noopbak backups and unrelated Application Support files are never touched.
+    private static func removePreviousRestoreSnapshots(in directory: URL) {
+        let fm = FileManager.default
+        guard let files = try? fm.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return }
+        for file in files {
+            let name = file.lastPathComponent
+            guard name.hasPrefix("whoop-replaced-"), name.hasSuffix(".sqlite") else { continue }
+            removeIfPresent(file)
+        }
     }
 
     private static func removeIfPresent(_ url: URL) {
