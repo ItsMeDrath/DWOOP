@@ -156,13 +156,15 @@ final class WhoopStressTests: XCTestCase {
         XCTAssertNil(WhoopStress.nightFigures(hr: [], rr: [], from: t0, to: t0 + 7200))
     }
 
-    func testDaytimeResultCarriesTheHighMinutesAndAnHourlyAndHalfHourlyRead() {
+    func testDaytimeResultCarriesTheHighMinutesAndAnHourlyAndFiveMinuteRead() {
         let b = baseline
         let s = stream(bpm: Int(b.restingHR) + 38, rmssd: exp(b.hrvLnMean) * 0.3, seconds: 3 * 3600, from: t0)
         let r = WhoopStress.analyze(hr: s.hr, rr: s.rr, baseline: b)
         let d = WhoopStress.daytimeResult(r)
         XCTAssertGreaterThan(d.hours.count, 1)
-        XCTAssertGreaterThan(d.timeline.count, d.hours.count, "the half-hourly read has more points")
+        XCTAssertEqual(d.timeline.count, r.epochs.filter { $0.level != nil }.count,
+                       "each valid 5-minute epoch remains a separate display point")
+        XCTAssertEqual(d.timeline.first?.startTs, r.epochs.first(where: { $0.level != nil })?.ts)
         XCTAssertEqual(d.highStressMinutes, r.epochs.filter { ($0.level ?? 0) >= 2 }.count * 5)
         XCTAssertTrue(d.sustainedHigh, "three hours of High in a row")
         XCTAssertNotNil(d.dayMean)
