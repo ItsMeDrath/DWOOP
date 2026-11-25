@@ -94,6 +94,7 @@ struct SourcedDailyMetric: Equatable {
 /// never repeat database queries. The signature is based on main-night sessions only (not naps).
 struct HealthVitalsLoadCache {
     let sleepSignature: String
+    let vitalRows: [SourcedDailyMetric]
     let hrvOverCountByDay: [String: Double]
     let spo2CandidateByDay: [String: Double]
     let spo2Enabled: Bool
