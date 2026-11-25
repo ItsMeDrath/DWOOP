@@ -225,11 +225,13 @@ final class Repository: ObservableObject {
     /// Health Monitor auxiliary query snapshots. These survive tab changes and view reconstruction.
     var healthVitalsLoadCache: HealthVitalsLoadCache?
     var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache?
+    private var healthMainSleepSignatureMemo: (seq: Int, value: String)?
 
     /// Stable key for Health Monitor data: only the canonical main-night group for each local wake-day
     /// participates. Separate nap sessions are deliberately excluded, so adding/editing a nap cannot
     /// invalidate Health Monitor's cached vitals or weekly Fitness Age reads.
     func healthMainSleepSignature() -> String {
+        if let memo = healthMainSleepSignatureMemo, memo.seq == refreshSeq { return memo.value }
         var h: UInt64 = 14695981039346656037
         func mix(_ value: String) {
             for byte in value.utf8 { h = (h ^ UInt64(byte)) &* 1099511628211 }
@@ -253,7 +255,9 @@ final class Repository: ObservableObject {
                 mix("\(day)|\(session.startTs)|\(session.effectiveStartTs)|\(session.endTs)|\(session.userEdited)|\(session.stagesJSON ?? "")")
             }
         }
-        return String(h, radix: 16)
+        let value = String(h, radix: 16)
+        healthMainSleepSignatureMemo = (refreshSeq, value)
+        return value
     }
     /// Changes only when what the Sleep Score is made of changes: the sleep sessions and their hand edits, each day's stored
     /// sleep figures and imported need, and the strain of days that are over. `refreshSeq` moves on any refresh (live strain,
