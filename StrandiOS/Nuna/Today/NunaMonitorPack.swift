@@ -83,6 +83,15 @@ struct NunaMonitorPackCard: View {
             NavigationLink(value: stressRoute) { stressTile }.buttonStyle(.plain)
         }
         .fixedSize(horizontal: false, vertical: true)
+        .onAppear {
+            // Re-apply the synchronously restored snapshot after the StateObjects have mounted.
+            // This makes their loaded state and personal ranges available on the very first Home frame.
+            guard seriesLoaded else { return }
+            hrvS.replace(cachedSeries["hrv"] ?? [:])
+            rhrS.replace(cachedSeries["rhr"] ?? [:])
+            respS.replace(cachedSeries["resp_rate"] ?? [:])
+            skinS.replace(cachedSeries["skin_temp"] ?? [:])
+        }
         .onChange(of: cachedSeries) { _, values in
             // The Home model publishes this dictionary only after all four source reads finish.
             hrvS.replace(values["hrv"] ?? [:])
