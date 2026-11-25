@@ -807,7 +807,9 @@ private struct FitnessAgeSection: View {
             .frame(width: 900, height: 820)
             #endif
         }
-        .task(id: repo.refreshSeq) { await load() }
+        // Refresh only when the canonical main-night group changes. Ordinary repository refreshes,
+        // tab visits, and nap edits leave the cached Health Monitor snapshot intact.
+        .task(id: repo.healthMainSleepSignature()) { await load() }
     }
 
     @ViewBuilder private var content: some View {
@@ -1243,6 +1245,18 @@ private struct FitnessAgeRangeRow: View {
     /// "my-whoop" (the Repository merges the computed "-noop" rows under any real import). Takes the
     /// freshest point — the weekly value is keyed to the week's Saturday and refines through the week.
     private func load() async {
+        let sleepSignature = repo.healthMainSleepSignature()
+        if let cached = repo.healthFitnessAgeLoadCache,
+           cached.sleepSignature == sleepSignature {
+            fitnessAge = cached.fitnessAge
+            paceOfAging = cached.paceOfAging
+            restingHeartRate = cached.restingHeartRate
+            vo2max = cached.vo2max
+            vo2maxEstimator = cached.vo2maxEstimatorRaw.flatMap { Vo2MaxEstimator(rawValue: $0) }
+            loaded = true
+            return
+        }
+
         let faPts = await repo.exploreSeries(key: "fitness_age", source: "my-whoop")
         let vo2Resolution = await repo.resolvedSeries(key: "vo2max_est", source: "my-whoop")
         fitnessAge = faPts.last?.value
@@ -1257,6 +1271,13 @@ private struct FitnessAgeRangeRow: View {
             vo2max = nil
             vo2maxEstimator = nil
         }
+        repo.healthFitnessAgeLoadCache = HealthFitnessAgeLoadCache(
+            sleepSignature: sleepSignature,
+            fitnessAge: fitnessAge,
+            paceOfAging: paceOfAging,
+            restingHeartRate: restingHeartRate,
+            vo2max: vo2max,
+            vo2maxEstimatorRaw: vo2maxEstimator?.rawValue)
         loaded = true
     }
 }
@@ -1628,7 +1649,16 @@ private struct VitalsSection: View {
                 .foregroundStyle(StrandPalette.textTertiary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .task(id: PuffinExperiment.spo2CandidateDisplayEnabled) {
+        .task(id: "\(repo.healthMainSleepSignature())|\(PuffinExperiment.spo2CandidateDisplayEnabled)") {
+            let sleepSignature = repo.healthMainSleepSignature()
+            let spo2Enabled = PuffinExperiment.spo2CandidateDisplayEnabled
+            if let cached = repo.healthVitalsLoadCache,
+               cached.sleepSignature == sleepSignature,
+               cached.spo2Enabled == spo2Enabled {
+                hrvOverCountByDay = cached.hrvOverCountByDay
+                spo2CandidateByDay = cached.spo2CandidateByDay
+                return
+            }
             // #1118: load the per-night HRV over-count flags (always — no toggle) so the HRV tile can
             // caption an over-counted 4.0 night's reading "unverified". The engine writes "hrv_rr_overcount"
             // (1/0) under the "-noop" computed device ID; `exploreSeries` with source "my-whoop" reads it
@@ -1641,12 +1671,22 @@ private struct VitalsSection: View {
             // generic active-strap sentinel, resolved through `computedReadIds`, so this already covers
             // an Oura ring's own computed id. Empty when the toggle is OFF (the engine writes nothing) or
             // the owner has no in-band reading for its device.
-            guard PuffinExperiment.spo2CandidateDisplayEnabled else {
+            guard spo2Enabled else {
                 spo2CandidateByDay = [:]
+                repo.healthVitalsLoadCache = HealthVitalsLoadCache(
+                    sleepSignature: sleepSignature,
+                    hrvOverCountByDay: hrvOverCountByDay,
+                    spo2CandidateByDay: [:],
+                    spo2Enabled: false)
                 return
             }
             let pts = await repo.exploreSeries(key: "spo2_candidate", source: "my-whoop", days: 14)
             spo2CandidateByDay = Dictionary(pts.map { ($0.day, $0.value) }, uniquingKeysWith: { a, _ in a })
+            repo.healthVitalsLoadCache = HealthVitalsLoadCache(
+                sleepSignature: sleepSignature,
+                hrvOverCountByDay: hrvOverCountByDay,
+                spo2CandidateByDay: spo2CandidateByDay,
+                spo2Enabled: true)
         }
     }
 }
