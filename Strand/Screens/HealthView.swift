@@ -1616,12 +1616,13 @@ private struct VitalsSection: View {
     // #103/queue-11a: SpO₂ candidate nightly means from metricSeries — WHOOP `spo2_candidate_82`, or an
     // Oura owner's ceiling@100 `0x6F` mean (device-conditional, see IntelligenceEngine) — loaded when
     // the experimental toggle is ON. Empty when the toggle is OFF or no candidate data exists.
+    @State private var vitalRows: [SourcedDailyMetric] = []
     @State private var spo2CandidateByDay: [String: Double] = [:]
     @State private var hrvOverCountByDay: [String: Double] = [:]   // #1118
 
     var body: some View {
         let readings = BodyVitalSigns.readings(
-            sourceRows: repo.vitalMetricRows,
+            sourceRows: vitalRows,
             temperatureUnit: temperatureUnit,
             spo2CandidateByDay: spo2CandidateByDay,
             hrvOverCountByDay: hrvOverCountByDay,
@@ -1655,6 +1656,7 @@ private struct VitalsSection: View {
             if let cached = repo.healthVitalsLoadCache,
                cached.sleepSignature == sleepSignature,
                cached.spo2Enabled == spo2Enabled {
+                vitalRows = cached.vitalRows
                 hrvOverCountByDay = cached.hrvOverCountByDay
                 spo2CandidateByDay = cached.spo2CandidateByDay
                 return
@@ -1663,6 +1665,7 @@ private struct VitalsSection: View {
             // caption an over-counted 4.0 night's reading "unverified". The engine writes "hrv_rr_overcount"
             // (1/0) under the "-noop" computed device ID; `exploreSeries` with source "my-whoop" reads it
             // from the computed metricSeries. Absent/0 on a clean or imported night → no caveat.
+            vitalRows = repo.vitalMetricRows
             let ocPts = await repo.exploreSeries(key: "hrv_rr_overcount", source: "my-whoop", days: 14)
             hrvOverCountByDay = Dictionary(ocPts.map { ($0.day, $0.value) }, uniquingKeysWith: { a, _ in a })
             // #103/queue-11a: load the SpO₂ candidate nightly means from metricSeries when the toggle is
@@ -1675,6 +1678,7 @@ private struct VitalsSection: View {
                 spo2CandidateByDay = [:]
                 repo.healthVitalsLoadCache = HealthVitalsLoadCache(
                     sleepSignature: sleepSignature,
+                    vitalRows: vitalRows,
                     hrvOverCountByDay: hrvOverCountByDay,
                     spo2CandidateByDay: [:],
                     spo2Enabled: false)
@@ -1684,6 +1688,7 @@ private struct VitalsSection: View {
             spo2CandidateByDay = Dictionary(pts.map { ($0.day, $0.value) }, uniquingKeysWith: { a, _ in a })
             repo.healthVitalsLoadCache = HealthVitalsLoadCache(
                 sleepSignature: sleepSignature,
+                vitalRows: vitalRows,
                 hrvOverCountByDay: hrvOverCountByDay,
                 spo2CandidateByDay: spo2CandidateByDay,
                 spo2Enabled: true)
