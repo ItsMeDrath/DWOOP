@@ -836,6 +836,8 @@ private struct FitnessAgeSection: View {
                     refreshing = true
                     Task {
                         _ = await intelligence.recomputeFitnessAgeOnly()
+                        // The explicit user-requested recompute is the one non-sleep exception.
+                        repo.healthFitnessAgeLoadCache = nil
                         await load()
                         refreshing = false
                     }
