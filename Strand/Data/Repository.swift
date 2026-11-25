@@ -69,7 +69,7 @@ struct ScoreInputProvider: Equatable, Sendable {
 
 /// Source provenance for daily rows before product surfaces merge them. The UI uses this to say
 /// where a vital came from without changing the stored data.
-enum DailyMetricSource: Equatable {
+enum DailyMetricSource: String, Codable {
     case whoopImport
     case noopComputed
     case appleHealth
@@ -85,14 +85,14 @@ enum DailyMetricSource: Equatable {
     }
 }
 
-struct SourcedDailyMetric: Equatable {
+struct SourcedDailyMetric: Equatable, Codable {
     let metric: DailyMetric
     let source: DailyMetricSource
 }
 
 /// Health Monitor's small auxiliary reads, retained on the long-lived Repository so tab remounts
 /// never repeat database queries. The signature is based on main-night sessions only (not naps).
-struct HealthVitalsLoadCache {
+struct HealthVitalsLoadCache: Codable {
     let sleepSignature: String
     let vitalRows: [SourcedDailyMetric]
     let hrvOverCountByDay: [String: Double]
@@ -100,7 +100,7 @@ struct HealthVitalsLoadCache {
     let spo2Enabled: Bool
 }
 
-struct HealthFitnessAgeLoadCache {
+struct HealthFitnessAgeLoadCache: Codable {
     let sleepSignature: String
     let fitnessAge: Double?
     let paceOfAging: Double?
@@ -243,9 +243,16 @@ final class Repository: ObservableObject {
     @Published private(set) var refreshSeq = 0
 
     private var sleepSignatureMemo: (seq: Int, value: String)?
-    /// Health Monitor auxiliary query snapshots. These survive tab changes and view reconstruction.
-    var healthVitalsLoadCache: HealthVitalsLoadCache?
-    var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache?
+    /// Health Monitor auxiliary query snapshots. Kept in memory for tab changes and persisted so
+    /// the exact same first-load cache is available immediately after an app relaunch.
+    private let healthVitalsLoadCacheKey = "nuna.health-monitor.vitals-cache.v1"
+    private let healthFitnessAgeLoadCacheKey = "nuna.health-monitor.fitness-age-cache.v1"
+    var healthVitalsLoadCache: HealthVitalsLoadCache? {
+        didSet { persistHealthVitalsLoadCache() }
+    }
+    var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache? {
+        didSet { persistHealthFitnessAgeLoadCache() }
+    }
     private var nunaHealthMonitorSeriesCache: NunaHealthMonitorSeriesCache?
     private let nunaHealthMonitorSeriesCacheKey = "nuna.health-monitor.series-cache.v1"
     /// Prepared Stress Monitor history survives tab changes and view reconstruction.
@@ -390,7 +397,35 @@ final class Repository: ObservableObject {
         workoutsLog(build())
     }
 
-    init(deviceId: String) { self.deviceId = deviceId }
+    init(deviceId: String) {
+        self.deviceId = deviceId
+        // Restore the existing Health tab query results before its sections appear. The view still
+        // performs its normal signature/toggle checks and reloads exactly as before when needed.
+        if let data = UserDefaults.standard.data(forKey: healthVitalsLoadCacheKey) {
+            healthVitalsLoadCache = try? JSONDecoder().decode(HealthVitalsLoadCache.self, from: data)
+        }
+        if let data = UserDefaults.standard.data(forKey: healthFitnessAgeLoadCacheKey) {
+            healthFitnessAgeLoadCache = try? JSONDecoder().decode(HealthFitnessAgeLoadCache.self, from: data)
+        }
+    }
+
+    private func persistHealthVitalsLoadCache() {
+        guard let cache = healthVitalsLoadCache,
+              let data = try? JSONEncoder().encode(cache) else {
+            UserDefaults.standard.removeObject(forKey: healthVitalsLoadCacheKey)
+            return
+        }
+        UserDefaults.standard.set(data, forKey: healthVitalsLoadCacheKey)
+    }
+
+    private func persistHealthFitnessAgeLoadCache() {
+        guard let cache = healthFitnessAgeLoadCache,
+              let data = try? JSONEncoder().encode(cache) else {
+            UserDefaults.standard.removeObject(forKey: healthFitnessAgeLoadCacheKey)
+            return
+        }
+        UserDefaults.standard.set(data, forKey: healthFitnessAgeLoadCacheKey)
+    }
 
     /// Re-point the read model's ACTIVE-strap id at the device registry's active device, so a re-added
     /// strap's LIVE raw (written under its fresh "whoop-<uuid>" id) surfaces on the dashboard (#814).
