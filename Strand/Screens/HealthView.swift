@@ -561,16 +561,20 @@ private struct RecoveryContributorsSection: View {
 
     var body: some View {
         let latest = repo.days.last
-        // A contributor needs at least the recovery seed depth of prior nights to score against
-        // a baseline; below that we show CALIBRATING and leave the bars unfilled but honest.
+        // Do not mistake the repository's temporary empty/partial startup cache for a genuinely
+        // uncalibrated baseline. Repository publishes its complete merged history before setting
+        // loaded = true; only evaluate the calibration threshold after that first load completes.
+        let dataReady = repo.loaded
         let priorCount = repo.days.dropLast().compactMap(\.avgHrv).filter { $0 > 0 }.count
-        let ready = priorCount >= Baselines.minNightsSeed
+        let ready = dataReady && priorCount >= Baselines.minNightsSeed
         let contributors = buildContributors(latest)
 
         VStack(alignment: .leading, spacing: NoopMetrics.gap) {
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 SectionHeader("Contributors", overline: "Recovery", trailing: nil)
-                if ready {
+                if !dataReady {
+                    ScoreStatePill(.building, text: "Loading history…")
+                } else if ready {
                     ScoreStatePill(.solid)
                 } else {
                     ScoreStatePill(.calibrating, text: "Calibrating (\(priorCount) of \(Baselines.minNightsSeed))")
@@ -580,7 +584,8 @@ private struct RecoveryContributorsSection: View {
                 VStack(alignment: .leading, spacing: NoopMetrics.space4) {
                     ForEach(Array(contributors.enumerated()), id: \.offset) { idx, c in
                         ContributorBar(label: c.label, strength: ready ? c.strength : nil,
-                                       word: ready ? c.word : String(localized: "Calibrating"),
+                                       word: !dataReady ? String(localized: "Loading…")
+                                           : (ready ? c.word : String(localized: "Calibrating")),
                                        detail: c.detail, tint: c.tint)
                             .staggeredAppear(index: idx)
                     }
