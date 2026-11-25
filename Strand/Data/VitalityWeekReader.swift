@@ -77,17 +77,15 @@ enum VitalityWeekReader {
         data.restingHRs = sorted.compactMap { $0.restingHr }.map(Double.init)
         data.sleepNights = sorted.compactMap { $0.totalSleepMin }.map { $0 / 60 }.filter { $0 > 0 }
 
-        // Use the exact Sleep-tab consistency derivation, but constrain it to THIS
-        // seven-day Body Age window. Passing the full repository history and then
-        // taking suffix(7) is unsafe: compactMap omits dates without imported scores,
-        // so suffix(7) can pull older dates into this week's average.
-        // sorted is the same ascending seven-day window supplied to this reader.
-        let sleepTrendConsistency = SleepModel.consistencySeries(
-            days: sorted, sleeps: repo.sleeps, importedSleep: repo.importedSleep
-        ).series
-        let sleepConsistency = sleepTrendConsistency.isEmpty
+        // WHOOP Age must use the imported NUNA Sleep Consistency values, not
+        // SleepModel.consistencySeries' approximate bedtime-spread fallback (the
+        // Default NOOP calculation). Keep the values inside this exact seven-day
+        // window; missing imported days are omitted rather than filled with NOOP.
+        let nunaConsistency = sorted.compactMap { repo.importedSleep[$0.day]?.consistencyPct }
+            .filter { $0.isFinite }
+        let sleepConsistency = nunaConsistency.isEmpty
             ? nil
-            : sleepTrendConsistency.reduce(0, +) / Double(sleepTrendConsistency.count)
+            : nunaConsistency.reduce(0, +) / Double(nunaConsistency.count)
         data.storedConsistency = sleepConsistency.map { [$0] } ?? []
 
         let estimated = Dictionary((await repo.exploreSeries(key: "steps_est", source: "my-whoop", days: lookback)).map { ($0.day, $0.value) },
