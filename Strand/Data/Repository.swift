@@ -90,6 +90,24 @@ struct SourcedDailyMetric: Equatable {
     let source: DailyMetricSource
 }
 
+/// Health Monitor's small auxiliary reads, retained on the long-lived Repository so tab remounts
+/// never repeat database queries. The signature is based on main-night sessions only (not naps).
+struct HealthVitalsLoadCache {
+    let sleepSignature: String
+    let hrvOverCountByDay: [String: Double]
+    let spo2CandidateByDay: [String: Double]
+    let spo2Enabled: Bool
+}
+
+struct HealthFitnessAgeLoadCache {
+    let sleepSignature: String
+    let fitnessAge: Double?
+    let paceOfAging: Double?
+    let restingHeartRate: Int?
+    let vo2max: Double?
+    let vo2maxEstimatorRaw: String?
+}
+
 /// A compact snapshot of how much history each source holds, fed to the Data Sources "Freshness
 /// Pipeline" card and the Android equivalent. Counts only , no per-day rows leave the refresh.
 struct RepositoryFreshness: Equatable, Sendable {
@@ -203,6 +221,39 @@ final class Repository: ObservableObject {
     @Published private(set) var refreshSeq = 0
 
     private var sleepSignatureMemo: (seq: Int, value: String)?
+    /// Health Monitor auxiliary query snapshots. These survive tab changes and view reconstruction.
+    var healthVitalsLoadCache: HealthVitalsLoadCache?
+    var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache?
+
+    /// Stable key for Health Monitor data: only the canonical main-night group for each local wake-day
+    /// participates. Separate nap sessions are deliberately excluded, so adding/editing a nap cannot
+    /// invalidate Health Monitor's cached vitals or weekly Fitness Age reads.
+    func healthMainSleepSignature() -> String {
+        var h: UInt64 = 14695981039346656037
+        func mix(_ value: String) {
+            for byte in value.utf8 { h = (h ^ UInt64(byte)) &* 1099511628211 }
+        }
+        let grouped = Dictionary(grouping: sleeps) { session -> String in
+            let offset = TimeZone.current.secondsFromGMT(
+                for: Date(timeIntervalSince1970: TimeInterval(session.endTs)))
+            return AnalyticsEngine.dayString(session.endTs, offsetSec: offset)
+        }
+        for day in grouped.keys.sorted() {
+            guard let sessions = grouped[day]?.sorted(by: { $0.effectiveStartTs < $1.effectiveStartTs }),
+                  !sessions.isEmpty else { continue }
+            let offset = TimeZone.current.secondsFromGMT(
+                for: Date(timeIntervalSince1970: TimeInterval(sessions[0].endTs)))
+            let blocks = sessions.map {
+                SleepStageTotals.NightBlock(start: $0.effectiveStartTs, end: $0.endTs)
+            }
+            let mainIndices = SleepStageTotals.mainNightGroupIndices(blocks, offsetSec: offset) ?? []
+            for index in mainIndices.sorted() where sessions.indices.contains(index) {
+                let session = sessions[index]
+                mix("\(day)|\(session.startTs)|\(session.effectiveStartTs)|\(session.endTs)|\(session.userEdited)|\(session.stagesJSON ?? "")")
+            }
+        }
+        return String(h, radix: 16)
+    }
     /// Changes only when what the Sleep Score is made of changes: the sleep sessions and their hand edits, each day's stored
     /// sleep figures and imported need, and the strain of days that are over. `refreshSeq` moves on any refresh (live strain,
     /// steps, freshness), so a screen keyed on it recalculated the scores every time the app opened or synced. Stable across
