@@ -81,8 +81,13 @@ enum VitalityWeekReader {
         // trend tile, then take its latest seven available points for this week.
         // Do not rebuild/import/fallback the metric independently here: that caused
         // WHOOP Age to diverge from the Sleep trend (for example, showing 3% vs 72%).
+        // Repository daily rows are not guaranteed to be chronological. The SleepModel
+        // imported-series gate checks days.last, so pass ascending days to ensure it
+        // sees the actual latest date (Nov 25 here) and uses imported WHOOP scores,
+        // rather than silently falling back to the approximate bedtime-spread series.
+        let chronologicalDays = repo.days.sorted { $0.day < $1.day }
         let sleepTrendConsistency = SleepModel.consistencySeries(
-            days: repo.days, sleeps: repo.sleeps, importedSleep: repo.importedSleep
+            days: chronologicalDays, sleeps: repo.sleeps, importedSleep: repo.importedSleep
         ).series
         let latestWeekConsistency = Array(sleepTrendConsistency.suffix(7))
         let sleepConsistency = latestWeekConsistency.isEmpty
