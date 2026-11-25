@@ -82,6 +82,8 @@ final class NunaTodayModel: ObservableObject {
         /// Bounded daily history used by the Health monitor's personal ranges.
         let monitorSeries: [String: [String: Double]]?
         let monitorSeriesLoaded: Bool?
+        /// Whether the Daily Outlook has enough recorded days to be shown; restored before Repository finishes loading.
+        let outlookReady: Bool?
         /// Bounded display points for optional Detailed Key Metrics tiles.
         let keySparkSeries: [String: [Double]]?
         let stressStatusReady: Bool?
@@ -124,6 +126,7 @@ final class NunaTodayModel: ObservableObject {
         stressLoaded = snapshot.stressLoaded
         monitorSeries = snapshot.monitorSeries ?? [:]
         monitorSeriesLoaded = snapshot.monitorSeriesLoaded ?? false
+        outlookReady = snapshot.outlookReady ?? false
         keySparkSeries = snapshot.keySparkSeries ?? [:]
         let hasLegacyReadyStress = snapshot.stressStatusReady == nil && snapshot.stressLoaded && snapshot.stress != nil
         stressStatus = (snapshot.stressStatusReady == true || hasLegacyReadyStress)
@@ -153,6 +156,7 @@ final class NunaTodayModel: ObservableObject {
             respiratory: respiratory, spo2: spo2, steps: steps, calories: calories,
             sleepMinutes: sleepMinutes, extras: extras, previous: previous, stressLoaded: stressLoaded,
             monitorSeries: Self.boundedMonitorSeries(monitorSeries), monitorSeriesLoaded: monitorSeriesLoaded,
+            outlookReady: outlookReady,
             keySparkSeries: Self.boundedSparkSeries(keySparkSeries),
             stressStatusReady: stressStatus.isReady, stressStatusNights: stressStatus.nights,
             stressBaseline: stressBaseline, stressTypicalMin: stressTypicalMin,
@@ -237,6 +241,8 @@ final class NunaTodayModel: ObservableObject {
     /// Small, date-scoped histories restored with the Home snapshot.
     @Published private(set) var monitorSeries: [String: [String: Double]] = [:]
     @Published private(set) var monitorSeriesLoaded = false
+    /// Restored synchronously so the Daily Outlook card is visible on Home's first frame.
+    @Published private(set) var outlookReady = false
     @Published private(set) var keySparkSeries: [String: [Double]] = [:]
     @Published private(set) var highlightNaps: [HighlightNapSnapshot] = []
     /// The last complete streak count, restored with Home and refreshed once repository history is ready.
@@ -471,6 +477,9 @@ final class NunaTodayModel: ObservableObject {
         // The repository has not read its history yet (a launch): every figure below would be worked out from nothing and then again a moment
         // later. The refresh that finishes it bumps `refreshSeq`, which runs this again with the real data.
         guard repo.loaded else { return }
+        // Refresh the cached Daily Outlook gate as soon as repository history is ready. The previous
+        // snapshot stays visible until this load's other Home reads finish and the full snapshot is saved.
+        outlookReady = NunaOutlookGate.ready(repo.days)
         loadGeneration += 1
         let requestedLoadGeneration = loadGeneration
         snapshotCoreReady = false
