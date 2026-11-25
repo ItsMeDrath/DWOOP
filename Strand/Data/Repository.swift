@@ -109,6 +109,17 @@ struct HealthFitnessAgeLoadCache {
     let vo2maxEstimatorRaw: String?
 }
 
+/// Full Health Monitor chart histories. Codable so the page can restore them on the first frame
+/// after an app restart, and keyed only by canonical main-sleep data (not naps or refreshSeq).
+struct NunaHealthMonitorSeriesCache: Codable {
+    let sleepSignature: String
+    let hrv: [String: Double]
+    let rhr: [String: Double]
+    let spo2: [String: Double]
+    let respiration: [String: Double]
+    let skinTemperature: [String: Double]
+}
+
 /// Stress Monitor's prepared historical data. Held by the long-lived Repository so leaving and
 /// reopening the page reuses both the stored series and the already-built chart model.
 struct StressLoadCache {
@@ -235,9 +246,58 @@ final class Repository: ObservableObject {
     /// Health Monitor auxiliary query snapshots. These survive tab changes and view reconstruction.
     var healthVitalsLoadCache: HealthVitalsLoadCache?
     var healthFitnessAgeLoadCache: HealthFitnessAgeLoadCache?
+    private var nunaHealthMonitorSeriesCache: NunaHealthMonitorSeriesCache?
+    private let nunaHealthMonitorSeriesCacheKey = "nuna.health-monitor.series-cache.v1"
     /// Prepared Stress Monitor history survives tab changes and view reconstruction.
     var stressLoadCache: StressLoadCache?
     private var healthMainSleepSignatureMemo: (seq: Int, value: String)?
+
+    /// Restores the complete Health Monitor histories from memory or disk when the main-sleep
+    /// signature still matches. This deliberately ignores refreshSeq so naps and unrelated syncs
+    /// cannot invalidate the histories.
+    func cachedNunaHealthMonitorSeries(for signature: String) -> NunaHealthMonitorSeriesCache? {
+        if let cached = nunaHealthMonitorSeriesCache, cached.sleepSignature == signature { return cached }
+        guard let data = UserDefaults.standard.data(forKey: nunaHealthMonitorSeriesCacheKey),
+              let cached = try? JSONDecoder().decode(NunaHealthMonitorSeriesCache.self, from: data),
+              cached.sleepSignature == signature else { return nil }
+        nunaHealthMonitorSeriesCache = cached
+        return cached
+    }
+
+    /// Builds the full-page histories once for a changed main-sleep signature. The reads run together;
+    /// the result is committed only if the repository still represents the same sleep data afterward.
+    func loadNunaHealthMonitorSeries(for signature: String) async -> NunaHealthMonitorSeriesCache? {
+        if let cached = cachedNunaHealthMonitorSeries(for: signature) { return cached }
+        let requestedRefresh = refreshSeq
+        async let hrvRead = exploreSeries(key: "hrv", source: "my-whoop", days: 400)
+        async let rhrRead = exploreSeries(key: "rhr", source: "my-whoop", days: 400)
+        async let spo2Read = exploreSeries(key: "spo2", source: "my-whoop")
+        async let respirationRead = exploreSeries(key: "resp_rate", source: "my-whoop")
+        async let skinRead = exploreSeries(key: "skin_temp", source: "my-whoop")
+        let (hrvPoints, rhrPoints, spo2Points, respirationPoints, skinPoints) =
+            await (hrvRead, rhrRead, spo2Read, respirationRead, skinRead)
+
+        var spo2 = Dictionary(spo2Points.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
+        if PuffinExperiment.spo2CandidateDisplayEnabled {
+            let candidates = await exploreSeries(key: "spo2_candidate", source: "my-whoop")
+            for point in candidates where spo2[point.day] == nil { spo2[point.day] = point.value }
+        }
+
+        guard requestedRefresh == refreshSeq, signature == healthMainSleepSignature() else { return nil }
+        let snapshot = NunaHealthMonitorSeriesCache(
+            sleepSignature: signature,
+            hrv: Dictionary(hrvPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            rhr: Dictionary(rhrPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            spo2: spo2,
+            respiration: Dictionary(respirationPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last }),
+            skinTemperature: Dictionary(skinPoints.map { ($0.day, $0.value) }, uniquingKeysWith: { _, last in last })
+        )
+        nunaHealthMonitorSeriesCache = snapshot
+        if let data = try? JSONEncoder().encode(snapshot) {
+            UserDefaults.standard.set(data, forKey: nunaHealthMonitorSeriesCacheKey)
+        }
+        return snapshot
+    }
 
     /// Stable key for Health Monitor data: only the canonical main-night group for each local wake-day
     /// participates. Separate nap sessions are deliberately excluded, so adding/editing a nap cannot
