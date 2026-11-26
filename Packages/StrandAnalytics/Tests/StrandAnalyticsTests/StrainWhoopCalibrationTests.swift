@@ -25,7 +25,7 @@ final class StrainWhoopCalibrationTests: XCTestCase {
     }
 
     func testTheFloorIsTheCalibratedValue() {
-        XCTAssertEqual(StrainScorer.banisterSedentaryHRR, 0.25, accuracy: 1e-12)
+        XCTAssertEqual(StrainScorer.banisterSedentaryHRR, 0.22, accuracy: 1e-12)
     }
 
     func testTheFixtureIsWhatItClaimsToBe() {
@@ -44,11 +44,11 @@ final class StrainWhoopCalibrationTests: XCTestCase {
         let errors = zip(mine, whoop).map { $0 - $1 }
         let mae = errors.map(abs).reduce(0, +) / Double(errors.count)
         let r = pearson(mine, whoop)
-        // Measured at the floor of 0.25: MAE 2.4 (the same as at 0.18, and 3.7 at the old 0.10), r 0.94, reading 2.4 low on
-        // average, and the worst single day 5.3 off (at 0.18 it was 3.7, so the per-day bound had to widen from 4.5).
+        // Measured at the floor of 0.22: MAE 2.1 (2.4 at 0.18, 3.7 at the old 0.10), r 0.93, reading 1.3 low on average, and
+        // the worst single day 4.1 off (3.7 at 0.18). The bound stays at 4.5; a floor of 0.25 would not hold it (5.3).
         XCTAssertLessThan(mae, 2.9, "mean absolute error against WHOOP, 0-21: \(mae)")
         XCTAssertGreaterThan(r, 0.88, "correlation with WHOOP: \(r)")
-        for (d, e) in zip(days, errors) { XCTAssertLessThan(abs(e), 5.5, "\(d.label) off by \(e)") }
+        for (d, e) in zip(days, errors) { XCTAssertLessThan(abs(e), 4.5, "\(d.label) off by \(e)") }
     }
 
     func testAQuietDayIsNotScoredAsAModerateOne() {

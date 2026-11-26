@@ -92,14 +92,14 @@ public enum StrainScorer {
     /// floor: WHOOP adds a muscular load that a heart-rate-only recipe cannot see. One wearer and eight
     /// days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
     ///
-    /// CHANGED 0.18 to 0.25 (26 Nov 2026, iOS only; the Android floor is its own constant and is untouched). On the owner's
+    /// CHANGED 0.18 to 0.22 (26 Nov 2026, iOS only; the Android floor is its own constant and is untouched). On the owner's
     /// own days a waking morning of driving and walking sat at 90 to 110 bpm (resting 64, HRmax 191) and quiet days still read
-    /// 4 to 6 of 21 at 0.18. 25% of reserve is about 96 bpm there, which is also where WHOOP's app puts the low end of its
-    /// zones (50% of max HR, 95.5 bpm). Replayed on the eight days above, 0.25 matches 0.18 on mean error (2.4 of 21) and
-    /// correlates better (r 0.94 against 0.91), but it reads 2.4 low on average and its worst day is 5.3 off (0.18: 3.7);
-    /// 0.21 fitted those days best (mean error 2.1). So 0.25 follows this wearer's higher waking heart rate, it is not a better
-    /// fit to the calibration days. Pinned by `StrainWhoopCalibrationTests`.
-    public static let banisterSedentaryHRR: Double = 0.25
+    /// 4 to 6 of 21 at 0.18. 22% of reserve is about 92 bpm there (94 at a resting 67). Replayed on the eight days above,
+    /// 0.22 has the best mean error with 0.21 (2.1 of 21, against 2.4 at 0.18), correlates better (r 0.93 against 0.91), reads
+    /// 1.3 low on average, and its worst day is 4.1 off (0.18: 3.7). 0.25, about where WHOOP's app puts the low end of its
+    /// zones (50% of max HR, 95.5 bpm), was tried and read 2.4 low with a worst day 5.3 off, so 22% sits between the two.
+    /// One wearer and eight days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
+    public static let banisterSedentaryHRR: Double = 0.22
 
     /// TRIMP per minute at `banisterSedentaryHRR` — the rate subtracted from every day.
     static func banisterBaselineRatePerMinute(b: Double) -> Double {

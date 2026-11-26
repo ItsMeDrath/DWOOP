@@ -154,7 +154,7 @@ final class StrainBanisterDenominatorTests: XCTestCase {
 
         XCTAssertEqual(edwards, 0.0, "an hour below the floor earns nothing under Edwards, by design")
         XCTAssertNotNil(banister)
-        // 38.0 at a sedentary floor of 0.25 (it was 40.1 at 0.18), so the bar is 35: real credit, not a particular number.
+        // 39.0 at a sedentary floor of 0.22 (it was 40.1 at 0.18), so the bar is 35: real credit, not a particular number.
         XCTAssertGreaterThan(banister!, 35.0, "Banister credits the same hour on the 0–100 axis")
     }
 }
