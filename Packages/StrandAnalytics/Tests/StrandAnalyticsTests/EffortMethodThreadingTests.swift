@@ -50,7 +50,8 @@ final class EffortMethodThreadingTests: XCTestCase {
     func testBanisterReachesTheDayScore() {
         let banister = score(.banister)
         XCTAssertNotNil(banister)
-        XCTAssertGreaterThan(banister!, 40.0, "an hour at 45% HRR should score under Banister")
+        // 38.0 at a sedentary floor of 0.25 (it was 40.1 at 0.18), so the bar is 35: real credit, not a particular number.
+        XCTAssertGreaterThan(banister!, 35.0, "an hour at 45% HRR should score under Banister")
     }
 
     /// And it reaches the BOUTS inside the day by the same route. A day scored on Banister whose detected

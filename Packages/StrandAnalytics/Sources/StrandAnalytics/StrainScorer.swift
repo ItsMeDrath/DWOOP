@@ -91,7 +91,15 @@ public enum StrainScorer {
     /// land within about 0.7 of WHOOP's. Strength sessions stay about 4 to 5 points under WHOOP's at any
     /// floor: WHOOP adds a muscular load that a heart-rate-only recipe cannot see. One wearer and eight
     /// days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
-    public static let banisterSedentaryHRR: Double = 0.18
+    ///
+    /// CHANGED 0.18 to 0.25 (26 Nov 2026, iOS only; the Android floor is its own constant and is untouched). On the owner's
+    /// own days a waking morning of driving and walking sat at 90 to 110 bpm (resting 64, HRmax 191) and quiet days still read
+    /// 4 to 6 of 21 at 0.18. 25% of reserve is about 96 bpm there, which is also where WHOOP's app puts the low end of its
+    /// zones (50% of max HR, 95.5 bpm). Replayed on the eight days above, 0.25 matches 0.18 on mean error (2.4 of 21) and
+    /// correlates better (r 0.94 against 0.91), but it reads 2.4 low on average and its worst day is 5.3 off (0.18: 3.7);
+    /// 0.21 fitted those days best (mean error 2.1). So 0.25 follows this wearer's higher waking heart rate, it is not a better
+    /// fit to the calibration days. Pinned by `StrainWhoopCalibrationTests`.
+    public static let banisterSedentaryHRR: Double = 0.25
 
     /// TRIMP per minute at `banisterSedentaryHRR` — the rate subtracted from every day.
     static func banisterBaselineRatePerMinute(b: Double) -> Double {
