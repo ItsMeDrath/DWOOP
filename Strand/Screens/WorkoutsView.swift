@@ -272,7 +272,7 @@ struct WorkoutsView: View {
                        StrainScorer.strengthWorkoutMultiplier(for: canonicalSport) > 1.0 {
                         let samples = await repo.hrSamples(from: row.startTs, to: row.endTs, limit: 20_000)
                         let strengthInterval = [StrainScorer.WorkoutInterval(startTs: row.startTs,
-                                                                              endTs: row.endTs)]
+                                                                              endTs: row.endTs + 1)]
                         if let rescored = StrainScorer.liveStrain(
                             samples, maxHR: Double(profile.hrMax),
                             restingHR: repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR,
