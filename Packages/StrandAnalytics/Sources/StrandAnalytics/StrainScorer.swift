@@ -67,7 +67,11 @@ public enum StrainScorer {
 
     /// The active-curve anchor at 30% HRR. The low-band ramp meets the active Banister excess
     /// here continuously; this is an algorithmic join, not a claim that 30% HRR is resting physiology.
-    public static let banisterSedentaryHRR: Double = 0.30
+    public static let banisterAnchorHRR: Double = 0.30
+
+    /// Source-compatibility alias for the former 22% sedentary-floor constant.
+    @available(*, deprecated, message: "Use banisterAnchorHRR; the active curve is anchored at 30% HRR.")
+    public static let banisterSedentaryHRR: Double = banisterAnchorHRR
 
     /// LOW BAND (iOS, 27 Nov 2026): below 11% HRR earns zero. From 11% to 30% HRR,
     /// the rate rises linearly from zero to 0.0094 TRIMP/min. Its mean is 0.0047/min,
@@ -98,8 +102,8 @@ public enum StrainScorer {
             return strainDenominator
         case .banister:
             let b = sex.lowercased().hasPrefix("f") ? banisterBWomen : banisterBMen
-            // Ceiling MINUS a full day of sedentary baseline, matching what is subtracted from the day
-            // itself, so both ends of the axis line up with Edwards (#1624).
+            // Ceiling MINUS the same full-day constant offset removed by the active Banister curve,
+            // so a maximum day still maps to maxStrain.
             return banisterDailyCeiling(b: b) - banisterBaseline(minutes: 24.0 * 60.0, b: b) + 1.0
         }
     }
@@ -506,8 +510,8 @@ public enum StrainScorer {
         switch method {
         case .banister:
             let b = sex.lowercased().hasPrefix("f") ? banisterBWomen : banisterBMen
-            // Excess over the sedentary baseline for the SAME span, floored at zero. Without this a desk
-            // day scores ~45 on a 0-100 axis whose bottom is supposed to be no exertion (#1624).
+            // The calibrated low-band path removes its 30%-anchor offset from the active curve,
+            // while the ramp supplies the waking low-intensity credit.
             trimp = banisterTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve,
                                   durations: durations, b: b,
                                   floorRatePerMinute: banisterBaselineRatePerMinute(b: b),
