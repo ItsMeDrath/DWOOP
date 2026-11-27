@@ -1103,6 +1103,9 @@ final class AppModel: ObservableObject {
             guard let self else { return }
             if let store = await self.repo.storeHandle() {
                 _ = try? await store.upsertWorkouts([row], deviceId: self.deviceId)
+                // The saved manual workout now participates in the day's Banister TRIMP interval
+                // weighting. Recompute the recent daily window immediately so Today reflects it.
+                await self.intelligence.analyzeRecent()
                 await self.repo.refresh()
                 #if os(iOS)
                 WorkoutReportNotifier.post(row: row)
