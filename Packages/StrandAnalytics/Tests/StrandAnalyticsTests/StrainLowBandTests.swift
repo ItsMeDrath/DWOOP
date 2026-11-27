@@ -59,7 +59,7 @@ final class StrainLowBandTests: XCTestCase {
         let x = 0.31
         let rawAtX = x * StrainScorer.banisterScale * exp(StrainScorer.banisterBMen * x)
         let rawAtAnchor = StrainScorer.banisterAnchorRatePerMinute(b: StrainScorer.banisterBMen)
-        XCTAssertEqual(oneMinuteRate(95), 0.0094 + max(rawAtX - rawAtAnchor, 0), accuracy: 1e-12)
+        XCTAssertEqual(oneMinuteRate(95), 0.0094 + Swift.max(rawAtX - rawAtAnchor, 0), accuracy: 1e-12)
     }
 
     /// The active side is anchored at 30% HRR, not the former 22% sedentary threshold.
@@ -73,7 +73,7 @@ final class StrainLowBandTests: XCTestCase {
             floorRatePerMinute: StrainScorer.banisterBaselineRatePerMinute(b: StrainScorer.banisterBMen),
             lowBandPeakPerMinute: StrainScorer.banisterLowBandPeakPerMinute
         )
-        let expected = 0.0094 + max(
+        let expected = 0.0094 + Swift.max(
             x * StrainScorer.banisterScale * exp(StrainScorer.banisterBMen * x)
                 - StrainScorer.banisterAnchorRatePerMinute(b: StrainScorer.banisterBMen),
             0
