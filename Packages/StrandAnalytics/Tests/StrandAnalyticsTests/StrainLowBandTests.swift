@@ -81,6 +81,37 @@ final class StrainLowBandTests: XCTestCase {
         XCTAssertEqual(rate, expected, accuracy: 1e-12)
     }
 
+    func testStrengthIntervalMultipliesOnlyItsBanisterSamplesByThirtyPercent() {
+        let hr = [
+            HRSample(ts: 100, bpm: 120),
+            HRSample(ts: 160, bpm: 120),
+            HRSample(ts: 220, bpm: 120),
+        ]
+        let durations = [1.0, 1.0, 1.0]
+        let b = StrainScorer.banisterBMen
+        let base = StrainScorer.banisterTRIMP(
+            hr, restingHR: rest, hrReserve: max - rest, durations: durations, b: b,
+            floorRatePerMinute: StrainScorer.banisterBaselineRatePerMinute(b: b),
+            lowBandPeakPerMinute: StrainScorer.banisterLowBandPeakPerMinute)
+        let weighted = StrainScorer.banisterTRIMP(
+            hr, restingHR: rest, hrReserve: max - rest, durations: durations, b: b,
+            floorRatePerMinute: StrainScorer.banisterBaselineRatePerMinute(b: b),
+            lowBandPeakPerMinute: StrainScorer.banisterLowBandPeakPerMinute,
+            strengthWorkoutIntervals: [.init(startTs: 100, endTs: 160)])
+        let oneSample = StrainScorer.banisterTRIMP(
+            [hr[0]], restingHR: rest, hrReserve: max - rest, durations: [1.0], b: b,
+            floorRatePerMinute: StrainScorer.banisterBaselineRatePerMinute(b: b),
+            lowBandPeakPerMinute: StrainScorer.banisterLowBandPeakPerMinute)
+        XCTAssertEqual(weighted, base + oneSample * 0.30, accuracy: 1e-12)
+    }
+
+    func testOnlyStrengthTrainingAndPowerliftingQualify() {
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Strength Training"), 1.30)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "powerlifting"), 1.30)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Running"), 1.0)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Weightlifting"), 1.0)
+    }
+
     /// With no low-band peak, the generic Banister path remains unchanged.
     func testDefaultPeakOfZeroLeavesTheOldRecipeAlone() {
         let hr = flat(95, minutes: 30)
