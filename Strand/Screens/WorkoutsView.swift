@@ -263,7 +263,29 @@ struct WorkoutsView: View {
             ManualWorkoutSheet(editing: target.editing) { row, replacing in
                 Task {
                     // A copy pre-fills the form but replaces nothing — see `WorkoutSheetTarget.isCopy`.
-                    await repo.saveManualWorkout(row, replacing: target.isCopy ? nil : replacing)
+                    // Strength sessions edited in the past are rescored from their exact HR window here,
+                    // rather than launching a full-history rescore. The Banister multiplier is applied
+                    // before the log map and is limited to Strength Training / Powerlifting.
+                    var rowToSave = row
+                    let canonicalSport = WorkoutSource.canonicalSport(row.sport)
+                    if PuffinExperiment.effortMethod == .banister,
+                       StrainScorer.strengthWorkoutMultiplier(for: canonicalSport) > 1.0 {
+                        let samples = await repo.hrSamples(from: row.startTs, to: row.endTs, limit: 20_000)
+                        let strengthInterval = [StrainScorer.WorkoutInterval(startTs: row.startTs,
+                                                                              endTs: row.endTs)]
+                        if let rescored = StrainScorer.liveStrain(
+                            samples, maxHR: Double(profile.hrMax),
+                            restingHR: repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR,
+                            method: .banister, sex: profile.sex,
+                            strengthWorkoutIntervals: strengthInterval) {
+                            rowToSave = WorkoutRow(
+                                startTs: row.startTs, endTs: row.endTs, sport: row.sport, source: row.source,
+                                durationS: row.durationS, energyKcal: row.energyKcal, avgHr: row.avgHr,
+                                maxHr: row.maxHr, strain: rescored, distanceM: row.distanceM,
+                                zonesJSON: row.zonesJSON, notes: row.notes, steps: row.steps)
+                        }
+                    }
+                    await repo.saveManualWorkout(rowToSave, replacing: target.isCopy ? nil : replacing)
                     // #598: rescore the just-added workout from the strap's HR for its window NOW, so its
                     // average / peak HR, strain and calories appear immediately (from your own strap data)
                     // instead of waiting up to 15 minutes for the next analyze tick. No-ops when the strap
