@@ -1209,15 +1209,20 @@ final class IntelligenceEngine: ObservableObject {
                 // addition, or deletion changes the cache key and cannot leave a stale daily Effort score.
                 let strengthDayMid = Self.midnightLocal(dayStart, offsetSec: tzOffset)
                 let strengthDayEnd = strengthDayMid + 86_400 - 1
-                let strengthRows = (try? await store.workouts(
-                    deviceId: owner, from: strengthDayMid - 86_400, to: strengthDayEnd,
-                    limit: 500)) ?? []
-                let strengthWorkoutIntervals = strengthRows.compactMap { row -> StrainScorer.WorkoutInterval? in
-                    guard row.source == "manual",
-                          row.endTs >= strengthDayMid, row.startTs <= strengthDayEnd,
-                          StrainScorer.strengthWorkoutMultiplier(for: WorkoutSource.canonicalSport(row.sport)) > 1.0
-                    else { return nil }
-                    return StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs)
+                let strengthWorkoutIntervals: [StrainScorer.WorkoutInterval]
+                if effortMethodGlobal == .banister {
+                    let strengthRows = (try? await store.workouts(
+                        deviceId: owner, from: strengthDayMid - 86_400, to: strengthDayEnd,
+                        limit: 500)) ?? []
+                    strengthWorkoutIntervals = strengthRows.compactMap { row -> StrainScorer.WorkoutInterval? in
+                        guard row.source == "manual",
+                              row.endTs >= strengthDayMid, row.startTs <= strengthDayEnd,
+                              StrainScorer.strengthWorkoutMultiplier(for: WorkoutSource.canonicalSport(row.sport)) > 1.0
+                        else { return nil }
+                        return StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs)
+                    }
+                } else {
+                    strengthWorkoutIntervals = []
                 }
                 let strengthWorkoutFingerprint = strengthWorkoutIntervals
                     .map { "\($0.startTs)-\($0.endTs)" }.joined(separator: ",")
