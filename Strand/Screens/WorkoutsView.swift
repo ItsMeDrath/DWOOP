@@ -274,8 +274,7 @@ struct WorkoutsView: View {
                     } ?? false
                     // Re-score both directions: adding/changing TO strength applies 1.30×, while
                     // changing a previously weighted strength workout to another sport removes it.
-                    if PuffinExperiment.effortMethod == .banister,
-                       currentIsStrength || (PuffinExperiment.effortMethod == .banister && previousWasStrength) {
+                    if PuffinExperiment.effortMethod == .banister && (currentIsStrength || previousWasStrength) {
                         let samples = await repo.hrSamples(from: row.startTs, to: row.endTs, limit: 20_000)
                         let strengthInterval = currentIsStrength
                             ? [StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs + 1)]
