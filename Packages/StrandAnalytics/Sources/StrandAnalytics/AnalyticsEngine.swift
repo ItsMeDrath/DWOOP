@@ -338,6 +338,9 @@ public enum AnalyticsEngine {
                                   // Sleep / recovery keep using hr/rr/resp/gravity — staging needs the
                                   // pre-midnight night span the calendar day omits.
                                   dayHr: [HRSample]? = nil,
+                                  // Manually logged Strength Training / Powerlifting spans. Only their
+                                  // overlapping samples receive the Banister 1.30 TRIMP multiplier.
+                                  strengthWorkoutIntervals: [StrainScorer.WorkoutInterval] = [],
                                   daySteps: [StepSample]? = nil,
                                   dayGravity: [GravitySample]? = nil,
                                   // Wear-gated nightly skin-temp mean is harvested here
@@ -889,6 +892,7 @@ public enum AnalyticsEngine {
         // `workout detect` and `sleep-detect` lines beside it already use.
         let strain = StrainScorer.strain(dayHr ?? hr, maxHR: effMaxHR, restingHR: restForStrain,
                                          method: effortMethod, sex: profile.sex,
+                                         strengthWorkoutIntervals: strengthWorkoutIntervals,
                                          diag: strainDiag, day: day)
 
         // ── Workouts ──────────────────────────────────────────────────────────
