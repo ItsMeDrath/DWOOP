@@ -487,7 +487,8 @@ public enum StrainScorer {
                                   maxHR: Double? = nil,
                                   restingHR: Double = defaultRestingHR,
                                   method: Method = .edwards,
-                                  sex: String = "male") -> Double? {
+                                  sex: String = "male",
+                                  strengthWorkoutIntervals: [WorkoutInterval] = []) -> Double? {
         let effMax = maxHR ?? Double(defaultMaxHR())
         guard hr.count >= 2, effMax > restingHR else { return nil }
         let durations = sampleDurationsMinutes(hr)
@@ -544,7 +545,8 @@ public enum StrainScorer {
             trimp = banisterTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve,
                                   durations: durations, b: b,
                                   floorRatePerMinute: banisterBaselineRatePerMinute(b: b),
-                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute)
+                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute,
+                                  strengthWorkoutIntervals: strengthWorkoutIntervals)
         case .edwards:
             trimp = edwardsTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve,
                                  durations: durations)
