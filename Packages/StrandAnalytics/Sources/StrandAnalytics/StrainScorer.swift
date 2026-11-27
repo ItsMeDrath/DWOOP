@@ -65,67 +65,29 @@ public enum StrainScorer {
         24.0 * 60.0 * 1.0 * banisterScale * exp(b)
     }
 
-    /// The %HRR a waking, sedentary body sits at — the "cost of being alive", not training load.
-    ///
-    /// Banister pays at EVERY intensity by design, which is the point: it catches the intermittent work
-    /// Edwards zeroes. The side effect is that sixteen waking hours of doing nothing accumulate real
-    /// TRIMP, so a desk day cannot score zero however still you are — while the same day under Edwards,
-    /// whose first zone starts at 50% HRR, scores exactly zero. A 24 h day held at 5% HRR scores 0 under
-    /// Edwards and 45 under Banister on the shipped constants. That is not two recipes on one axis; that
-    /// is two axes (#1624).
-    ///
-    /// THIS IS THE ONE TUNED CONSTANT here, and it is a judgement rather than a measurement: low enough
-    /// not to erase genuine light activity, high enough that ordinary sitting nets to nothing. Resting HR
-    /// is measured asleep, so a waking body sits above it even at complete rest — precisely the gap this
-    /// closes. Treat it as calibratable, not as physiology.
-    ///
-    /// CALIBRATION (one wearer, 8 days, Nov 2026): 0.10 was the first guess and it was too low. Scoring
-    /// the heart-rate curves of eight WHOOP-app days with this recipe against the Day Strain the WHOOP
-    /// app showed for the same days, the quiet days (WHOOP 1.6 to 4.4 of 21) came out at 8.5 to 10.8
-    /// with 0.10, because a waking desk day sits near 15 to 20% of reserve, not 10%. Over those eight
-    /// days the mean absolute error against WHOOP fell from 3.7 (floor 0.10) to 2.4 (0.18) and 2.1
-    /// (0.21); leaving one day out at a time, the best floor stayed at 0.21 to 0.23. The curves were read
-    /// off screenshots, which puts the mean heart rate about 3 bpm high and so pushes the best floor up,
-    /// so the true optimum is a little below 0.21; 0.18 allows for that. Workouts are scored through the
-    /// same recipe and a walk scores best with a floor of 0.10 or lower, but at 0.18 four walks still
-    /// land within about 0.7 of WHOOP's. Strength sessions stay about 4 to 5 points under WHOOP's at any
-    /// floor: WHOOP adds a muscular load that a heart-rate-only recipe cannot see. One wearer and eight
-    /// days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
-    ///
-    /// CHANGED 0.18 to 0.22 (26 Nov 2026, iOS only; the Android floor is its own constant and is untouched). On the owner's
-    /// own days a waking morning of driving and walking sat at 90 to 110 bpm (resting 64, HRmax 191) and quiet days still read
-    /// 4 to 6 of 21 at 0.18. 22% of reserve is about 92 bpm there (94 at a resting 67). Replayed on the eight days above,
-    /// 0.22 has the best mean error with 0.21 (2.1 of 21, against 2.4 at 0.18), correlates better (r 0.93 against 0.91), reads
-    /// 1.3 low on average, and its worst day is 4.1 off (0.18: 3.7). 0.25, about where WHOOP's app puts the low end of its
-    /// zones (50% of max HR, 95.5 bpm), was tried and read 2.4 low with a worst day 5.3 off, so 22% sits between the two.
-    /// One wearer and eight days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
-    public static let banisterSedentaryHRR: Double = 0.22
+    /// The active-curve anchor at 30% HRR. The low-band ramp meets the active Banister excess
+    /// here continuously; this is an algorithmic join, not a claim that 30% HRR is resting physiology.
+    public static let banisterSedentaryHRR: Double = 0.30
 
-    /// LOW BAND (iOS, 27 Nov 2026): heart rate between `banisterLowBandStartHRR` and `banisterLowBandEndHRR` earns a small,
-    /// linearly ramped credit instead of the Banister excess, so a quiet waking day is not stuck at 0 while one brisk hour
-    /// still scores as before. At the owner's resting 64 / max 191 the band is about 78 to 102 bpm; below 78 earns nothing.
-    /// At and above the end the score is the plain Banister excess over `banisterSedentaryHRR`, exactly as before.
-    /// The ramp peaks at `banisterLowBandPeakPerMinute` TRIMP per minute at the top of the band, which gives about 0.01
-    /// on average, so eight hours inside the band add roughly 4.8 TRIMP, about 4 on the 21 scale. Sleep counts like any
-    /// other time: only samples above the band start earn anything. The bounds are shares of reserve, so a lower resting
-    /// HR from fitness moves them down with it and quiet days stay as hard to score on as before.
+    /// LOW BAND (iOS, 27 Nov 2026): below 11% HRR earns zero. From 11% to 30% HRR,
+    /// the rate rises linearly from zero to 0.0094 TRIMP/min. Its mean is 0.0047/min,
+    /// so 900 minutes at the band's mean intensity accrue 4.23 TRIMP (~4 strain on 0–21).
+    /// At and above 30% HRR, the rate is 0.0094 plus the Banister rate in excess of its
+    /// value at 30% HRR. The 0.0094 offset makes the join exactly continuous.
     public static let banisterLowBandStartHRR: Double = 0.11
     public static let banisterLowBandEndHRR: Double = 0.30
-    public static let banisterLowBandPeakPerMinute: Double = 0.02
+    public static let banisterLowBandPeakPerMinute: Double = 0.0094
 
-    /// TRIMP per minute at `banisterSedentaryHRR` — the rate subtracted from every day.
+    /// Raw Banister rate at the 30% HRR join.
+    static func banisterAnchorRatePerMinute(b: Double) -> Double {
+        banisterScale * banisterLowBandEndHRR * exp(b * banisterLowBandEndHRR)
+    }
+
+    /// Constant offset removed from the active Banister curve. It is the 30% anchor rate
+    /// less the low-band peak, so the active curve starts at exactly the ramp's end rate.
     static func banisterBaselineRatePerMinute(b: Double) -> Double {
-        banisterScale * banisterSedentaryHRR * exp(b * banisterSedentaryHRR)
+        banisterAnchorRatePerMinute(b: b) - banisterLowBandPeakPerMinute
     }
-
-    /// The sedentary TRIMP accrued over `minutes`, subtracted from a day's Banister TRIMP so the axis
-    /// starts where Edwards' does. Subtracted from the DENOMINATOR too, so the top is unmoved and a
-    /// theoretical maximum day still maps to exactly `maxStrain` — anchoring only the bottom would trade
-    /// one mismatched end for the other.
-    static func banisterBaseline(minutes: Double, b: Double) -> Double {
-        banisterBaselineRatePerMinute(b: b) * minutes
-    }
-
 
     /// The log-map denominator for a method, so a caller never has to know which constant belongs to
     /// which recipe. Ceiling + 1 in both cases, mirroring how `strainDenominator` was derived, so a
@@ -314,17 +276,21 @@ public enum StrainScorer {
         var acc = 0.0
         for i in hr.indices {
             let x = pctHRR(Double(hr[i].bpm), restingHR: restingHR, hrReserve: hrReserve) / 100.0
-            if x > 0 {
-                if lowBandPeakPerMinute > 0, x < banisterLowBandEndHRR {
-                    // Below the band's top the credit is the ramp alone (0 at the start, the peak at the end).
-                    if x > banisterLowBandStartHRR {
-                        let u = (x - banisterLowBandStartHRR) / (banisterLowBandEndHRR - banisterLowBandStartHRR)
-                        acc += durations[i] * lowBandPeakPerMinute * u
-                    }
-                } else {
+            if lowBandPeakPerMinute > 0 {
+                if x > banisterLowBandStartHRR && x < banisterLowBandEndHRR {
+                    // Linear ramp: 0 at 11% HRR and peak at 30% HRR.
+                    let u = (x - banisterLowBandStartHRR) / (banisterLowBandEndHRR - banisterLowBandStartHRR)
+                    acc += durations[i] * lowBandPeakPerMinute * u
+                } else if x >= banisterLowBandEndHRR {
+                    // Continuous join: at 30% HRR this is exactly the ramp peak.
                     let rate = x * banisterScale * exp(b * x)
-                    acc += durations[i] * max(rate - floorRatePerMinute, 0.0)
+                    let anchor = banisterAnchorRatePerMinute(b: b)
+                    acc += durations[i] * (lowBandPeakPerMinute + max(rate - anchor, 0.0))
                 }
+            } else if x > 0 {
+                // Preserve the original generic Banister path when no low-band ramp is requested.
+                let rate = x * banisterScale * exp(b * x)
+                acc += durations[i] * max(rate - floorRatePerMinute, 0.0)
             }
         }
         return acc
