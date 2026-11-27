@@ -101,6 +101,18 @@ public enum StrainScorer {
     /// One wearer and eight days: a place to start, not a fit to trust. Pinned by `StrainWhoopCalibrationTests`.
     public static let banisterSedentaryHRR: Double = 0.22
 
+    /// LOW BAND (iOS, 27 Nov 2026): heart rate between `banisterLowBandStartHRR` and `banisterLowBandEndHRR` earns a small,
+    /// linearly ramped credit instead of the Banister excess, so a quiet waking day is not stuck at 0 while one brisk hour
+    /// still scores as before. At the owner's resting 64 / max 191 the band is about 78 to 102 bpm; below 78 earns nothing.
+    /// At and above the end the score is the plain Banister excess over `banisterSedentaryHRR`, exactly as before.
+    /// The ramp peaks at `banisterLowBandPeakPerMinute` TRIMP per minute at the top of the band, which gives about 0.01
+    /// on average, so eight hours inside the band add roughly 4.8 TRIMP, about 4 on the 21 scale. Sleep counts like any
+    /// other time: only samples above the band start earn anything. The bounds are shares of reserve, so a lower resting
+    /// HR from fitness moves them down with it and quiet days stay as hard to score on as before.
+    public static let banisterLowBandStartHRR: Double = 0.11
+    public static let banisterLowBandEndHRR: Double = 0.30
+    public static let banisterLowBandPeakPerMinute: Double = 0.02
+
     /// TRIMP per minute at `banisterSedentaryHRR` — the rate subtracted from every day.
     static func banisterBaselineRatePerMinute(b: Double) -> Double {
         banisterScale * banisterSedentaryHRR * exp(b * banisterSedentaryHRR)
@@ -297,13 +309,22 @@ public enum StrainScorer {
     ///   exists to capture.
     static func banisterTRIMP(_ hr: [HRSample], restingHR: Double, hrReserve: Double,
                               durations: [Double], b: Double,
-                              floorRatePerMinute: Double = 0.0) -> Double {
+                              floorRatePerMinute: Double = 0.0,
+                              lowBandPeakPerMinute: Double = 0.0) -> Double {
         var acc = 0.0
         for i in hr.indices {
             let x = pctHRR(Double(hr[i].bpm), restingHR: restingHR, hrReserve: hrReserve) / 100.0
             if x > 0 {
-                let rate = x * banisterScale * exp(b * x)
-                acc += durations[i] * max(rate - floorRatePerMinute, 0.0)
+                if lowBandPeakPerMinute > 0, x < banisterLowBandEndHRR {
+                    // Below the band's top the credit is the ramp alone (0 at the start, the peak at the end).
+                    if x > banisterLowBandStartHRR {
+                        let u = (x - banisterLowBandStartHRR) / (banisterLowBandEndHRR - banisterLowBandStartHRR)
+                        acc += durations[i] * lowBandPeakPerMinute * u
+                    }
+                } else {
+                    let rate = x * banisterScale * exp(b * x)
+                    acc += durations[i] * max(rate - floorRatePerMinute, 0.0)
+                }
             }
         }
         return acc
@@ -483,7 +504,8 @@ public enum StrainScorer {
         case .banister:
             let b = sex.lowercased().hasPrefix("f") ? banisterBWomen : banisterBMen
             trimp = banisterTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve, durations: durations, b: b,
-                                  floorRatePerMinute: banisterBaselineRatePerMinute(b: b))
+                                  floorRatePerMinute: banisterBaselineRatePerMinute(b: b),
+                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute)
         case .edwards:
             trimp = edwardsTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve, durations: durations)
         }
@@ -525,7 +547,8 @@ public enum StrainScorer {
             // day scores ~45 on a 0-100 axis whose bottom is supposed to be no exertion (#1624).
             trimp = banisterTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve,
                                   durations: durations, b: b,
-                                  floorRatePerMinute: banisterBaselineRatePerMinute(b: b))
+                                  floorRatePerMinute: banisterBaselineRatePerMinute(b: b),
+                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute)
         case .edwards:
             trimp = edwardsTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve,
                                  durations: durations)

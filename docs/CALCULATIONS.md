@@ -38,6 +38,8 @@ Two recipes turn heart rate into `load`, and the iOS app uses the second unless 
   Each recipe has its own log denominator (Banister's daily ceiling is sex-dependent), so both map the theoretical maximum day to exactly 100 and switching does not rescale the axis.
 
 The 22% is a judgement, not a measurement. It was 18% until 26 Nov 2026: on eight days of one wearer, scored against the Day Strain WHOOP's app showed, the mean error fell from 3.7 (a floor of 10%) to 2.4 (18%) of 21. It was raised to 22% (about 92 bpm for a resting heart rate of 64 and a maximum of 191) because that wearer's waking heart rate sits at 90 to 110 bpm. On the same eight days 22% has a mean error of 2.1, the best along with 21%, though it reads 1.3 low on average; 25% was tried and read 2.4 low. Strength sessions still read 4 to 5 points under WHOOP's, which adds a muscular load a heart rate cannot see.
+
+**Low band** (iOS, 27 Nov 2026, not yet released): between 11% and 30% of reserve (about 78 to 102 bpm at a resting 64 and maximum 191) a sample earns a small linear ramp, up to 0.02 TRIMP a minute at the top, instead of the Banister excess. Below 11% nothing counts, and from 30% up the score is the same floored Banister as before. Eight hours inside the band add about 4.8 TRIMP, about 4 of 21, so a quiet waking day no longer reads 0 while a brisk hour still scores as before. The bounds are shares of reserve, so a lower resting heart rate makes the band start lower. The credit rate steps up at 102 bpm (from about 0.02 to about 0.12 TRIMP a minute); the score itself has no jump.
 Code: `StrainScorer.Method`, `StrainScorer.banisterSedentaryHRR`.
 
 ### Effort after an activity

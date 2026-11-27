@@ -624,14 +624,26 @@ final class IntelligenceEngine: ObservableObject {
     /// "-noop" computed source) , those are handled by re-import. A day already on 0–100 is recomputed
     /// from the same raw HR and lands on 0–100 again: UNCHANGED axis (verified by test).
     func runEffortRescoreIfNeeded(historyDays: Int = 4000) async {
-        guard !UserDefaults.standard.bool(forKey: Self.effortRescoreFlagKey) else { return }
+        let defaults = UserDefaults.standard
+        let legacyDone = defaults.bool(forKey: Self.effortRescoreFlagKey)
+        let revisionDone = defaults.integer(forKey: Self.effortScoringRevisionKey) >= Self.effortScoringRevision
+        guard !legacyDone || !revisionDone else { return }
         await analyzeRecent(maxDays: historyDays)
         // Only mark done if the pass actually completed (wasn't skipped because another tick held the
         // `computing` lock). `computing` is false here once analyzeRecent's `defer` has run; a skipped
         // call returns with `note` unset by it. Use the lock state: if a concurrent run was in progress
         // the flag stays unset so the next launch retries , cheap, and correctness over a one-time cost.
-        if !computing { UserDefaults.standard.set(true, forKey: Self.effortRescoreFlagKey) }
+        if !computing {
+            defaults.set(true, forKey: Self.effortRescoreFlagKey)
+            defaults.set(Self.effortScoringRevision, forKey: Self.effortScoringRevisionKey)
+        }
     }
+
+    /// Revision of the Effort scoring recipe the stored daily rows were produced under. Bump it whenever the recipe
+    /// changes on iOS (a new sedentary baseline, the low band) and the next launch rescores the full history once from
+    /// raw HR, as the #313 pass above does. Revision 2: Banister low band, 78 to 102 bpm ramp (27 Nov 2026).
+    static let effortScoringRevisionKey = "intelligence.effortScoringRevision"
+    static let effortScoringRevision = 2
 
     /// The iPhone app scores a day against the mean resting HR of the main sleep; other platforms keep the floor.
     nonisolated static var usesSessionMeanRestingHR: Bool {
