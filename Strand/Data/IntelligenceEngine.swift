@@ -1533,9 +1533,9 @@ final class IntelligenceEngine: ObservableObject {
                                                      strainDiag: { strainDiagLines.append($0) },
                                                      hr: hr, rr: rr, resp: resp,
                                                      vendorResp: vendorResp, gravity: grav,
-                                                     steps: steps, dayHr: dayHr, daySteps: daySteps,
-                                                     dayGravity: dayGrav,
+                                                     steps: steps, dayHr: dayHr,
                                                      strengthWorkoutIntervals: strengthWorkoutIntervals,
+                                                     daySteps: daySteps, dayGravity: dayGrav,
                                                      skinTemp: skin,
                                                      skinTempFamily: skinFamily,   // #938
                                                      skinTempAnchorRaw: skinAnchorRaw,   // #938 second capture
