@@ -1060,7 +1060,7 @@ final class AppModel: ObservableObject {
         let startTs = Int(w.start.timeIntervalSince1970)
         let endTs = Int(end.timeIntervalSince1970)
         let strengthIntervals = StrainScorer.strengthWorkoutMultiplier(for: w.sport) > 1.0
-            ? [StrainScorer.WorkoutInterval(startTs: startTs, endTs: endTs)] : []
+            ? [StrainScorer.WorkoutInterval(startTs: startTs, endTs: endTs + 1)] : []
         let strain = samples.count >= 2
             ? StrainScorer.liveStrain(samples, maxHR: Double(profile.hrMax),
                                       restingHR: restingHR,
