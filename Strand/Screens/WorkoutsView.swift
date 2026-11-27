@@ -268,11 +268,18 @@ struct WorkoutsView: View {
                     // before the log map and is limited to Strength Training / Powerlifting.
                     var rowToSave = row
                     let canonicalSport = WorkoutSource.canonicalSport(row.sport)
+                    let currentIsStrength = StrainScorer.strengthWorkoutMultiplier(for: canonicalSport) > 1.0
+                    let previousWasStrength = replacing.map {
+                        StrainScorer.strengthWorkoutMultiplier(for: WorkoutSource.canonicalSport($0.sport)) > 1.0
+                    } ?? false
+                    // Re-score both directions: adding/changing TO strength applies 1.30×, while
+                    // changing a previously weighted strength workout to another sport removes it.
                     if PuffinExperiment.effortMethod == .banister,
-                       StrainScorer.strengthWorkoutMultiplier(for: canonicalSport) > 1.0 {
+                       currentIsStrength || (PuffinExperiment.effortMethod == .banister && previousWasStrength) {
                         let samples = await repo.hrSamples(from: row.startTs, to: row.endTs, limit: 20_000)
-                        let strengthInterval = [StrainScorer.WorkoutInterval(startTs: row.startTs,
-                                                                              endTs: row.endTs + 1)]
+                        let strengthInterval = currentIsStrength
+                            ? [StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs + 1)]
+                            : []
                         if let rescored = StrainScorer.liveStrain(
                             samples, maxHR: Double(profile.hrMax),
                             restingHR: repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR,
