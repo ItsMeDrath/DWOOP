@@ -129,8 +129,26 @@ public enum StrainScorer {
         (90.0, 5), (80.0, 4), (70.0, 3), (60.0, 2), (50.0, 1),
     ]
 
+    /// Active interval for a manually logged strength workout.
+    public struct WorkoutInterval: Hashable, Sendable {
+        public let startTs: Int
+        public let endTs: Int
+        public init(startTs: Int, endTs: Int) {
+            self.startTs = startTs
+            self.endTs = endTs
+        }
+    }
+
     /// TRIMP accumulation method.
     public enum Method: Sendable, Hashable { case edwards, banister }
+
+    public static let strengthWorkoutTRIMPMultiplier: Double = 1.30
+
+    public static func strengthWorkoutMultiplier(for sport: String) -> Double {
+        let name = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return (name == "strength training" || name == "powerlifting")
+            ? strengthWorkoutTRIMPMultiplier : 1.0
+    }
 
     // MARK: - HRmax helpers
 
@@ -273,25 +291,29 @@ public enum StrainScorer {
     static func banisterTRIMP(_ hr: [HRSample], restingHR: Double, hrReserve: Double,
                               durations: [Double], b: Double,
                               floorRatePerMinute: Double = 0.0,
-                              lowBandPeakPerMinute: Double = 0.0) -> Double {
+                              lowBandPeakPerMinute: Double = 0.0,
+                              strengthWorkoutIntervals: [WorkoutInterval] = []) -> Double {
         var acc = 0.0
         for i in hr.indices {
             let x = pctHRR(Double(hr[i].bpm), restingHR: restingHR, hrReserve: hrReserve) / 100.0
+            let strengthMultiplier = strengthWorkoutIntervals.contains {
+                hr[i].ts >= $0.startTs && hr[i].ts < $0.endTs
+            } ? strengthWorkoutTRIMPMultiplier : 1.0
             if lowBandPeakPerMinute > 0 {
                 if x > banisterLowBandStartHRR && x < banisterLowBandEndHRR {
                     // Linear ramp: 0 at 11% HRR and peak at 30% HRR.
                     let u = (x - banisterLowBandStartHRR) / (banisterLowBandEndHRR - banisterLowBandStartHRR)
-                    acc += durations[i] * lowBandPeakPerMinute * u
+                    acc += durations[i] * lowBandPeakPerMinute * u * strengthMultiplier
                 } else if x >= banisterLowBandEndHRR {
                     // Continuous join: at 30% HRR this is exactly the ramp peak.
                     let rate = x * banisterScale * exp(b * x)
                     let anchor = banisterAnchorRatePerMinute(b: b)
-                    acc += durations[i] * (lowBandPeakPerMinute + max(rate - anchor, 0.0))
+                    acc += durations[i] * (lowBandPeakPerMinute + max(rate - anchor, 0.0)) * strengthMultiplier
                 }
             } else if x > 0 {
                 // Preserve the original generic Banister path when no low-band ramp is requested.
                 let rate = x * banisterScale * exp(b * x)
-                acc += durations[i] * max(rate - floorRatePerMinute, 0.0)
+                acc += durations[i] * max(rate - floorRatePerMinute, 0.0) * strengthMultiplier
             }
         }
         return acc
@@ -378,6 +400,7 @@ public enum StrainScorer {
                               method: Method = .edwards,
                               sex: String = "male",
                               denominator: Double? = nil,
+                              strengthWorkoutIntervals: [WorkoutInterval] = [],
                               // Optional diagnostic sink. Nil by default and the line is built ONLY when
                               // one is supplied, so a pass nobody is watching pays nothing.
                               //
@@ -396,7 +419,8 @@ public enum StrainScorer {
         let key = StrainKey(
             hr: StreamFingerprint.of(hr, ts: { $0.ts }, quant: { Int($0.bpm) }),
             maxHR: maxHR, restingHR: restingHR, method: method,
-            sexF: sex.lowercased().hasPrefix("f"), denom: resolvedDenominator)
+            sexF: sex.lowercased().hasPrefix("f"), denom: resolvedDenominator,
+            strengthIntervals: method == .banister ? strengthWorkoutIntervals : [])
         // A diagnostic request BYPASSES the memo, and must. The Today view re-reads this on every
         // live-HR tick with no sink, so by the time the scoring pass asks with one the answer is already
         // cached — and a cache hit never reaches the code that emits, so the line would simply never
@@ -404,11 +428,13 @@ public enum StrainScorer {
         // one. Kotlin has no memo here and always emits; this keeps the two behaving the same.
         guard diag == nil else {
             return strainUncached(hr, maxHR: maxHR, restingHR: restingHR, method: method, sex: sex,
-                                  denominator: resolvedDenominator, diag: diag, day: day)
+                                  denominator: resolvedDenominator,
+                                  strengthWorkoutIntervals: strengthWorkoutIntervals, diag: diag, day: day)
         }
         return strainCache.value(key) {
             strainUncached(hr, maxHR: maxHR, restingHR: restingHR, method: method, sex: sex,
-                           denominator: resolvedDenominator, diag: nil, day: day)
+                           denominator: resolvedDenominator,
+                           strengthWorkoutIntervals: strengthWorkoutIntervals, diag: nil, day: day)
         }
     }
 
@@ -449,6 +475,7 @@ public enum StrainScorer {
         let hr: StreamFingerprint
         let maxHR: Double?; let restingHR: Double; let method: Method
         let sexF: Bool; let denom: Double
+        let strengthIntervals: [WorkoutInterval]
     }
     private static let strainCache = AnalyticsMemoCache<StrainKey, Double?>(capacity: 48)
 
@@ -472,7 +499,8 @@ public enum StrainScorer {
             let b = sex.lowercased().hasPrefix("f") ? banisterBWomen : banisterBMen
             trimp = banisterTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve, durations: durations, b: b,
                                   floorRatePerMinute: banisterBaselineRatePerMinute(b: b),
-                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute)
+                                  lowBandPeakPerMinute: banisterLowBandPeakPerMinute,
+                                  strengthWorkoutIntervals: strengthWorkoutIntervals)
         case .edwards:
             trimp = edwardsTRIMP(hr, restingHR: restingHR, hrReserve: hrReserve, durations: durations)
         }
@@ -481,6 +509,7 @@ public enum StrainScorer {
 
     private static func strainUncached(_ hr: [HRSample], maxHR: Double?, restingHR: Double,
                                        method: Method, sex: String, denominator: Double,
+                                       strengthWorkoutIntervals: [WorkoutInterval] = [],
                                        diag: ((String) -> Void)? = nil, day: String = "") -> Double? {
         let effMax = maxHR ?? Double(defaultMaxHR())
         // Enough data to trust the score: a dense stream (≥ minReadings) OR a sparse-but-sustained
