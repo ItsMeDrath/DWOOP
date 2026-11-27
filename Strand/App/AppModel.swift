@@ -1057,10 +1057,15 @@ final class AppModel: ObservableObject {
         let restingHR = repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR
         // Scored as the live gauge was: a session is its own window, so the day-sized gate of `strain` (10 minutes of data) does not apply,
         // and a short session keeps the Effort the wearer watched build instead of ending on a dash.
+        let startTs = Int(w.start.timeIntervalSince1970)
+        let endTs = Int(end.timeIntervalSince1970)
+        let strengthIntervals = StrainScorer.strengthWorkoutMultiplier(for: w.sport) > 1.0
+            ? [StrainScorer.WorkoutInterval(startTs: startTs, endTs: endTs)] : []
         let strain = samples.count >= 2
             ? StrainScorer.liveStrain(samples, maxHR: Double(profile.hrMax),
                                       restingHR: restingHR,
-                                      method: PuffinExperiment.effortMethod, sex: profile.sex) : nil
+                                      method: PuffinExperiment.effortMethod, sex: profile.sex,
+                                      strengthWorkoutIntervals: strengthIntervals) : nil
         // Estimate calories from the captured HR window (same Keytel/Harris–Benedict model the
         // auto-detector uses) so a manual session shows energy too, not just duration/strain. (#117)
         let up = UserProfile(weightKg: profile.weightKg, heightCm: profile.heightCm,
@@ -1073,7 +1078,6 @@ final class AppModel: ObservableObject {
             ? Calories.estimateBoutCalories(samples, profile: up, hrmax: Double(profile.hrMax),
                                             restingHR: restingHR).0
             : 0
-        let startTs = Int(w.start.timeIntervalSince1970)
         let row = WorkoutRow(
             startTs: startTs, endTs: Int(end.timeIntervalSince1970),
             sport: w.sport, source: "manual", durationS: w.elapsed(at: end),
@@ -1117,8 +1121,13 @@ final class AppModel: ObservableObject {
         w.avgHr = Int((Double(w.samples.map(\.bpm).reduce(0, +)) / Double(w.samples.count)).rounded())
         // The same resting heart rate the saved session is scored with, and no day-sized gate, so the gauge moves from the first minute.
         let restingHR = repo.today?.restingHr.map(Double.init) ?? StrainScorer.defaultRestingHR
+        let workoutStartTs = Int(w.start.timeIntervalSince1970)
+        let workoutEndTs = Int(Date().timeIntervalSince1970)
+        let strengthIntervals = StrainScorer.strengthWorkoutMultiplier(for: w.sport) > 1.0
+            ? [StrainScorer.WorkoutInterval(startTs: workoutStartTs, endTs: workoutEndTs)] : []
         w.liveStrain = StrainScorer.liveStrain(w.samples, maxHR: Double(profile.hrMax), restingHR: restingHR,
-                                               method: PuffinExperiment.effortMethod, sex: profile.sex) ?? 0
+                                               method: PuffinExperiment.effortMethod, sex: profile.sex,
+                                               strengthWorkoutIntervals: strengthIntervals) ?? 0
         activeWorkout = w
         // Re-snapshot the durable session so a kill keeps the latest accumulated HR window (#529).
         persistActiveWorkout()
