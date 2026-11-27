@@ -260,15 +260,12 @@ public enum StrainScorer {
         return acc
     }
 
-    /// - Parameter floorRatePerMinute: per-minute rate treated as "no effort" and subtracted from EVERY
-    ///   sample, floored at zero (#1624). Zero — the default — is the original, unfloored Banister recipe,
-    ///   so every existing caller and test is byte-identical. Pass `banisterBaselineRatePerMinute` to
-    ///   score the excess over a sedentary day, which is what the daily scorer does.
+    /// - Parameter floorRatePerMinute: used by the generic path when no low-band peak is supplied.
+    ///   In the calibrated low-band path, the active curve is instead anchored explicitly at 30% HRR;
+    ///   the matching constant offset is also removed from the Banister log-map ceiling.
     ///
-    ///   Per SAMPLE, never as one lump off the total: a day quieter than the floor would otherwise run a
-    ///   deficit that eats into real work done on top, and 90 minutes at 35% HRR inside an otherwise still
-    ///   day would net negative and clamp to zero — erasing exactly the intermittent effort this recipe
-    ///   exists to capture.
+    ///   The generic path retains its historical per-sample floor behavior for callers that leave
+    ///   lowBandPeakPerMinute at zero.
     static func banisterTRIMP(_ hr: [HRSample], restingHR: Double, hrReserve: Double,
                               durations: [Double], b: Double,
                               floorRatePerMinute: Double = 0.0,
