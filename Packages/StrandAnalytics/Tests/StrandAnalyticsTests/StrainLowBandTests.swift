@@ -27,7 +27,7 @@ final class StrainLowBandTests: XCTestCase {
         XCTAssertEqual(StrainScorer.banisterLowBandStartHRR, 0.11, accuracy: 1e-12)
         XCTAssertEqual(StrainScorer.banisterLowBandEndHRR, 0.30, accuracy: 1e-12)
         XCTAssertEqual(StrainScorer.banisterLowBandPeakPerMinute, 0.0094, accuracy: 1e-12)
-        XCTAssertEqual(StrainScorer.banisterSedentaryHRR, 0.30, accuracy: 1e-12)
+        XCTAssertEqual(StrainScorer.banisterAnchorHRR, 0.30, accuracy: 1e-12)
     }
 
     /// Below 11% HRR earns nothing, however long it lasts.
