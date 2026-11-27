@@ -104,7 +104,7 @@ public enum StrainScorer {
             let b = sex.lowercased().hasPrefix("f") ? banisterBWomen : banisterBMen
             // Ceiling MINUS the same full-day constant offset removed by the active Banister curve,
             // so a maximum day still maps to maxStrain.
-            return banisterDailyCeiling(b: b) - banisterBaseline(minutes: 24.0 * 60.0, b: b) + 1.0
+            return banisterDailyCeiling(b: b) - banisterBaselineRatePerMinute(b: b) * (24.0 * 60.0) + 1.0
         }
     }
 
