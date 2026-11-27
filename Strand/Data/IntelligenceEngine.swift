@@ -1219,7 +1219,7 @@ final class IntelligenceEngine: ObservableObject {
                               row.endTs >= strengthDayMid, row.startTs <= strengthDayEnd,
                               StrainScorer.strengthWorkoutMultiplier(for: WorkoutSource.canonicalSport(row.sport)) > 1.0
                         else { return nil }
-                        return StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs)
+                        return StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs + 1)
                     }
                 } else {
                     strengthWorkoutIntervals = []
