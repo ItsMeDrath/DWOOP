@@ -1204,7 +1204,24 @@ final class IntelligenceEngine: ObservableObject {
                                                        devices: regDevices, activeId: regActiveId,
                                                        registry: registry, fallbackDeviceId: ownerFallbackId)
 
-                // ── #1005 BATTERY: per-day reuse (see `dayScanCache`) ───────────────────────────────
+                // Strength TRIMP applies only to explicitly MANUAL Strength Training / Powerlifting
+                // sessions. Read the owning device's workout rows before the day-cache gate so an edit,
+                // addition, or deletion changes the cache key and cannot leave a stale daily Effort score.
+                let strengthDayMid = Self.midnightLocal(dayStart, offsetSec: tzOffset)
+                let strengthDayEnd = strengthDayMid + 86_400 - 1
+                let strengthRows = (try? await store.workouts(
+                    deviceId: owner, from: strengthDayMid - 86_400, to: strengthDayEnd,
+                    limit: 500)) ?? []
+                let strengthWorkoutIntervals = strengthRows.compactMap { row -> StrainScorer.WorkoutInterval? in
+                    guard row.source == "manual",
+                          row.endTs >= strengthDayMid, row.startTs <= strengthDayEnd,
+                          StrainScorer.strengthWorkoutMultiplier(for: WorkoutSource.canonicalSport(row.sport)) > 1.0
+                    else { return nil }
+                    return StrainScorer.WorkoutInterval(startTs: row.startTs, endTs: row.endTs)
+                }
+                let strengthWorkoutFingerprint = strengthWorkoutIntervals
+                    .map { "\($0.startTs)-\($0.endTs)" }.joined(separator: ",")
+                // ── #1005 BATTERY: per-day reuse (see dayScanCache) ───────────────────────────────
                 // Reuse this night's already-scored `DayScan` when its scored inputs are provably unchanged
                 // since we last scored it THIS session, skipping the 7 stream reads + `analyzeDay`. Gated to a
                 // registered WHOOP owner (4.0 or 5/MG) via the UN-coalesced `forRegistryDevice` — which
@@ -1250,7 +1267,8 @@ final class IntelligenceEngine: ObservableObject {
                             // watermark gate above, never this one. Both reads are index-only aggregates
                             // over the same `(deviceId, ts)` keys; a miss costs the 7 full stream reads
                             // this gate exists to skip.
-                            streams: streamFp + "|rrAlias5=\(activeWhoop5RR && owner == Repository.whoopSource)",
+                            streams: streamFp + "|rrAlias5=\(activeWhoop5RR && owner == Repository.whoopSource)"
+                                 + "|strength=\(strengthWorkoutFingerprint)",
                             // #1575: `hrvTraceActive &&` matters. With the HRV trace OFF no detail
                             // line is ever produced, so the flag describes nothing — but it would still
                             // flip at midnight and invalidate yesterday, charging EVERY user an extra
@@ -1512,6 +1530,7 @@ final class IntelligenceEngine: ObservableObject {
                                                      vendorResp: vendorResp, gravity: grav,
                                                      steps: steps, dayHr: dayHr, daySteps: daySteps,
                                                      dayGravity: dayGrav,
+                                                     strengthWorkoutIntervals: strengthWorkoutIntervals,
                                                      skinTemp: skin,
                                                      skinTempFamily: skinFamily,   // #938
                                                      skinTempAnchorRaw: skinAnchorRaw,   // #938 second capture
