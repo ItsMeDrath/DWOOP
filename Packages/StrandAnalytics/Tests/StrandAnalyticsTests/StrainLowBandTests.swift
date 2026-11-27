@@ -105,6 +105,15 @@ final class StrainLowBandTests: XCTestCase {
         XCTAssertEqual(weighted, base + oneSample * 0.30, accuracy: 1e-12)
     }
 
+    func testStrainMemoSeparatesWeightedAndUnweightedStrengthWindows() throws {
+        let hr = flat(120, minutes: 10)
+        let base = try XCTUnwrap(StrainScorer.strain(hr, maxHR: max, restingHR: rest, method: .banister))
+        let weighted = try XCTUnwrap(StrainScorer.strain(
+            hr, maxHR: max, restingHR: rest, method: .banister,
+            strengthWorkoutIntervals: [.init(startTs: 0, endTs: 600)]))
+        XCTAssertGreaterThan(weighted, base)
+    }
+
     func testOnlyStrengthTrainingAndPowerliftingQualify() {
         XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Strength Training"), 1.30)
         XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "powerlifting"), 1.30)
