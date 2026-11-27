@@ -1127,7 +1127,7 @@ final class AppModel: ObservableObject {
         let workoutStartTs = Int(w.start.timeIntervalSince1970)
         let workoutEndTs = Int(Date().timeIntervalSince1970)
         let strengthIntervals = StrainScorer.strengthWorkoutMultiplier(for: w.sport) > 1.0
-            ? [StrainScorer.WorkoutInterval(startTs: workoutStartTs, endTs: workoutEndTs)] : []
+            ? [StrainScorer.WorkoutInterval(startTs: workoutStartTs, endTs: workoutEndTs + 1)] : []
         w.liveStrain = StrainScorer.liveStrain(w.samples, maxHR: Double(profile.hrMax), restingHR: restingHR,
                                                method: PuffinExperiment.effortMethod, sex: profile.sex,
                                                strengthWorkoutIntervals: strengthIntervals) ?? 0
