@@ -338,7 +338,7 @@ public enum AnalyticsEngine {
                                   // Sleep / recovery keep using hr/rr/resp/gravity — staging needs the
                                   // pre-midnight night span the calendar day omits.
                                   dayHr: [HRSample]? = nil,
-                                  // Manually logged Strength Training / Powerlifting spans. Only their
+                                  // Manually logged Strength Training / Powerlifting / Weightlifting / Bodybuilding spans. Only their
                                   // overlapping samples receive the Banister 1.30 TRIMP multiplier.
                                   strengthWorkoutIntervals: [StrainScorer.WorkoutInterval] = [],
                                   daySteps: [StepSample]? = nil,

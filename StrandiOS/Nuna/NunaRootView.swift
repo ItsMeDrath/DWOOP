@@ -149,9 +149,15 @@ struct NunaRootView: View {
             NunaAnyaDayContext.install(on: model.coach, repo: model.repo, profile: model.profile)
             // The daily brief is armed (and made, if its time has passed) as soon as the app is up, not only when the Anya tab is opened.
             CoachBriefScheduler.activateIfEnabled { await model.coach.generateBrief() }
+            Self.runBackupCatchUp(repo: model.repo)
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active { CoachBriefScheduler.activateIfEnabled { await model.coach.generateBrief() } }
+            if phase == .active {
+                CoachBriefScheduler.activateIfEnabled { await model.coach.generateBrief() }
+                // Backup & Sync's automatic backup is an on-open catch-up; the Nuna shell never ran it,
+                // so with the default Nuna look the 6-hourly backup silently never happened.
+                Self.runBackupCatchUp(repo: model.repo)
+            }
         }
         // The Coach context is owned by the app-level AICoachEngine and stays installed when
         // switching between the two iOS shells; both shells install the same provider on entry.
@@ -189,6 +195,14 @@ struct NunaRootView: View {
             selection = Tab.me.rawValue
             paths[Tab.me.rawValue] = NavigationPath([NunaMeRoute.notifications])
             router.openNotificationSettings = false
+        }
+    }
+
+    /// Automatic backup catch-up (no-op unless the toggle is on, a folder is set and 6h have passed). Detached at utility priority so
+    /// a 100MB+ whole-DB ZIP never blocks the UI.
+    private static func runBackupCatchUp(repo: Repository) {
+        Task.detached(priority: .utility) {
+            await FolderBackup.catchUpIfDue(checkpoint: { await repo.checkpointForBackup() })
         }
     }
 

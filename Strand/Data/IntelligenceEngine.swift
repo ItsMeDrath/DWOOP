@@ -1204,7 +1204,7 @@ final class IntelligenceEngine: ObservableObject {
                                                        devices: regDevices, activeId: regActiveId,
                                                        registry: registry, fallbackDeviceId: ownerFallbackId)
 
-                // Strength TRIMP applies only to explicitly MANUAL Strength Training / Powerlifting
+                // Strength TRIMP applies only to explicitly MANUAL Strength Training / Powerlifting / Weightlifting / Bodybuilding
                 // sessions. Read the owning device's workout rows before the day-cache gate so an edit,
                 // addition, or deletion changes the cache key and cannot leave a stale daily Effort score.
                 let strengthDayMid = Self.midnightLocal(dayStart, offsetSec: tzOffset)

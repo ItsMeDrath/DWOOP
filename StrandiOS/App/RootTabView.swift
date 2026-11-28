@@ -35,6 +35,7 @@ struct RootTabView: View {
     let homeScreenQuickActionsEnabled: Bool
 
     @EnvironmentObject private var repo: Repository
+    @Environment(\.scenePhase) private var scenePhase
     /// Cross-screen navigation requests (e.g. Live → "Manage devices"). Devices isn't a tab — it lives
     /// behind the More list — so a request presents it as a sheet, matching the quick-action screens.
     @EnvironmentObject private var router: NavRouter
@@ -207,10 +208,19 @@ struct RootTabView: View {
             // Install the same iOS Coach context in the classic shell too: WHOOP Age, its factor
             // breakdown, sleep context and the other live day data must not depend on the selected UI.
             NunaAnyaDayContext.install(on: model.coach, repo: model.repo, profile: model.profile)
-            let refreshSucceeded = await repo.refresh()
-            guard refreshSucceeded else { return }
+            _ = await repo.refresh()
             // Backup & Sync: on-launch catch-up (see RootView). Detached + utility priority so a
             // 100MB+ whole-DB ZIP never blocks startup; gated on the auto toggle (default OFF). (Must-fix #4.)
+            // Runs even when the refresh failed: a failed refresh must not silently skip the backup.
+            let backupRepo = repo
+            Task.detached(priority: .utility) {
+                await FolderBackup.catchUpIfDue(checkpoint: { await backupRepo.checkpointForBackup() })
+            }
+        }
+        // Also catch up whenever the app returns to the foreground, not only on a cold launch,
+        // since iOS keeps the app alive for days and the one-time .task above would never re-run.
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
             let backupRepo = repo
             Task.detached(priority: .utility) {
                 await FolderBackup.catchUpIfDue(checkpoint: { await backupRepo.checkpointForBackup() })

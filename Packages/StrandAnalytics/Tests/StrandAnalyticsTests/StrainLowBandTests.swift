@@ -114,11 +114,13 @@ final class StrainLowBandTests: XCTestCase {
         XCTAssertGreaterThan(weighted, base)
     }
 
-    func testOnlyStrengthTrainingAndPowerliftingQualify() {
+    func testOnlyLiftingSportsQualify() {
         XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Strength Training"), 1.30)
         XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "powerlifting"), 1.30)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Weightlifting"), 1.30)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: " Bodybuilding "), 1.30)
         XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Running"), 1.0)
-        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Weightlifting"), 1.0)
+        XCTAssertEqual(StrainScorer.strengthWorkoutMultiplier(for: "Yoga"), 1.0)
     }
 
     /// With no low-band peak, the generic Banister path remains unchanged.
