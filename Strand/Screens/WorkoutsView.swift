@@ -265,7 +265,7 @@ struct WorkoutsView: View {
                     // A copy pre-fills the form but replaces nothing — see `WorkoutSheetTarget.isCopy`.
                     // Strength sessions edited in the past are rescored from their exact HR window here,
                     // rather than launching a full-history rescore. The Banister multiplier is applied
-                    // before the log map and is limited to Strength Training / Powerlifting.
+                    // before the log map and is limited to Strength Training / Powerlifting / Weightlifting / Bodybuilding.
                     var rowToSave = row
                     let canonicalSport = WorkoutSource.canonicalSport(row.sport)
                     let currentIsStrength = StrainScorer.strengthWorkoutMultiplier(for: canonicalSport) > 1.0

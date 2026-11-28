@@ -144,10 +144,14 @@ public enum StrainScorer {
 
     public static let strengthWorkoutTRIMPMultiplier: Double = 1.30
 
+    /// Lowercased sport names that get `strengthWorkoutTRIMPMultiplier`.
+    static let strengthWorkoutSports: Set<String> = [
+        "strength training", "powerlifting", "weightlifting", "bodybuilding",
+    ]
+
     public static func strengthWorkoutMultiplier(for sport: String) -> Double {
         let name = sport.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        return (name == "strength training" || name == "powerlifting")
-            ? strengthWorkoutTRIMPMultiplier : 1.0
+        return strengthWorkoutSports.contains(name) ? strengthWorkoutTRIMPMultiplier : 1.0
     }
 
     // MARK: - HRmax helpers
