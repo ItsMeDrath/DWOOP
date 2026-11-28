@@ -342,7 +342,7 @@ struct NunaScoreHero<Note: View>: View {
                     if hasNote { NunaInfoButton(isOn: $ownInfo) }
                 }
             }
-            NunaRingGauge(fraction: fraction, color: color, gradient: gradient, target: target, size: ringSize, lineWidth: 24.72 * 1.05 * ringSize / 300) {  // 5% thicker; the outer edge is fixed, so it grows inward
+            NunaRingGauge(fraction: fraction, color: color, gradient: gradient, target: target, size: ringSize, lineWidth: 24.72 * 1.10 * ringSize / 300) {  // 10% thicker; the outer edge is fixed, so it grows inward
                 VStack(spacing: 6) {
                     if ringWordmark {
                         // The supplied vector wordmark, soft grey like the word it replaces; the letters' ratio is 236:40.

@@ -128,7 +128,7 @@ struct NunaScoreRings: View {
     private func numberSize(_ ringSize: CGFloat) -> CGFloat { max(ringSize * 0.27, 31 * min(ringSize / 92, 1)) }
 
     private func ringView(_ v: RingValues, size: CGFloat) -> some View {
-        NunaRingGauge(fraction: v.fraction, color: v.color, gradient: v.gradient, target: v.target, size: size, lineWidth: max(3.5, size * 0.09) * 1.03) {  // 3% thicker; the outer edge is fixed, so it grows inward
+        NunaRingGauge(fraction: v.fraction, color: v.color, gradient: v.gradient, target: v.target, size: size, lineWidth: max(3.5, size * 0.09) * 1.06) {  // 6% thicker; the outer edge is fixed, so it grows inward
             // The figure fades out as the ring shrinks (full at 76 pt, gone at 44) instead of vanishing at one size.
             let figure = min(max((size - 44) / 32, 0), 1)
             if figure > 0.01 {
