@@ -260,8 +260,7 @@ struct NunaEffortDetailView: View {
             NunaScoreHero(caption: "",
                           fraction: (day.effort ?? 0) / 100,
                           number: day.effort.map { UnitFormatter.effortDisplay($0, scale: scale) } ?? "–",
-                          suffix: String(localized: "of \(UnitFormatter.effortScaleMax(scale))"),
-                          name: "Strain", gradient: day.effort.map(nunaEffortRingColors), target: nunaEffortTargetFractions(charge: day.charge.pct),
+                          name: "Day Strain", gradient: day.effort.map(nunaEffortRingColors), target: nunaEffortTargetFractions(charge: day.charge.pct),
                           color: day.effort.map(nunaEffortColor) ?? NunaPalette.effortModerate,
                           showsCaptionRow: false, ringWordmark: true, ringSize: 252, info: $showInfo) {
                 Text(verbatim: router.todayDayOffset > 0 ? String(localized: "Cardio load for the day") : (targetNote ?? String(localized: "Cardio load so far today"))).font(.nuna(size: 14.5, weight: .semibold)).foregroundStyle(NunaPalette.textSecondary).textCase(nil)
